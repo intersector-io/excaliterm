@@ -1,135 +1,68 @@
 # REST API Reference
 
-Base URL: `http://localhost:3001`
+Base backend URL: `http://localhost:3001/api`
 
-All protected endpoints require a valid Better Auth session cookie. Unauthenticated requests receive a `401 Unauthorized` response.
-
----
-
-## Authentication
-
-Authentication is handled by Better Auth and mounted at `/api/auth/**`.
-
-### POST /api/auth/sign-up
-
-Register a new user account.
-
-**Request:**
-
-```json
-{
-  "name": "Jane Doe",
-  "email": "jane@example.com",
-  "password": "securepassword123"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "user": {
-    "id": "abc123",
-    "name": "Jane Doe",
-    "email": "jane@example.com",
-    "emailVerified": false,
-    "image": null,
-    "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T10:30:00.000Z"
-  },
-  "session": {
-    "id": "session-id",
-    "token": "session-token",
-    "expiresAt": "2025-02-14T10:30:00.000Z"
-  }
-}
-```
-
-Sets a session cookie in the response headers.
-
-### POST /api/auth/sign-in/email
-
-Sign in with email and password.
-
-**Request:**
-
-```json
-{
-  "email": "jane@example.com",
-  "password": "securepassword123"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "user": {
-    "id": "abc123",
-    "name": "Jane Doe",
-    "email": "jane@example.com",
-    "emailVerified": false,
-    "image": null,
-    "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T10:30:00.000Z"
-  },
-  "session": {
-    "id": "session-id",
-    "token": "session-token",
-    "expiresAt": "2025-02-14T10:30:00.000Z"
-  }
-}
-```
-
-### POST /api/auth/sign-out
-
-Sign out and invalidate the current session.
-
-**Request:** No body required. Session cookie must be present.
-
-**Response (200):**
-
-```json
-{
-  "success": true
-}
-```
-
----
+The current API is workspace-scoped. There is no active Better Auth flow in the implemented routes. Access to most resources is controlled by `workspaceId` in the URL.
 
 ## Health
 
-### GET /api/health
+### `GET /health`
 
-Public endpoint. Returns server status and whether the Windows Service is connected.
+Returns backend health and aggregate service presence.
 
-**Response (200):**
+Example response:
 
 ```json
 {
   "status": "ok",
   "serviceConnected": true,
-  "timestamp": "2025-01-15T10:30:00.000Z"
+  "connectedServices": 1,
+  "timestamp": "2026-04-20T12:00:00.000Z"
 }
 ```
 
-| Field              | Type    | Description                                      |
-|--------------------|---------|--------------------------------------------------|
-| `status`           | string  | Always `"ok"` if the server is running           |
-| `serviceConnected` | boolean | Whether a Windows Service is connected via WebSocket |
-| `timestamp`        | string  | Current server time (ISO 8601)                   |
+## Workspaces
 
----
+### `POST /workspaces`
+
+Creates a new workspace.
+
+Example response:
+
+```json
+{
+  "id": "Ab12Cd34Ef56",
+  "name": "Untitled workspace",
+  "createdAt": "2026-04-20T12:00:00.000Z",
+  "lastAccessedAt": "2026-04-20T12:00:00.000Z"
+}
+```
+
+### `GET /workspaces/:id`
+
+Returns workspace metadata if the workspace exists. Also updates `lastAccessedAt`.
+
+Errors:
+
+- `404` if the workspace does not exist
+
+## Workspace-Scoped Routes
+
+All routes below are mounted under:
+
+```text
+/api/w/:workspaceId
+```
+
+If `workspaceId` is missing or invalid, the backend rejects the request before it reaches the route handler.
 
 ## Terminals
 
-All terminal endpoints require authentication.
+### `POST /w/:workspaceId/terminals`
 
-### POST /api/terminals
+Creates a terminal session and a terminal canvas node.
 
-Create a new terminal session and its canvas node. Sends a create command to the Windows Service.
-
-**Request:**
+Request body:
 
 ```json
 {
@@ -140,84 +73,69 @@ Create a new terminal session and its canvas node. Sends a create command to the
 }
 ```
 
-| Field  | Type   | Default | Description                        |
-|--------|--------|---------|------------------------------------|
-| `cols` | number | 80      | Terminal column count              |
-| `rows` | number | 24      | Terminal row count                 |
-| `x`    | number | 100     | Canvas X position for the node     |
-| `y`    | number | 100     | Canvas Y position for the node     |
+Fields:
 
-**Response (201):**
+- `cols`: optional, defaults to `80`
+- `rows`: optional, defaults to `24`
+- `x`: optional, defaults to `100`
+- `y`: optional, defaults to `100`
+
+Example response:
 
 ```json
 {
   "terminal": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "userId": "abc123",
+    "id": "terminal-id",
     "status": "active",
     "exitCode": null,
-    "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T10:30:00.000Z"
+    "createdAt": "2026-04-20T12:00:00.000Z",
+    "updatedAt": "2026-04-20T12:00:00.000Z"
   },
   "canvasNode": {
-    "id": "660e8400-e29b-41d4-a716-446655440001",
-    "terminalSessionId": "550e8400-e29b-41d4-a716-446655440000",
-    "userId": "abc123",
+    "id": "node-id",
+    "terminalSessionId": "terminal-id",
+    "nodeType": "terminal",
+    "noteId": null,
     "x": 200,
     "y": 150,
     "width": 600,
     "height": 400,
     "zIndex": 0,
-    "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T10:30:00.000Z"
+    "createdAt": "2026-04-20T12:00:00.000Z",
+    "updatedAt": "2026-04-20T12:00:00.000Z"
   }
 }
 ```
 
-**Error (503):**
+Errors:
 
-```json
-{
-  "message": "Windows Service is not connected"
-}
-```
+- `503` if no online service is available for the workspace
 
-Returned when no Windows Service is currently connected via WebSocket.
+### `GET /w/:workspaceId/terminals`
 
-### GET /api/terminals
+Lists terminal sessions for the workspace.
 
-List all terminal sessions for the authenticated user.
-
-**Response (200):**
+Example response:
 
 ```json
 {
   "terminals": [
     {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "userId": "abc123",
+      "id": "terminal-id",
       "status": "active",
       "exitCode": null,
-      "createdAt": "2025-01-15T10:30:00.000Z",
-      "updatedAt": "2025-01-15T10:30:00.000Z"
-    },
-    {
-      "id": "770e8400-e29b-41d4-a716-446655440002",
-      "userId": "abc123",
-      "status": "exited",
-      "exitCode": 0,
-      "createdAt": "2025-01-15T09:00:00.000Z",
-      "updatedAt": "2025-01-15T09:45:00.000Z"
+      "createdAt": "2026-04-20T12:00:00.000Z",
+      "updatedAt": "2026-04-20T12:00:00.000Z"
     }
   ]
 }
 ```
 
-### DELETE /api/terminals/:id
+### `DELETE /w/:workspaceId/terminals/:id`
 
-Delete (destroy) a terminal session. If the terminal is active and the Windows Service is connected, a destroy command is sent to kill the process.
+Marks the terminal as exited and publishes a destroy command if it is still active.
 
-**Response (200):**
+Example response:
 
 ```json
 {
@@ -225,103 +143,84 @@ Delete (destroy) a terminal session. If the terminal is active and the Windows S
 }
 ```
 
-**Error (404):**
+Errors:
 
-```json
-{
-  "message": "Terminal session not found"
-}
-```
-
-Returned when the terminal does not exist or is not owned by the authenticated user.
-
----
+- `404` if the terminal is not part of the workspace
 
 ## Canvas
 
-All canvas endpoints require authentication.
+### `GET /w/:workspaceId/canvas/nodes`
 
-### GET /api/canvas/nodes
+Lists all canvas nodes for the workspace.
 
-List all canvas nodes for the authenticated user.
-
-**Response (200):**
+Example response:
 
 ```json
 {
   "nodes": [
     {
-      "id": "660e8400-e29b-41d4-a716-446655440001",
-      "terminalSessionId": "550e8400-e29b-41d4-a716-446655440000",
-      "userId": "abc123",
-      "x": 200,
-      "y": 150,
+      "id": "node-id",
+      "terminalSessionId": "terminal-id",
+      "nodeType": "terminal",
+      "noteId": null,
+      "x": 100,
+      "y": 100,
       "width": 600,
       "height": 400,
       "zIndex": 0,
-      "createdAt": "2025-01-15T10:30:00.000Z",
-      "updatedAt": "2025-01-15T10:30:00.000Z"
+      "createdAt": "2026-04-20T12:00:00.000Z",
+      "updatedAt": "2026-04-20T12:00:00.000Z"
     }
   ]
 }
 ```
 
-### PATCH /api/canvas/nodes/:id
+### `PATCH /w/:workspaceId/canvas/nodes/:id`
 
-Update a canvas node's position, size, or z-index. All fields in the request body are optional.
+Updates one or more of:
 
-**Request:**
+- `x`
+- `y`
+- `width`
+- `height`
+- `zIndex`
+
+Request body example:
 
 ```json
 {
-  "x": 300,
-  "y": 250,
-  "width": 800,
-  "height": 500,
-  "zIndex": 1
+  "x": 320,
+  "y": 180,
+  "width": 720,
+  "height": 480
 }
 ```
 
-| Field    | Type   | Description           |
-|----------|--------|-----------------------|
-| `x`      | number | Canvas X position     |
-| `y`      | number | Canvas Y position     |
-| `width`  | number | Node width in pixels  |
-| `height` | number | Node height in pixels |
-| `zIndex` | number | Stacking order        |
-
-**Response (200):**
+Response:
 
 ```json
 {
   "node": {
-    "id": "660e8400-e29b-41d4-a716-446655440001",
-    "terminalSessionId": "550e8400-e29b-41d4-a716-446655440000",
-    "userId": "abc123",
-    "x": 300,
-    "y": 250,
-    "width": 800,
-    "height": 500,
-    "zIndex": 1,
-    "createdAt": "2025-01-15T10:30:00.000Z",
-    "updatedAt": "2025-01-15T11:00:00.000Z"
+    "id": "node-id",
+    "terminalSessionId": "terminal-id",
+    "nodeType": "terminal",
+    "noteId": null,
+    "x": 320,
+    "y": 180,
+    "width": 720,
+    "height": 480,
+    "zIndex": 0,
+    "createdAt": "2026-04-20T12:00:00.000Z",
+    "updatedAt": "2026-04-20T12:05:00.000Z"
   }
 }
 ```
 
-**Error (404):**
+### `DELETE /w/:workspaceId/canvas/nodes/:id`
 
-```json
-{
-  "message": "Canvas node not found"
-}
-```
+Deletes a canvas node.
 
-### DELETE /api/canvas/nodes/:id
-
-Delete a canvas node.
-
-**Response (200):**
+Response:
 
 ```json
 {
@@ -329,10 +228,186 @@ Delete a canvas node.
 }
 ```
 
-**Error (404):**
+## Services
+
+### `GET /w/:workspaceId/services`
+
+Lists service entries for the workspace.
+
+Example response:
 
 ```json
 {
-  "message": "Canvas node not found"
+  "services": [
+    {
+      "id": "db-id",
+      "serviceId": "runtime-service-id",
+      "name": "host-a",
+      "apiKey": "generated-key",
+      "whitelistedPaths": null,
+      "status": "online",
+      "lastSeen": "2026-04-20T12:00:00.000Z",
+      "createdAt": "2026-04-20T11:00:00.000Z",
+      "updatedAt": "2026-04-20T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+### `POST /w/:workspaceId/services`
+
+Creates a service entry.
+
+Request body:
+
+```json
+{
+  "name": "host-a",
+  "whitelistedPaths": "/app,/home"
+}
+```
+
+Response:
+
+```json
+{
+  "service": {
+    "id": "db-id",
+    "serviceId": "runtime-service-id",
+    "name": "host-a",
+    "apiKey": "generated-key",
+    "whitelistedPaths": "/app,/home",
+    "status": "offline",
+    "lastSeen": null,
+    "createdAt": "2026-04-20T12:00:00.000Z",
+    "updatedAt": "2026-04-20T12:00:00.000Z"
+  }
+}
+```
+
+### `PATCH /w/:workspaceId/services/:id`
+
+Updates:
+
+- `name`
+- `whitelistedPaths`
+
+### `DELETE /w/:workspaceId/services/:id`
+
+Deletes the service entry.
+
+### `POST /w/:workspaceId/services/:id/regenerate-key`
+
+Generates and returns a new stored API key for the service entry.
+
+Response:
+
+```json
+{
+  "apiKey": "new-generated-key"
+}
+```
+
+Note:
+
+- The stored service-entry `apiKey` is part of the REST model.
+- The live SignalR hub currently authenticates service connections with the shared `SERVICE_API_KEY` environment variable.
+
+## Notes
+
+### `GET /w/:workspaceId/notes`
+
+Lists notes for the workspace.
+
+### `POST /w/:workspaceId/notes`
+
+Creates a note and its corresponding canvas node.
+
+Request body:
+
+```json
+{
+  "content": "Todo list",
+  "x": 100,
+  "y": 100
+}
+```
+
+Response:
+
+```json
+{
+  "note": {
+    "id": "note-id",
+    "content": "Todo list",
+    "createdAt": "2026-04-20T12:00:00.000Z",
+    "updatedAt": "2026-04-20T12:00:00.000Z"
+  },
+  "canvasNode": {
+    "id": "node-id",
+    "terminalSessionId": null,
+    "nodeType": "note",
+    "noteId": "note-id",
+    "x": 100,
+    "y": 100,
+    "width": 300,
+    "height": 300,
+    "zIndex": 0,
+    "createdAt": "2026-04-20T12:00:00.000Z",
+    "updatedAt": "2026-04-20T12:00:00.000Z"
+  }
+}
+```
+
+### `PATCH /w/:workspaceId/notes/:id`
+
+Updates note content.
+
+### `DELETE /w/:workspaceId/notes/:id`
+
+Deletes the note and its linked canvas node.
+
+## Chat
+
+### `GET /w/:workspaceId/chat`
+
+Returns paginated chat history.
+
+Query parameters:
+
+- `limit`: default `50`, maximum `100`
+- `offset`: default `0`
+
+Example response:
+
+```json
+{
+  "messages": [
+    {
+      "id": "msg-id",
+      "displayName": "Renato",
+      "content": "hello",
+      "createdAt": "2026-04-20T12:00:00.000Z"
+    }
+  ],
+  "limit": 50,
+  "offset": 0
+}
+```
+
+## Files
+
+### `GET /w/:workspaceId/files/tree/:serviceId`
+
+Currently a placeholder route. It verifies that the service exists in the workspace, then returns an empty tree plus a message stating that file tree access will be proxied through SignalR.
+
+Example response:
+
+```json
+{
+  "serviceId": "runtime-service-id",
+  "serviceName": "host-a",
+  "tree": [],
+  "message": "File tree will be proxied via SignalR in a future update"
 }
 ```

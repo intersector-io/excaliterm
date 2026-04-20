@@ -2,218 +2,216 @@
 
 ## Overview
 
-Terminal Proxy is a remote terminal system that lets users interact with Windows PowerShell sessions through an infinite canvas web UI. The system consists of three main components that communicate over WebSocket connections.
+The current system is workspace-based rather than user-session-based. A browser client opens a workspace, connects to SignalR hubs using that workspace ID, and collaborates with other clients in the same workspace. Terminal processes and file operations are executed by `apps/terminal-agent`, while the backend persists workspace state in SQLite and uses Redis to coordinate with the SignalR hub.
+
+Two naming conventions refer to the same thing:
+
+- `workspaceId` in the REST API and frontend routes
+- `tenantId` in the SignalR hub and terminal agent
 
 ## Components
 
-### 1. Frontend (`apps/frontend`)
+### Frontend (`apps/frontend`)
 
-A React single-page application that renders terminal windows on an infinite canvas powered by React Flow (`@xyflow/react`). Each terminal is rendered using xterm.js (`@xterm/xterm`) inside a draggable, resizable canvas node.
+The frontend is a React SPA served by Vite in development and nginx in production. It creates or restores a workspace, stores the workspace ID locally, and routes users to `/w/:workspaceId`.
 
-**Key technologies:**
-- React 19 + TypeScript
-- Vite 6 (build tool)
-- React Flow (`@xyflow/react`) for the infinite canvas
-- xterm.js (`@xterm/xterm`) for terminal rendering
-- Zustand for state management
-- TanStack React Query for server state
-- Tailwind CSS 4 + shadcn/ui components
-- Better Auth (client) for authentication
+Key responsibilities:
 
-### 2. Backend (`apps/backend`)
+- Create and validate workspaces
+- Render the infinite canvas with terminal and note nodes
+- Open SignalR connections to terminal, canvas, chat, and file hubs
+- Drive terminal I/O, collaboration locks, chat, and file editing
 
-A Node.js HTTP and WebSocket server that acts as the central hub. It authenticates users, manages terminal and canvas state in a SQLite database, and routes terminal I/O between browser clients and the Windows Service.
+### Backend (`apps/backend`)
 
-**Key technologies:**
-- Hono (HTTP framework) on Node.js
-- WebSocket (`ws` library) for real-time communication
-- Drizzle ORM + better-sqlite3 (SQLite database)
-- Better Auth for session-based authentication
-- Zod for environment validation
-- TypeScript + tsx (dev runner)
+The backend is a Hono app that owns the REST API and SQLite state. It validates workspace-scoped requests, persists terminals, notes, canvas nodes, service instances, and chat history, and publishes realtime commands and events through Redis.
 
-### 3. Windows Service (`apps/windows-service`)
+Key responsibilities:
 
-A .NET 8 Windows Service that manages actual PowerShell processes using the Windows ConPTY (Pseudo Console) API. It connects to the backend over WebSocket as a service client, receives commands to create/write/resize/destroy terminals, and streams terminal output back.
+- Create and validate workspaces
+- Persist canvas, note, service, terminal, and chat data
+- Select an online service when a terminal is created
+- Publish terminal commands to Redis
+- Subscribe to service presence events from Redis and update service status
 
-**Key technologies:**
-- .NET 8 Worker Service
-- Windows ConPTY API for pseudo-terminal management
-- `System.Net.WebSockets.ClientWebSocket` for backend communication
-- `System.Text.Json` for message serialization
+### SignalR Hub (`apps/signalr-hub/TerminalProxy.Hub`)
 
-## Communication Flow
+The hub is the realtime transport layer. Browser clients connect to `/hubs/terminal`, `/hubs/canvas`, `/hubs/chat`, and `/hubs/file`. The terminal agent connects to the terminal and file hubs as a service client.
 
+Key responsibilities:
+
+- Validate browser workspace access on connect
+- Group clients by workspace
+- Route terminal input to the correct service connection
+- Relay terminal output and lifecycle events back to browsers
+- Coordinate collaboration presence and terminal locks
+- Relay file requests between browsers and the terminal agent
+- Subscribe to Redis channels for backend-driven terminal, canvas, and chat events
+
+### Terminal Agent (`apps/terminal-agent`)
+
+The terminal agent is a Node.js process that owns shell processes through `node-pty` and serves file operations through the file hub. It is the runtime that actually launches terminals.
+
+Key responsibilities:
+
+- Connect to SignalR with `SERVICE_API_KEY`, `SERVICE_ID`, and `TENANT_ID`
+- Create, resize, write to, and destroy terminal sessions
+- Stream terminal output back to the hub
+- Read and write files within its configured whitelist
+
+### Redis
+
+Redis is the bridge between the backend and the SignalR hub.
+
+Channels currently used:
+
+- `terminal:commands`
+- `canvas:updates`
+- `chat:messages`
+- `service:events`
+
+If Redis is not available, terminal creation and backend-driven fanout will not work correctly.
+
+## Request and Realtime Flow
+
+### Workspace bootstrap
+
+1. The browser loads `/`.
+2. The frontend creates a workspace with `POST /api/workspaces` or restores the last known workspace.
+3. The browser is redirected to `/w/:workspaceId`.
+4. The frontend initializes SignalR hub connections with `workspaceId`, `clientId`, and `displayName`.
+
+### Terminal lifecycle
+
+1. The frontend calls `POST /api/w/:workspaceId/terminals`.
+2. The backend picks an online service for that workspace, inserts `terminal_session` and `canvas_node`, and publishes `terminal:create` to Redis.
+3. The SignalR hub consumes the Redis message and forwards `CreateTerminal` to the terminal agent.
+4. The agent launches the PTY, then reports `TerminalCreated` and later `TerminalOutput`, `TerminalExited`, or `TerminalError`.
+5. The hub broadcasts those events to browsers in the same workspace.
+
+### Canvas and notes
+
+- REST owns persistence for canvas nodes and notes.
+- SignalR is used for collaboration events such as `NodeMoved` and `NodeResized`.
+- Notes are stored separately and linked to canvas nodes through `noteId`.
+
+### Chat
+
+- Chat history is stored in SQLite and retrieved through REST.
+- New chat messages are broadcast through the SignalR chat hub.
+
+### Files
+
+- The REST files route is currently only a placeholder.
+- Interactive file operations go through the SignalR file hub.
+- The hub applies a path allowlist before relaying to the terminal agent.
+- The terminal agent applies its own whitelist again before touching the filesystem.
+
+## Data Model
+
+The backend schema lives in `apps/backend/src/db/schema.ts`.
+
+### `workspace`
+
+Root entity for collaboration. A workspace acts as the access boundary for nearly every API route and SignalR group.
+
+Fields:
+
+- `id`
+- `name`
+- `createdAt`
+- `lastAccessedAt`
+
+### `service_instance`
+
+Represents a service/agent entry associated with a workspace.
+
+Fields:
+
+- `id`
+- `workspaceId`
+- `serviceId`
+- `name`
+- `apiKey`
+- `whitelistedPaths`
+- `lastSeen`
+- `status`
+- `createdAt`
+- `updatedAt`
+
+### `terminal_session`
+
+Tracks a terminal owned by a workspace and optionally linked to a specific service instance.
+
+Fields:
+
+- `id`
+- `workspaceId`
+- `serviceInstanceId`
+- `status`
+- `exitCode`
+- `createdAt`
+- `updatedAt`
+
+### `canvas_node`
+
+Stores layout data for terminals and notes on the infinite canvas.
+
+Fields:
+
+- `id`
+- `workspaceId`
+- `terminalSessionId`
+- `nodeType`
+- `noteId`
+- `x`
+- `y`
+- `width`
+- `height`
+- `zIndex`
+- `createdAt`
+- `updatedAt`
+
+### `note`
+
+Stores note content that can be attached to a canvas node.
+
+Fields:
+
+- `id`
+- `workspaceId`
+- `content`
+- `createdAt`
+- `updatedAt`
+
+### `chat_message`
+
+Stores chat history for a workspace.
+
+Fields:
+
+- `id`
+- `workspaceId`
+- `displayName`
+- `content`
+- `createdAt`
+
+## Relationships
+
+```text
+workspace 1--* service_instance
+workspace 1--* terminal_session
+workspace 1--* canvas_node
+workspace 1--* note
+workspace 1--* chat_message
+
+service_instance 1--* terminal_session
+terminal_session 1--0..1 canvas_node
+note 1--0..1 canvas_node
 ```
-+-------------------+         +-------------------+         +---------------------+
-|                   |  HTTP   |                   |   WS    |                     |
-|  Browser Client   |-------->|     Backend       |<------->|  Windows Service    |
-|  (React + xterm)  |  REST   |  (Hono + Node.js) |         |  (.NET 8 Worker)    |
-|                   |<--------|                   |         |                     |
-|                   |         |                   |         |   +-------------+   |
-|                   |   WS    |                   |         |   | PowerShell  |   |
-|                   |<------->|                   |         |   | (ConPTY)    |   |
-|                   |         |                   |         |   +-------------+   |
-+-------------------+         +-------------------+         +---------------------+
-     /ws/client                     SQLite               /ws/service
-                                   Database
-```
 
-### Detailed Data Flow for Terminal I/O
+## Current Constraints
 
-**User types in terminal (input):**
-
-```
-Browser                   Backend                    Windows Service
-  |                         |                              |
-  |-- client:terminal:input -->                            |
-  |   { terminalId, data }  |                              |
-  |                         |-- backend:terminal:write --->|
-  |                         |   { terminalId, data }       |
-  |                         |                              |-- Write to ConPTY
-  |                         |                              |   (base64 decoded)
-```
-
-**Terminal produces output:**
-
-```
-Browser                   Backend                    Windows Service
-  |                         |                              |
-  |                         |                              |<- ConPTY output
-  |                         |                              |   (base64 encoded)
-  |                         |<- service:terminal:output ---|
-  |                         |   { terminalId, data }       |
-  |<- server:terminal:output|                              |
-  |   { terminalId, data }  |                              |
-```
-
-**Creating a new terminal:**
-
-```
-Browser                   Backend                    Windows Service
-  |                         |                              |
-  |-- POST /api/terminals ->|                              |
-  |   { cols, rows, x, y } |                              |
-  |                         |-- Insert DB records          |
-  |                         |-- backend:terminal:create -->|
-  |                         |   { terminalId, cols, rows } |
-  |                         |                              |-- Start ConPTY
-  |                         |<- service:terminal:created --|
-  |                         |   { terminalId }             |
-  |<- server:terminal:created                              |
-  |   { terminalId }        |                              |
-  |<-- 201 JSON response --|                              |
-```
-
-## Technology Stack Summary
-
-| Layer            | Technology                        | Purpose                      |
-|------------------|-----------------------------------|------------------------------|
-| Frontend         | React 19, Vite 6, TypeScript      | UI framework and build       |
-| Canvas           | @xyflow/react (React Flow)        | Infinite canvas with nodes   |
-| Terminal UI      | @xterm/xterm                      | Terminal emulator in browser  |
-| State Management | Zustand, TanStack React Query     | Client state, server state   |
-| Styling          | Tailwind CSS 4, shadcn/ui         | UI components and design     |
-| HTTP Framework   | Hono                              | REST API routing             |
-| Database         | SQLite via Drizzle ORM            | Persistence                  |
-| Authentication   | Better Auth                       | Session-based auth           |
-| Validation       | Zod                               | Schema validation            |
-| Windows Service  | .NET 8 Worker Service             | Background process host      |
-| Terminal Host    | Windows ConPTY API                | Pseudo-terminal management   |
-| Real-time        | WebSocket (ws / ClientWebSocket)  | Bidirectional communication  |
-| Build System     | pnpm workspaces + Turborepo       | Monorepo orchestration       |
-| Containerization | Docker + nginx                    | Production deployment        |
-
-## Database Schema
-
-The application uses SQLite with Drizzle ORM. The schema has two groups of tables:
-
-### Better Auth Tables
-
-These are managed by Better Auth for user authentication and session management.
-
-#### `user`
-| Column         | Type      | Notes                  |
-|----------------|-----------|------------------------|
-| id             | TEXT (PK) |                        |
-| name           | TEXT      | NOT NULL               |
-| email          | TEXT      | NOT NULL, UNIQUE       |
-| emailVerified  | INTEGER   | Boolean, default false |
-| image          | TEXT      | Nullable               |
-| createdAt      | INTEGER   | Timestamp              |
-| updatedAt      | INTEGER   | Timestamp              |
-
-#### `session`
-| Column    | Type      | Notes                          |
-|-----------|-----------|--------------------------------|
-| id        | TEXT (PK) |                                |
-| expiresAt | INTEGER   | Timestamp                      |
-| token     | TEXT      | NOT NULL, UNIQUE               |
-| createdAt | INTEGER   | Timestamp                      |
-| updatedAt | INTEGER   | Timestamp                      |
-| ipAddress | TEXT      | Nullable                       |
-| userAgent | TEXT      | Nullable                       |
-| userId    | TEXT (FK) | References user(id), ON DELETE CASCADE |
-
-#### `account`
-| Column                | Type      | Notes                          |
-|-----------------------|-----------|--------------------------------|
-| id                    | TEXT (PK) |                                |
-| accountId             | TEXT      | NOT NULL                       |
-| providerId            | TEXT      | NOT NULL                       |
-| userId                | TEXT (FK) | References user(id), ON DELETE CASCADE |
-| accessToken           | TEXT      | Nullable                       |
-| refreshToken          | TEXT      | Nullable                       |
-| idToken               | TEXT      | Nullable                       |
-| accessTokenExpiresAt  | INTEGER   | Nullable timestamp             |
-| refreshTokenExpiresAt | INTEGER   | Nullable timestamp             |
-| scope                 | TEXT      | Nullable                       |
-| password              | TEXT      | Nullable (hashed)              |
-| createdAt             | INTEGER   | Timestamp                      |
-| updatedAt             | INTEGER   | Timestamp                      |
-
-#### `verification`
-| Column     | Type      | Notes              |
-|------------|-----------|--------------------|
-| id         | TEXT (PK) |                    |
-| identifier | TEXT      | NOT NULL           |
-| value      | TEXT      | NOT NULL           |
-| expiresAt  | INTEGER   | Timestamp          |
-| createdAt  | INTEGER   | Nullable timestamp |
-| updatedAt  | INTEGER   | Nullable timestamp |
-
-### Application Tables
-
-#### `terminal_session`
-| Column    | Type      | Notes                                    |
-|-----------|-----------|------------------------------------------|
-| id        | TEXT (PK) | UUID                                     |
-| userId    | TEXT (FK) | References user(id), ON DELETE CASCADE   |
-| status    | TEXT      | Enum: "active", "exited", "error"        |
-| exitCode  | INTEGER   | Nullable                                 |
-| createdAt | INTEGER   | Timestamp, default unixepoch()           |
-| updatedAt | INTEGER   | Timestamp, default unixepoch()           |
-
-#### `canvas_node`
-| Column            | Type      | Notes                                          |
-|-------------------|-----------|-------------------------------------------------|
-| id                | TEXT (PK) | UUID                                            |
-| terminalSessionId | TEXT (FK) | References terminal_session(id), ON DELETE SET NULL |
-| userId            | TEXT (FK) | References user(id), ON DELETE CASCADE          |
-| x                 | REAL      | Canvas X position, default 100                  |
-| y                 | REAL      | Canvas Y position, default 100                  |
-| width             | REAL      | Node width, default 600                         |
-| height            | REAL      | Node height, default 400                        |
-| zIndex            | INTEGER   | Stacking order, default 0                       |
-| createdAt         | INTEGER   | Timestamp, default unixepoch()                  |
-| updatedAt         | INTEGER   | Timestamp, default unixepoch()                  |
-
-### Entity Relationships
-
-```
-user 1──* session
-user 1──* account
-user 1──* terminal_session
-user 1──* canvas_node
-terminal_session 1──? canvas_node
-```
+- Browser access is workspace-link-based today. The old Better Auth flow is not part of the active architecture.
+- The terminal agent and hub still use `tenantId` terminology even though the rest of the app calls the same value `workspaceId`.
+- The file REST route is a stub; live file operations happen over SignalR.

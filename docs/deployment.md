@@ -1,217 +1,140 @@
-# Production Deployment
+# Deployment
 
-## Architecture Overview
+## Deployment Topology
 
-```
-                    Internet
-                       |
-              +--------v--------+
-              |    nginx (80)   |     Frontend container
-              |  Static React   |     serves built SPA
-              +--------+--------+
-                       |
-              +--------v--------+
-              | Node.js (3001)  |     Backend container
-              |   Hono + WS     |     HTTP API + WebSocket
-              |   SQLite DB     |
-              +--------+--------+
-                       ^
-                       | WebSocket (/ws/service)
-                       |
-              +--------+--------+
-              | Windows Service |     Runs on Windows host
-              | .NET 8 Worker   |     (not in Docker)
-              | ConPTY + PS     |
-              +-----------------+
+```text
+Internet
+   |
+frontend (nginx, :5173 externally, :80 in container)
+   |-- /api/*  -> backend
+   |-- /hubs/* -> signalr-hub
+
+backend (:3001) <-> redis
+signalr-hub (:5000) <-> redis
+
+terminal-agent (host or VM) <-> signalr-hub
 ```
 
-The backend and frontend run in Docker containers. The Windows Service runs natively on a Windows host because it requires the Windows ConPTY API.
+`docker-compose.yml` currently runs:
 
-## Docker Compose Deployment
+- `redis`
+- `backend`
+- `signalr-hub`
+- `frontend`
 
-### 1. Prepare Environment
+The terminal agent is deployed separately and is not part of the compose stack.
 
-Create a `.env` file in the project root:
+## Required Configuration
 
-```bash
-DATABASE_URL=/app/data/terminal-proxy.db
-BETTER_AUTH_SECRET=<generate-a-strong-random-string>
-SERVICE_API_KEY=<generate-a-strong-random-string>
-FRONTEND_URL=https://your-domain.com
-BACKEND_PORT=3001
-```
+### Backend
 
-Generate secrets with:
+| Variable | Example |
+|----------|---------|
+| `DATABASE_URL` | `/app/data/terminal-proxy.db` |
+| `FRONTEND_URL` | `https://your-domain.example` |
+| `BACKEND_PORT` | `3001` |
+| `REDIS_URL` | `redis://redis:6379` |
 
-```bash
-openssl rand -base64 32
-```
+### SignalR hub
 
-### 2. Build and Start
+The compose stack already sets the hub values through environment variables:
+
+- `Redis__ConnectionString=redis:6379`
+- `Redis__Enabled=true`
+- `Backend__Url=http://backend:3001`
+- `Frontend__Url=http://frontend:80`
+- `ASPNETCORE_URLS=http://+:5000`
+
+If you run the hub outside Docker, provide equivalent settings through environment variables or appsettings overrides.
+
+### Terminal agent
+
+| Variable | Example |
+|----------|---------|
+| `SIGNALR_HUB_URL` | `https://your-domain.example` |
+| `SERVICE_API_KEY` | shared-secret-used-by-hub |
+| `SERVICE_ID` | `host-a` |
+| `TENANT_ID` | workspace-id-from-url |
+| `WHITELISTED_PATHS` | `/app,/home,/var/log` |
+| `SHELL_OVERRIDE` | `/bin/bash` or `powershell.exe` |
+
+`TENANT_ID` must match the workspace the agent should serve.
+
+## Docker Compose
+
+### Start the stack
 
 ```bash
 docker compose up --build -d
 ```
 
-This starts:
-- **backend** on port 3001
-- **frontend** on port 5173 (nginx)
-
-The SQLite database is persisted in the `backend-data` Docker volume.
-
-### 3. Verify
+### Check status
 
 ```bash
-# Check container status
 docker compose ps
-
-# Check backend health
-curl http://localhost:3001/api/health
-
-# View logs
 docker compose logs -f backend
+docker compose logs -f signalr-hub
 docker compose logs -f frontend
 ```
 
-## Windows Service Installation
-
-The Windows Service must run on a Windows machine that has network access to the backend.
-
-### 1. Publish the Service
-
-On a machine with the .NET 8 SDK:
+### Verify endpoints
 
 ```bash
-cd apps/windows-service/TerminalProxy.Service
-dotnet publish -c Release -r win-x64 --self-contained true -o C:\Services\TerminalProxy
+curl http://localhost:3001/api/health
+curl http://localhost:5000/health
 ```
 
-### 2. Configure
+The frontend container exposes port `5173` on the host and proxies:
 
-Edit `C:\Services\TerminalProxy\appsettings.json`:
+- `/api/*` to the backend
+- `/hubs/*` to the SignalR hub
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.Hosting.Lifetime": "Information"
-    }
-  },
-  "ServiceOptions": {
-    "BackendWsUrl": "ws://backend-host:3001",
-    "ApiKey": "<same-as-SERVICE_API_KEY-in-backend-env>",
-    "ServiceId": "prod-machine-01",
-    "ReconnectDelayMs": 3000,
-    "MaxReconnectDelayMs": 30000
-  }
-}
-```
+## Running the Terminal Agent in Production
 
-Replace `backend-host` with the hostname or IP of the machine running the backend container.
+The repo does not currently include a dedicated service wrapper for `apps/terminal-agent`. In production, run it under a process manager appropriate for the host OS, for example:
 
-### 3. Install and Start
+- `systemd`
+- `pm2`
+- `supervisord`
+- Windows Task Scheduler or NSSM
 
-From an elevated command prompt:
+A typical production flow is:
 
-```cmd
-sc.exe create TerminalProxy binPath="C:\Services\TerminalProxy\TerminalProxy.Service.exe" start=auto displayname="Terminal Proxy Service"
-sc.exe start TerminalProxy
-```
-
-### 4. Verify
-
-```cmd
-sc.exe query TerminalProxy
-```
-
-Check backend health to confirm the service is connected:
+1. Build the agent:
 
 ```bash
-curl http://backend-host:3001/api/health
-# Should show: "serviceConnected": true
+pnpm --filter @terminal-proxy/terminal-agent build
 ```
 
-## Environment Variables Reference
+2. Provide the required environment variables.
 
-### Backend (.env)
-
-| Variable             | Production Notes                                              |
-|----------------------|---------------------------------------------------------------|
-| `DATABASE_URL`       | Use `/app/data/terminal-proxy.db` inside Docker               |
-| `BETTER_AUTH_SECRET` | Strong random string (32+ characters). Never reuse across environments. |
-| `SERVICE_API_KEY`    | Strong random string. Must match the Windows Service config.  |
-| `FRONTEND_URL`      | The public URL of the frontend (used for CORS).               |
-| `BACKEND_PORT`       | Default 3001. Must match the Docker port mapping.             |
-
-### Windows Service (appsettings.json)
-
-| Option           | Production Notes                                                  |
-|------------------|-------------------------------------------------------------------|
-| `BackendWsUrl`   | WebSocket URL to the backend. Use `wss://` if behind TLS proxy.   |
-| `ApiKey`         | Must match `SERVICE_API_KEY` in the backend.                      |
-| `ServiceId`      | Unique identifier for this machine/instance.                      |
-
-## Security Considerations
-
-### API Keys
-
-- Generate strong, unique values for `BETTER_AUTH_SECRET` and `SERVICE_API_KEY`.
-- Never commit secrets to version control. Use `.env` files or environment variable injection.
-- Rotate keys periodically and coordinate between backend and Windows Service.
-
-### HTTPS/TLS
-
-In production, terminate TLS at a reverse proxy (nginx, Caddy, or a cloud load balancer):
-
-- Frontend: Serve over HTTPS.
-- Backend REST API: Proxy HTTPS to HTTP on port 3001.
-- Backend WebSocket: Proxy WSS to WS on port 3001.
-- Update `FRONTEND_URL` to use `https://`.
-- Update `BackendWsUrl` in the Windows Service to use `wss://` if traffic goes through the TLS proxy.
-
-### Authentication
-
-- Better Auth sessions are cookie-based with `httpOnly` and `secure` flags in production.
-- Set `FRONTEND_URL` accurately so that CORS and trusted origins are correctly configured.
-- WebSocket client connections (`/ws/client`) authenticate using the same session cookie.
-- WebSocket service connections (`/ws/service`) authenticate using the shared API key.
-
-### Database
-
-- SQLite is suitable for single-server deployments. For multi-server setups, consider migrating to PostgreSQL.
-- The Docker volume `backend-data` persists the database. Back up the volume regularly.
-- The database file contains hashed passwords and session tokens.
-
-### Network
-
-- Only expose ports 80/443 (frontend) and 3001 (backend) to the network.
-- The Windows Service should connect to the backend over a private or trusted network.
-- Consider using a VPN or private network between the Windows Service and backend if they are on separate machines.
-
-## Updating
-
-### Backend and Frontend
+3. Run:
 
 ```bash
-# Pull latest code
-git pull
-
-# Rebuild and restart containers
-docker compose up --build -d
+node apps/terminal-agent/dist/index.js
 ```
 
-The SQLite database is preserved in the Docker volume across rebuilds.
+## Persistence
 
-### Windows Service
+### SQLite
 
-1. Stop the service: `sc.exe stop TerminalProxy`
-2. Publish the new build to the same directory (overwrite existing files).
-3. Start the service: `sc.exe start TerminalProxy`
+- The backend stores SQLite data under `/app/data/terminal-proxy.db` in the container.
+- The compose stack persists that path through the `backend-data` volume.
 
-## Monitoring
+### Redis
 
-- **Health endpoint**: Poll `GET /api/health` to verify backend and service connectivity.
-- **Docker logs**: `docker compose logs -f` for backend and frontend output.
-- **Windows Event Viewer**: Check Application logs for `TerminalProxyService` entries.
-- **WebSocket reconnection**: The Windows Service logs reconnection attempts. Frequent reconnections may indicate network issues.
+- Redis is required for terminal creation and cross-process realtime fanout.
+- Treat Redis as part of the critical path, not an optional cache.
+
+## Security Notes
+
+- Protect `SERVICE_API_KEY`; it is the shared secret accepted by the SignalR hub for service registration.
+- Workspace URLs act as collaboration entry points. Anyone with a valid workspace ID can currently join that workspace.
+- Restrict network access so only expected clients can reach the backend and hub.
+- Keep `WHITELISTED_PATHS` as narrow as possible on the terminal agent host.
+
+## Operational Notes
+
+- The backend updates service status from Redis-published presence events.
+- If the hub starts with Redis disabled, terminal creation requests from the backend will not reach the terminal agent.
+- The REST files endpoint is currently a placeholder; interactive file operations go through the SignalR file hub.

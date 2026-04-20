@@ -1,213 +1,183 @@
-# Windows Service Guide
+# Terminal Agent Guide
 
-The Terminal Proxy Windows Service is a .NET 8 Worker Service that manages PowerShell processes using the Windows ConPTY (Pseudo Console) API. It connects to the backend via WebSocket and handles terminal lifecycle operations.
+This file keeps its legacy name, but the current runtime component is `apps/terminal-agent`, not the old .NET Windows service described by earlier docs.
+
+## What the Terminal Agent Does
+
+The terminal agent is a Node.js process that:
+
+- launches shell processes with `node-pty`
+- connects to the SignalR terminal hub
+- connects to the SignalR file hub
+- executes terminal lifecycle commands
+- serves file listing, read, and write requests
 
 ## Requirements
 
-- **Windows 10 version 1809 (build 17763)** or later, or **Windows 11**
-- **.NET 8 Runtime** (or SDK for building from source)
-- Network access to the backend WebSocket endpoint
+- Node.js 20+
+- access to the SignalR hub URL
+- a valid shared `SERVICE_API_KEY`
+- a `TENANT_ID` matching the target workspace
 
-ConPTY (Pseudo Console) is the Windows API that provides a real terminal experience. It was introduced in Windows 10 1809 and is required for this service to function.
+Platform notes:
 
-## Building
-
-### Debug Build
-
-```bash
-cd apps/windows-service/TerminalProxy.Service
-dotnet build
-```
-
-Output: `bin/Debug/net8.0-windows/`
-
-### Release Build
-
-```bash
-dotnet build -c Release
-```
-
-### Self-Contained Publish
-
-For deployment to machines without the .NET runtime:
-
-```bash
-dotnet publish -c Release -r win-x64 --self-contained true -o ./publish
-```
-
-This produces a standalone executable in `./publish/` that includes the .NET runtime.
+- On Windows, the default shell is `powershell.exe`
+- On non-Windows systems, the default shell is the current `SHELL` or `/bin/bash`
 
 ## Configuration
 
-Edit `appsettings.json` (or `appsettings.Production.json` for production overrides):
+The agent loads environment variables from the current process and then falls back to the repo root `.env`.
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.Hosting.Lifetime": "Information"
-    }
-  },
-  "ServiceOptions": {
-    "BackendWsUrl": "ws://localhost:3001",
-    "ApiKey": "your-service-api-key-here",
-    "ServiceId": "machine-01",
-    "ReconnectDelayMs": 3000,
-    "MaxReconnectDelayMs": 30000
-  }
-}
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SIGNALR_HUB_URL` | Yes | Base URL of the hub, default `http://localhost:5000` |
+| `SERVICE_API_KEY` | Yes | Shared secret accepted by the hub |
+| `SERVICE_ID` | Recommended | Stable identifier for this service instance |
+| `TENANT_ID` | Yes | Workspace to join |
+| `WHITELISTED_PATHS` | Optional | Comma-separated allowed roots for file access |
+| `SHELL_OVERRIDE` | Optional | Explicit shell executable |
+
+Example:
+
+```dotenv
+SIGNALR_HUB_URL=http://localhost:5000
+SERVICE_API_KEY=change-me
+SERVICE_ID=my-agent-01
+TENANT_ID=Ab12Cd34Ef56
+WHITELISTED_PATHS=/app,/home,/var/log
+SHELL_OVERRIDE=
 ```
 
-| Option              | Description                                                  | Default |
-|---------------------|--------------------------------------------------------------|---------|
-| `BackendWsUrl`      | WebSocket URL of the backend (connects to `/ws/service`)     | `ws://localhost:3001` |
-| `ApiKey`            | Shared secret matching the backend's `SERVICE_API_KEY`       | (empty) |
-| `ServiceId`         | Identifier for this service instance (logged on connect)     | (empty) |
-| `ReconnectDelayMs`  | Initial reconnection delay in milliseconds                   | 3000    |
-| `MaxReconnectDelayMs` | Maximum reconnection delay (exponential backoff cap)       | 30000   |
+Important:
 
-## Running for Development
+- `TENANT_ID` should match the workspace ID in the frontend URL.
+- The hub and agent use `tenantId`; the backend and frontend mostly call the same value `workspaceId`.
 
-Run as a console application (not as a Windows Service):
+## Running in Development
 
 ```bash
-cd apps/windows-service/TerminalProxy.Service
-dotnet run
+pnpm --filter @terminal-proxy/terminal-agent dev
 ```
 
-This is the preferred way to run during development. The service will connect to the backend and log output to the console.
+PowerShell example with an explicit workspace:
 
-## Installing as a Windows Service
+```powershell
+$env:TENANT_ID = "<workspaceId>"
+pnpm --filter @terminal-proxy/terminal-agent dev
+```
 
-### 1. Build or Publish
+On startup, the agent logs:
+
+- service ID
+- tenant ID
+- hub URL
+- chosen shell
+- effective whitelist
+
+## Production Run
+
+Build first:
 
 ```bash
-cd apps/windows-service/TerminalProxy.Service
-dotnet publish -c Release -r win-x64 --self-contained true -o C:\Services\TerminalProxy
+pnpm --filter @terminal-proxy/terminal-agent build
 ```
 
-### 2. Create the Service
+Then run:
 
-Open an **elevated** (Administrator) command prompt or PowerShell:
-
-```cmd
-sc.exe create TerminalProxy binPath="C:\Services\TerminalProxy\TerminalProxy.Service.exe" start=auto displayname="Terminal Proxy Service"
+```bash
+node apps/terminal-agent/dist/index.js
 ```
 
-| Parameter     | Value                                             |
-|---------------|---------------------------------------------------|
-| `binPath`     | Full path to the published executable             |
-| `start=auto`  | Starts automatically with Windows                 |
-| `displayname` | Friendly name shown in Services management console |
+Use an external process manager for long-running deployments, for example:
 
-### 3. Configure the Service Account
+- `systemd`
+- `pm2`
+- `supervisord`
+- NSSM or Windows Task Scheduler
 
-By default, the service runs as `Local System`. To use a specific account:
+## Connection Flow
 
-```cmd
-sc.exe config TerminalProxy obj="DOMAIN\User" password="password"
+### Terminal hub
+
+The agent connects to:
+
+```text
+<SIGNALR_HUB_URL>/hubs/terminal?apiKey=<SERVICE_API_KEY>&tenantId=<TENANT_ID>
 ```
 
-### 4. Start the Service
+Then it calls:
 
-```cmd
-sc.exe start TerminalProxy
+```text
+RegisterService(serviceId, apiKey)
 ```
 
-### 5. Verify
+After that it listens for:
 
-```cmd
-sc.exe query TerminalProxy
+- `CreateTerminal`
+- `DestroyTerminal`
+- `TerminalInput`
+- `TerminalResize`
+
+And publishes:
+
+- `TerminalCreated`
+- `TerminalOutput`
+- `TerminalExited`
+- `TerminalError`
+
+### File hub
+
+The agent also connects to:
+
+```text
+<SIGNALR_HUB_URL>/hubs/file?apiKey=<SERVICE_API_KEY>&tenantId=<TENANT_ID>
 ```
 
-Expected output should show `STATE: RUNNING`.
+It listens for:
 
-## Stopping the Service
+- `ListDirectory`
+- `ReadFile`
+- `WriteFile`
 
-```cmd
-sc.exe stop TerminalProxy
-```
+And replies with:
 
-## Uninstalling the Service
+- `DirectoryListingResponse`
+- `FileContentResponse`
+- `FileErrorResponse`
 
-```cmd
-sc.exe stop TerminalProxy
-sc.exe delete TerminalProxy
-```
+## Filesystem Safety
 
-Then remove the published files:
+File access is restricted twice:
 
-```cmd
-rmdir /s /q C:\Services\TerminalProxy
-```
+1. The SignalR hub validates requested paths against its own allowlist.
+2. The terminal agent validates paths against `WHITELISTED_PATHS`.
 
-## Architecture
-
-The service uses .NET's generic host with dependency injection:
-
-```
-Program.cs           # Host builder, DI registration
-Worker.cs            # BackgroundService - main lifecycle
-├── BackendConnection  # WebSocket client, reconnection logic
-├── MessageHandler     # Deserializes and dispatches incoming messages
-├── MessageSerializer  # JSON serialization for the WS protocol
-└── TerminalManager    # Creates/destroys ConPTY terminal processes
-    └── TerminalProcess  # Individual ConPTY process wrapper
-        └── PseudoConsole  # Windows ConPTY API interop
-```
-
-### Key Classes
-
-| Class               | Responsibility                                                |
-|---------------------|---------------------------------------------------------------|
-| `Worker`            | Wires up event handlers and starts the connection loop        |
-| `BackendConnection` | Manages WebSocket lifecycle, sends messages, auto-reconnects  |
-| `MessageHandler`    | Parses incoming messages and calls TerminalManager methods    |
-| `MessageSerializer` | Serializes/deserializes JSON message envelopes                |
-| `TerminalManager`   | Thread-safe dictionary of active TerminalProcess instances    |
-| `TerminalProcess`   | Wraps a single ConPTY process (start, write, resize, dispose) |
-| `PseudoConsole`     | P/Invoke wrapper for Windows ConPTY API calls                 |
+Keep `WHITELISTED_PATHS` narrow in production.
 
 ## Troubleshooting
 
-### Service does not start
+### Agent cannot connect to the hub
 
-1. **Check the Event Viewer**: Open Event Viewer > Windows Logs > Application. Look for entries from `TerminalProxyService`.
+Check:
 
-2. **Run as console first**: Stop the service and run the executable directly to see console output:
-   ```cmd
-   C:\Services\TerminalProxy\TerminalProxy.Service.exe
-   ```
+- `SIGNALR_HUB_URL`
+- `SERVICE_API_KEY`
+- hub logs
+- reverse proxy rules for `/hubs/*`
 
-3. **Verify .NET runtime**: If not self-contained, ensure .NET 8 runtime is installed:
-   ```cmd
-   dotnet --list-runtimes
-   ```
+### Agent connects but terminal creation never arrives
 
-### Service starts but cannot connect to backend
+Check:
 
-1. **Check `BackendWsUrl`** in `appsettings.json` -- ensure the URL is correct and includes the port.
+- the backend can reach Redis
+- the hub has Redis enabled
+- the workspace has an online service
+- `TENANT_ID` matches the workspace in the browser
 
-2. **Verify backend is running**: The backend must be running and listening before the service connects. The service will retry with exponential backoff.
+### Agent connects but file operations fail
 
-3. **Check API key**: The `ApiKey` in `appsettings.json` must match `SERVICE_API_KEY` in the backend's `.env`. Mismatched keys cause a `4003` close code.
+Check:
 
-4. **Firewall**: Ensure the backend port (default 3001) is accessible from the machine running the service.
-
-5. **Check logs**: In development, logs print to console. When running as a Windows Service, check Event Viewer.
-
-### Terminals fail to create
-
-1. **ConPTY support**: Verify you are running Windows 10 1809+ or Windows 11:
-   ```cmd
-   winver
-   ```
-
-2. **PowerShell availability**: The service starts `powershell.exe` (or `pwsh.exe`). Ensure it is available on the system PATH.
-
-3. **Permissions**: The service account must have permission to create processes. `Local System` has sufficient permissions by default.
-
-### High memory usage
-
-Each terminal process consumes memory. Monitor the active terminal count. Terminals that are no longer in use should be destroyed via the API or UI to free resources.
+- the path passes the hub-side allowlist
+- the path is inside `WHITELISTED_PATHS`
+- the selected service belongs to the same workspace

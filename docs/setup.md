@@ -2,145 +2,174 @@
 
 ## Prerequisites
 
-| Tool         | Version    | Notes                                            |
-|--------------|------------|--------------------------------------------------|
-| Node.js      | 20+        | Required for backend and frontend                |
-| pnpm         | Latest     | Package manager (enabled via `corepack enable`)  |
-| .NET 8 SDK   | 8.0+       | Required for the Windows Service                 |
-| Windows      | 11 or 10 1809+ | ConPTY requires Windows 10 build 1809 or later |
-| Docker       | Optional   | For containerized deployment of backend/frontend |
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | 20+ | Required for backend, frontend, and terminal agent |
+| pnpm | 10+ | Root `packageManager` is `pnpm@10.33.0` |
+| .NET SDK | 8+ | Required for the SignalR hub |
+| Redis | 7+ | Required by the backend and by the hub for command/event fanout |
+| Docker | Optional | Useful for Redis or the full containerized stack |
 
-### Verify prerequisites
-
-```bash
-node --version    # v20.x or higher
-pnpm --version    # 9.x or higher
-dotnet --version  # 8.x
-```
-
-If pnpm is not available, enable it through Node.js corepack:
+## Install Dependencies
 
 ```bash
-corepack enable
-corepack prepare pnpm@latest --activate
-```
-
-## Clone and Install
-
-```bash
-git clone <repository-url> terminal-proxy
-cd terminal-proxy
-
-# Install all JavaScript/TypeScript dependencies
 pnpm install
-```
-
-This installs dependencies for all workspaces: `apps/backend`, `apps/frontend`, and `packages/shared-types`.
-
-For the Windows Service, restore .NET dependencies:
-
-```bash
-cd apps/windows-service/TerminalProxy.Service
-dotnet restore
-```
-
-## Environment Configuration
-
-Copy the example environment file:
-
-```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+## Environment Variables
+
+The root `.env` file is consumed by the backend and terminal agent. The SignalR hub uses `appsettings.json` by default, but can also read environment variables when you run it through your shell or Docker.
+
+### Backend and frontend-facing settings
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | SQLite path for the backend |
+| `FRONTEND_URL` | Yes | Frontend origin allowed by backend CORS |
+| `BACKEND_PORT` | Yes | Backend listen port |
+| `REDIS_URL` | Yes | Redis URL used by the backend |
+
+### Terminal agent settings
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SIGNALR_HUB_URL` | Yes | Base URL for the SignalR hub |
+| `SERVICE_API_KEY` | Yes | Shared secret accepted by the SignalR hub |
+| `SERVICE_ID` | Recommended | Stable identifier for this agent instance |
+| `TENANT_ID` | Required for useful terminal work | Workspace ID the agent should join |
+| `WHITELISTED_PATHS` | Optional | Comma-separated filesystem roots allowed by the agent |
+| `SHELL_OVERRIDE` | Optional | Shell executable to launch instead of the default |
+
+Important:
+
+- `TENANT_ID` should be the same value as the workspace ID in the browser URL.
+- The backend uses `workspaceId` while the hub and agent use `tenantId`; they are the same logical ID.
+
+### SignalR hub settings
+
+The hub reads defaults from `apps/signalr-hub/TerminalProxy.Hub/appsettings.json`.
+
+For local development, you usually need these overrides:
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `REDIS_ENABLED` | `true` | Enables Redis subscriptions in the hub |
+| `REDIS_CONNECTION_STRING` | `localhost:6379` | StackExchange.Redis connection string |
+| `BACKEND_URL` | `http://localhost:3001` | Used for workspace validation |
+| `FRONTEND_URL` | `http://localhost:5173` | Used by hub CORS |
+
+## Recommended Local Startup Sequence
+
+### 1. Start Redis
 
 ```bash
-# Backend
-DATABASE_URL=file:./data/terminal-proxy.db
-BETTER_AUTH_SECRET=your-secret-here
-SERVICE_API_KEY=your-service-api-key-here
-FRONTEND_URL=http://localhost:5173
-BACKEND_PORT=3001
-
-# Windows Service
-BACKEND_WS_URL=ws://localhost:3001/ws/service
+docker compose up redis -d
 ```
 
-### Variable Reference
+If you already run Redis locally, use that instead.
 
-| Variable             | Description                                                                 |
-|----------------------|-----------------------------------------------------------------------------|
-| `DATABASE_URL`       | SQLite database file path. Created automatically on first run.              |
-| `BETTER_AUTH_SECRET` | Secret key used by Better Auth for signing session tokens. Use a long random string. |
-| `SERVICE_API_KEY`    | Shared secret between the backend and Windows Service for WebSocket auth.   |
-| `FRONTEND_URL`      | URL of the frontend app. Used for CORS and trusted origins.                 |
-| `BACKEND_PORT`       | Port the backend HTTP/WS server listens on. Defaults to 3001.              |
-| `BACKEND_WS_URL`    | Full WebSocket URL the Windows Service connects to (used in appsettings.json). |
-
-### Windows Service Configuration
-
-The Windows Service reads its configuration from `apps/windows-service/TerminalProxy.Service/appsettings.json`:
-
-```json
-{
-  "ServiceOptions": {
-    "BackendWsUrl": "ws://localhost:3001",
-    "ApiKey": "your-service-api-key-here",
-    "ServiceId": "my-machine-01",
-    "ReconnectDelayMs": 3000,
-    "MaxReconnectDelayMs": 30000
-  }
-}
-```
-
-The `ApiKey` value must match `SERVICE_API_KEY` in the backend `.env`.
-
-## Running in Development Mode
-
-### Backend + Frontend (concurrent)
-
-From the project root:
+### 2. Start the backend
 
 ```bash
-pnpm dev
+pnpm --filter @terminal-proxy/backend dev
 ```
 
-This runs Turborepo which starts both the backend (`tsx watch src/index.ts` on port 3001) and the frontend (Vite dev server on port 5173) concurrently. It also builds `shared-types` if needed.
+### 3. Start the SignalR hub with Redis enabled
 
-### Windows Service
+PowerShell:
 
-In a separate terminal:
-
-```bash
-cd apps/windows-service/TerminalProxy.Service
-dotnet run
+```powershell
+$env:REDIS_ENABLED = "true"
+$env:REDIS_CONNECTION_STRING = "localhost:6379"
+$env:BACKEND_URL = "http://localhost:3001"
+$env:FRONTEND_URL = "http://localhost:5173"
+dotnet run --project apps/signalr-hub/TerminalProxy.Hub
 ```
 
-This starts the service as a console application (not as a Windows Service) for development. It will connect to the backend at the WebSocket URL configured in `appsettings.json`.
-
-### Verify everything is working
-
-1. Open `http://localhost:5173` in your browser.
-2. Register a new account or sign in.
-3. The health check at `http://localhost:3001/api/health` should show `serviceConnected: true` when the Windows Service is running.
-4. Create a terminal -- a PowerShell window should appear on the canvas.
-
-## Running with Docker
-
-Docker Compose runs the backend and frontend in containers. The Windows Service must run natively on a Windows host (it uses ConPTY).
+Bash:
 
 ```bash
-# Build and start backend + frontend
+REDIS_ENABLED=true \
+REDIS_CONNECTION_STRING=localhost:6379 \
+BACKEND_URL=http://localhost:3001 \
+FRONTEND_URL=http://localhost:5173 \
+dotnet run --project apps/signalr-hub/TerminalProxy.Hub
+```
+
+### 4. Start the frontend
+
+```bash
+pnpm --filter @terminal-proxy/frontend dev
+```
+
+### 5. Create or open a workspace
+
+Open `http://localhost:5173`. The app will create a workspace automatically and redirect you to:
+
+```text
+/w/<workspaceId>
+```
+
+Copy that workspace ID from the URL.
+
+### 6. Start the terminal agent for that workspace
+
+PowerShell:
+
+```powershell
+$env:TENANT_ID = "<workspaceId>"
+pnpm --filter @terminal-proxy/terminal-agent dev
+```
+
+Bash:
+
+```bash
+TENANT_ID=<workspaceId> pnpm --filter @terminal-proxy/terminal-agent dev
+```
+
+At this point:
+
+- `GET /api/health` should report at least one connected service
+- creating a terminal in the UI should produce a live shell
+- file operations and chat should use the same workspace
+
+## Using `pnpm dev`
+
+`pnpm dev` runs the JavaScript workspaces managed by Turbo:
+
+- `@terminal-proxy/backend`
+- `@terminal-proxy/frontend`
+- `@terminal-proxy/terminal-agent`
+
+The .NET SignalR hub is not part of the pnpm workspace and must still be started separately.
+
+On a fresh setup, running each component individually is easier because the terminal agent needs a real `TENANT_ID` and the hub must have Redis enabled before terminal creation works.
+
+## Docker Compose
+
+```bash
 docker compose up --build
-
-# Run in background
-docker compose up --build -d
 ```
 
-This starts:
-- **backend** on port 3001 (Node.js)
-- **frontend** on port 5173 (nginx serving static files)
+This brings up:
 
-The SQLite database is persisted in a Docker volume (`backend-data`).
+- `redis`
+- `backend`
+- `signalr-hub`
+- `frontend`
 
-You still need to run the Windows Service separately on the host machine, configured to connect to the backend at `ws://localhost:3001/ws/service` (or `ws://host.docker.internal:3001/ws/service` if the service runs outside Docker).
+The terminal agent still runs separately on a host machine or VM. Configure it with:
+
+- `SIGNALR_HUB_URL` pointing at the deployed hub
+- `SERVICE_API_KEY` matching the hub configuration
+- `TENANT_ID` matching the target workspace
+
+## Verification Checklist
+
+1. Open `http://localhost:5173`.
+2. Confirm the URL contains `/w/<workspaceId>`.
+3. Call `http://localhost:3001/api/health` and confirm `status: "ok"`.
+4. Start the terminal agent with that workspace ID.
+5. Refresh the health endpoint and confirm `serviceConnected: true`.
+6. Create a terminal and confirm output appears.
