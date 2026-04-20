@@ -82,10 +82,6 @@ export function useServices() {
     },
   });
 
-  const regenerateKeyMutation = useMutation({
-    mutationFn: (id: string) => api.regenerateServiceKey(workspaceId, id),
-  });
-
   const services = servicesQuery.data?.services ?? [];
   const onlineCount = services.filter((s) => s.status === "online").length;
 
@@ -99,7 +95,5 @@ export function useServices() {
     isUpdating: updateMutation.isPending,
     deleteService: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
-    regenerateKey: regenerateKeyMutation.mutateAsync,
-    isRegeneratingKey: regenerateKeyMutation.isPending,
   };
 }

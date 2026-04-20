@@ -140,7 +140,6 @@ export interface ServiceInstance {
   id: string;
   serviceId: string;
   name: string;
-  apiKey: string;
   whitelistedPaths: string | null;
   status: "online" | "offline";
   lastSeen: string | null;
@@ -175,13 +174,6 @@ export function updateService(
 
 export function deleteServiceApi(workspaceId: string, id: string): Promise<{ success: boolean }> {
   return request(`/w/${workspaceId}/services/${id}`, { method: "DELETE" });
-}
-
-export function regenerateServiceKey(
-  workspaceId: string,
-  id: string,
-): Promise<{ apiKey: string }> {
-  return request(`/w/${workspaceId}/services/${id}/regenerate-key`, { method: "POST" });
 }
 
 // ─── Chat ─────────────────────────────────────────────────────────────────

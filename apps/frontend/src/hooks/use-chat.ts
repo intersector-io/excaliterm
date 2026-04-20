@@ -9,8 +9,8 @@ const PAGE_SIZE = 50;
 
 interface SignalRChatMessage {
   id: string;
-  displayName: string;
-  workspaceId: string;
+  userName: string;
+  tenantId: string;
   content: string;
   timestamp: number;
 }
@@ -55,7 +55,7 @@ export function useChat(isActive: boolean) {
     function handleReceiveMessage(msg: SignalRChatMessage) {
       const item: ChatMessageItem = {
         id: msg.id,
-        displayName: msg.displayName,
+        displayName: msg.userName,
         content: msg.content,
         createdAt: new Date(msg.timestamp).toISOString(),
       };

@@ -22,7 +22,6 @@ services.get("/", async (c) => {
       id: s.id,
       serviceId: s.serviceId,
       name: s.name,
-      apiKey: s.apiKey,
       whitelistedPaths: s.whitelistedPaths,
       status: s.status,
       lastSeen: s.lastSeen?.toISOString() ?? null,
@@ -44,7 +43,6 @@ services.post("/", async (c) => {
 
   const id = uuidv4();
   const serviceId = uuidv4();
-  const apiKey = crypto.randomUUID();
   const now = new Date();
 
   await db.insert(schema.serviceInstance).values({
@@ -52,7 +50,7 @@ services.post("/", async (c) => {
     workspaceId,
     serviceId,
     name: body.name,
-    apiKey,
+    apiKey: "",
     whitelistedPaths: body.whitelistedPaths ?? null,
     status: "offline",
     createdAt: now,
@@ -70,7 +68,6 @@ services.post("/", async (c) => {
         id: service.id,
         serviceId: service.serviceId,
         name: service.name,
-        apiKey: service.apiKey,
         whitelistedPaths: service.whitelistedPaths,
         status: service.status,
         lastSeen: service.lastSeen?.toISOString() ?? null,
@@ -122,7 +119,6 @@ services.patch("/:id", async (c) => {
       id: updated.id,
       serviceId: updated.serviceId,
       name: updated.name,
-      apiKey: updated.apiKey,
       whitelistedPaths: updated.whitelistedPaths,
       status: updated.status,
       lastSeen: updated.lastSeen?.toISOString() ?? null,
@@ -157,36 +153,6 @@ services.delete("/:id", async (c) => {
     .where(eq(schema.serviceInstance.id, serviceId));
 
   return c.json({ success: true });
-});
-
-// POST /:id/regenerate-key - Regenerate API key
-services.post("/:id/regenerate-key", async (c) => {
-  const workspaceId = c.get("workspaceId");
-  const serviceId = c.req.param("id");
-  const db = getDb();
-
-  const [existing] = await db
-    .select()
-    .from(schema.serviceInstance)
-    .where(
-      and(
-        eq(schema.serviceInstance.id, serviceId),
-        eq(schema.serviceInstance.workspaceId, workspaceId),
-      ),
-    );
-
-  if (!existing) {
-    throw new HTTPException(404, { message: "Service not found" });
-  }
-
-  const newApiKey = crypto.randomUUID();
-
-  await db
-    .update(schema.serviceInstance)
-    .set({ apiKey: newApiKey, updatedAt: new Date() })
-    .where(eq(schema.serviceInstance.id, serviceId));
-
-  return c.json({ apiKey: newApiKey });
 });
 
 export { services };

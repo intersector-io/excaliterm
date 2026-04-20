@@ -28,8 +28,6 @@ export function ServicesView() {
     isUpdating,
     deleteService,
     isDeleting,
-    regenerateKey,
-    isRegeneratingKey,
   } = useServices();
 
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -132,8 +130,6 @@ export function ServicesView() {
             updateService({ id: editingService.id, data })
           }
           isSaving={isUpdating}
-          onRegenerateKey={() => regenerateKey(editingService.id)}
-          isRegeneratingKey={isRegeneratingKey}
           onDelete={async () => {
             await deleteService(editingService.id);
             setEditingService(null);

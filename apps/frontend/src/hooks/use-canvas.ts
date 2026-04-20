@@ -122,41 +122,43 @@ export function useCanvas() {
       queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
     }
 
-    function handleNodeMoved(nodeId: string, x: number, y: number) {
+    function handleNodeMoved(event: { nodeId: string; x: number; y: number }) {
       queryClient.setQueryData(
         ["canvas-nodes", workspaceId],
         (old: { nodes: CanvasNode[] } | undefined) => {
           if (!old) return old;
           return {
             nodes: old.nodes.map((cn) =>
-              cn.id === nodeId ? { ...cn, x, y } : cn,
+              cn.id === event.nodeId ? { ...cn, x: event.x, y: event.y } : cn,
             ),
           };
         },
       );
     }
 
-    function handleNodeResized(nodeId: string, width: number, height: number) {
+    function handleNodeResized(event: { nodeId: string; width: number; height: number }) {
       queryClient.setQueryData(
         ["canvas-nodes", workspaceId],
         (old: { nodes: CanvasNode[] } | undefined) => {
           if (!old) return old;
           return {
             nodes: old.nodes.map((cn) =>
-              cn.id === nodeId ? { ...cn, width, height } : cn,
+              cn.id === event.nodeId
+                ? { ...cn, width: event.width, height: event.height }
+                : cn,
             ),
           };
         },
       );
     }
 
-    function handleNodeRemoved(nodeId: string) {
+    function handleNodeRemoved(event: { nodeId: string }) {
       queryClient.setQueryData(
         ["canvas-nodes", workspaceId],
         (old: { nodes: CanvasNode[] } | undefined) => {
           if (!old) return old;
           return {
-            nodes: old.nodes.filter((cn) => cn.id !== nodeId),
+            nodes: old.nodes.filter((cn) => cn.id !== event.nodeId),
           };
         },
       );
@@ -200,7 +202,7 @@ export function useCanvas() {
                 id: change.id,
                 data: { x: change.position.x, y: change.position.y },
               });
-              canvasHub.invoke("MoveNode", change.id, change.position.x, change.position.y).catch(() => {});
+              canvasHub.invoke("NodeMoved", change.id, change.position.x, change.position.y).catch(() => {});
             }
             if (change.type === "dimensions" && change.dimensions) {
               updateMutation.mutate({
@@ -210,7 +212,7 @@ export function useCanvas() {
                   height: change.dimensions.height,
                 },
               });
-              canvasHub.invoke("ResizeNode", change.id, change.dimensions.width, change.dimensions.height).catch(() => {});
+              canvasHub.invoke("NodeResized", change.id, change.dimensions.width, change.dimensions.height).catch(() => {});
             }
           }
 

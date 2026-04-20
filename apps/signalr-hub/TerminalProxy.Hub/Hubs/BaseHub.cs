@@ -28,7 +28,7 @@ public abstract class BaseHub : Microsoft.AspNetCore.SignalR.Hub
     {
         var httpContext = Context.GetHttpContext();
 
-        // Check for service API key first (Windows Service connections)
+        // Check for service API key first (terminal-agent connections)
         var apiKey = httpContext?.Request.Query["apiKey"].ToString();
         if (!string.IsNullOrWhiteSpace(apiKey))
         {

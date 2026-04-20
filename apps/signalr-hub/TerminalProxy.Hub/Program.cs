@@ -26,7 +26,7 @@ builder.Services.AddSingleton<ServiceRegistry>();
 builder.Services.AddSingleton<TerminalCollaborationRegistry>();
 
 // SignalR with MessagePack protocol
-var signalrBuilder = builder.Services.AddSignalR()
+builder.Services.AddSignalR()
     .AddMessagePackProtocol();
 
 // Register RedisSubscriber always (it handles null redis gracefully)

@@ -10,7 +10,7 @@ export interface FileEntry {
   path: string;
   isDirectory: boolean;
   size: number | null;
-  lastModified: number | null;
+  modifiedAt: string | null;
 }
 
 export interface FileContent {
@@ -49,7 +49,7 @@ export class FileSystemHandler {
           path: fullPath,
           isDirectory: dirent.isDirectory(),
           size: dirent.isDirectory() ? null : entryStat.size,
-          lastModified: Math.floor(entryStat.mtimeMs / 1000),
+          modifiedAt: new Date(entryStat.mtimeMs).toISOString(),
         };
 
         if (dirent.isDirectory()) {

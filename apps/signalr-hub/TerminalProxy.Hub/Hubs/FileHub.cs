@@ -20,7 +20,7 @@ public class FileHub : BaseHub
         _config = config;
     }
 
-    // ─── Windows Service registration ─────────────────────────────────────────
+    // ─── Service registration ─────────────────────────────────────────────────
 
     public async Task RegisterService(string serviceId, string apiKey)
     {
@@ -144,7 +144,7 @@ public class FileHub : BaseHub
         );
     }
 
-    // ─── Response relay (from Windows Service back to browser client) ────────────
+    // ─── Response relay (from service back to browser client) ───────────────────
 
     public async Task DirectoryListingResponse(string callerConnectionId, DirectoryListingMessage listing)
     {

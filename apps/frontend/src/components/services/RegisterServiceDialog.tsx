@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, AlertTriangle } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,14 +31,12 @@ export function RegisterServiceDialog({
 }: RegisterServiceDialogProps) {
   const [name, setName] = useState("");
   const [createdService, setCreatedService] = useState<ServiceInstance | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
   const [copiedConfig, setCopiedConfig] = useState(false);
 
   function handleClose(open: boolean) {
     if (!open) {
       setName("");
       setCreatedService(null);
-      setCopiedKey(false);
       setCopiedConfig(false);
     }
     onOpenChange(open);
@@ -54,25 +52,12 @@ export function RegisterServiceDialog({
 
   function getConfigSnippet(): string {
     if (!createdService) return "";
-    return JSON.stringify(
-      {
-        ServiceOptions: {
-          SignalRHubUrl: `${window.location.origin}`,
-          ApiKey: createdService.apiKey,
-          ServiceId: createdService.serviceId,
-          WorkspaceId: workspaceId,
-        },
-      },
-      null,
-      2,
-    );
-  }
-
-  async function handleCopyKey() {
-    if (!createdService) return;
-    await copyToClipboard(createdService.apiKey);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    return [
+      `SIGNALR_HUB_URL=${window.location.origin}`,
+      "SERVICE_API_KEY=<same value configured on the SignalR hub>",
+      `SERVICE_ID=${createdService.serviceId}`,
+      `TENANT_ID=${workspaceId}`,
+    ].join("\n");
   }
 
   async function handleCopyConfig() {
@@ -94,40 +79,17 @@ export function RegisterServiceDialog({
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Warning */}
-            <div className="flex items-start gap-2 rounded-md border border-accent-amber/30 bg-accent-amber/10 px-3 py-2.5">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-accent-amber" />
-              <p className="text-xs text-accent-amber">
-                Save this API key now. It won't be shown again.
+            <div className="rounded-md border border-border bg-surface-sunken px-3 py-2.5">
+              <p className="text-xs text-muted-foreground">
+                The terminal agent must use the same `SERVICE_API_KEY` configured on
+                the SignalR hub deployment.
               </p>
-            </div>
-
-            {/* API Key */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">API Key</Label>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 overflow-hidden truncate rounded border border-border bg-surface-sunken px-2.5 py-1.5 font-mono text-xs text-foreground">
-                  {createdService.apiKey}
-                </code>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handleCopyKey}
-                >
-                  {copiedKey ? (
-                    <Check className="h-3.5 w-3.5 text-accent-green" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-              </div>
             </div>
 
             {/* Config snippet */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">appsettings.json</Label>
+                <Label className="text-xs">.env</Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -168,7 +130,7 @@ export function RegisterServiceDialog({
         <DialogHeader>
           <DialogTitle>Register Service</DialogTitle>
           <DialogDescription>
-            Register a new Windows service instance to manage terminals.
+            Register a new terminal agent instance to manage terminals and files.
           </DialogDescription>
         </DialogHeader>
 

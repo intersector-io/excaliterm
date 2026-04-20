@@ -5,13 +5,13 @@ import type { FileSystemHandler } from "../filesystem/handler.js";
 interface DirectoryListingResponse {
   serviceId: string;
   path: string;
-  entries: {
-    name: string;
-    path: string;
-    isDirectory: boolean;
-    size: number | null;
-    lastModified: number | null;
-  }[];
+    entries: {
+      name: string;
+      path: string;
+      isDirectory: boolean;
+      size: number | null;
+      modifiedAt: string | null;
+    }[];
 }
 
 interface FileContentResponse {

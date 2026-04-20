@@ -36,7 +36,7 @@ public class TerminalHub : BaseHub
 
     public override async Task OnConnectedAsync()
     {
-        // Check if this is a Windows Service connection
+        // Check if this is a service connection
         var httpContext = Context.GetHttpContext();
         var apiKey = httpContext?.Request.Query["apiKey"].ToString();
 
@@ -143,7 +143,7 @@ public class TerminalHub : BaseHub
         await base.OnDisconnectedAsync(exception);
     }
 
-    // ─── Windows Service registration ───────────────────────────────────────────
+    // ─── Service registration ───────────────────────────────────────────────────
 
     public async Task RegisterService(string serviceId, string apiKey)
     {
@@ -161,7 +161,7 @@ public class TerminalHub : BaseHub
             return;
         }
 
-        // Extract tenantId from query string (set by the Windows Service)
+        // Extract tenantId from the SignalR query string
         var httpContext = Context.GetHttpContext();
         var tenantId = httpContext?.Request.Query["tenantId"].ToString() ?? "default";
 
@@ -190,25 +190,6 @@ public class TerminalHub : BaseHub
     }
 
     // ─── Browser client methods ─────────────────────────────────────────────────
-
-    public async Task JoinTenant(string tenantId)
-    {
-        var currentTenant = GetTenantId();
-
-        // Remove from old tenant group if switching
-        if (currentTenant is not null && currentTenant != tenantId)
-        {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, TenantGroup(currentTenant));
-        }
-
-        Context.Items["TenantId"] = tenantId;
-        await Groups.AddToGroupAsync(Context.ConnectionId, TenantGroup(tenantId));
-
-        Logger.LogInformation(
-            "Client {ConnectionId} joined tenant {TenantId}",
-            Context.ConnectionId, tenantId
-        );
-    }
 
     public async Task RequestCollaborationState()
     {
@@ -302,7 +283,7 @@ public class TerminalHub : BaseHub
             return;
         }
 
-        // Route input to the Windows Service that owns this terminal
+        // Route input to the service connection that owns this terminal
         var connectionId = _serviceRegistry.GetConnectionForTerminal(terminalId);
         if (connectionId is null)
         {
@@ -365,7 +346,7 @@ public class TerminalHub : BaseHub
         await Clients.Client(connectionId).SendAsync("TerminalResize", terminalId, cols, rows);
     }
 
-    // ─── Server → Client methods (from Windows Service to browser clients) ──────
+    // ─── Server → Client methods (from service to browser clients) ──────────────
 
     public async Task TerminalOutput(string terminalId, string data)
     {

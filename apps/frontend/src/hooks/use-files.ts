@@ -60,10 +60,17 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
     const handleFileContent = (event: FileContentEvent) => {
       if (event.serviceId !== serviceId) return;
 
-      const pending = pendingReadRef.current.get(event.path);
-      if (pending) {
-        pending.resolve(event.content);
+      const pendingRead = pendingReadRef.current.get(event.path);
+      if (pendingRead) {
+        pendingRead.resolve(event.content);
         pendingReadRef.current.delete(event.path);
+        return;
+      }
+
+      const pendingWrite = pendingWriteRef.current.get(event.path);
+      if (pendingWrite) {
+        pendingWrite.resolve();
+        pendingWriteRef.current.delete(event.path);
       }
     };
 
@@ -100,20 +107,10 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
     fileHub.on("FileContent", handleFileContent);
     fileHub.on("FileError", handleFileError);
 
-    fileHub.on("FileSaved", (event: { serviceId: string; path: string }) => {
-      if (event.serviceId !== serviceId) return;
-      const pending = pendingWriteRef.current.get(event.path);
-      if (pending) {
-        pending.resolve();
-        pendingWriteRef.current.delete(event.path);
-      }
-    });
-
     return () => {
       fileHub.off("DirectoryListing", handleDirectoryListing);
       fileHub.off("FileContent", handleFileContent);
       fileHub.off("FileError", handleFileError);
-      fileHub.off("FileSaved");
     };
   }, [serviceId]);
 
@@ -144,7 +141,7 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
           }, 15_000);
         });
 
-        await getFileHub().invoke("ListDirectory", { serviceId, path });
+        await getFileHub().invoke("ListDirectory", serviceId, path);
         await promise;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to list directory";
@@ -171,7 +168,7 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
         }, 15_000);
       });
 
-      await getFileHub().invoke("ReadFile", { serviceId, path });
+      await getFileHub().invoke("ReadFile", serviceId, path);
       return promise;
     },
     [serviceId, ensureConnected],
@@ -193,7 +190,7 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
         }, 15_000);
       });
 
-      await getFileHub().invoke("WriteFile", { serviceId, path, content });
+      await getFileHub().invoke("WriteFile", serviceId, path, content);
       return promise;
     },
     [serviceId, ensureConnected],

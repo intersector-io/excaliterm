@@ -24,13 +24,6 @@ export interface CollaborationStateEvent {
   locks: TerminalLockInfo[];
 }
 
-export interface CollaboratorPresence {
-  clientId: string;
-  displayName: string;
-  workspaceId: string;
-  joinedAt: string;
-}
-
 export interface TerminalInputParams {
   terminalId: string;
   data: string;
@@ -90,6 +83,7 @@ export interface TerminalLockChangedEvent {
 export interface CanvasNodeDto {
   id: string;
   terminalSessionId: string | null;
+  userId: string;
   x: number;
   y: number;
   width: number;
@@ -105,24 +99,28 @@ export interface NodeMovedEvent {
   nodeId: string;
   x: number;
   y: number;
+  userId: string;
 }
 
 export interface NodeResizedEvent {
   nodeId: string;
   width: number;
   height: number;
+  userId: string;
 }
 
 export interface NodeRemovedEvent {
   nodeId: string;
+  userId: string;
 }
 
 // ─── Chat Hub ────────────────────────────────────────────────────────────────
 
 export interface ChatMessageDto {
   id: string;
-  displayName: string;
-  workspaceId: string;
+  userId: string;
+  userName: string;
+  tenantId: string;
   content: string;
   timestamp: number;
 }
