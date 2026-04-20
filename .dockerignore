@@ -1,0 +1,39 @@
+node_modules
+.git
+.gitignore
+
+# Build outputs
+dist
+*.tsbuildinfo
+
+# .NET / Windows Service artifacts
+bin
+obj
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Docker
+docker-compose.override.yml
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Turbo cache
+.turbo
+
+# Test and coverage
+coverage
+*.test.ts
+*.spec.ts
+__tests__

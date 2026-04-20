@@ -1,0 +1,57 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - backend-data:/app/data
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=/app/data/terminal-proxy.db
+      - REDIS_URL=redis://redis:6379
+    restart: unless-stopped
+
+  signalr-hub:
+    build:
+      context: ./apps/signalr-hub
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+      - backend
+    env_file:
+      - .env
+    environment:
+      - Redis__ConnectionString=redis:6379
+      - Redis__Enabled=true
+      - Backend__Url=http://backend:3001
+      - Frontend__Url=http://frontend:80
+      - ASPNETCORE_URLS=http://+:5000
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+      - signalr-hub
+    restart: unless-stopped
+
+volumes:
+  backend-data:

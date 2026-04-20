@@ -1,0 +1,101 @@
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import * as schema from "./schema.js";
+import { getEnv } from "../env.js";
+
+let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let _sqlite: Database.Database | null = null;
+
+export function initializeDb() {
+  const env = getEnv();
+  _sqlite = new Database(env.DATABASE_URL);
+
+  // Enable WAL mode for better concurrent read performance
+  _sqlite.pragma("journal_mode = WAL");
+  _sqlite.pragma("foreign_keys = ON");
+
+  // Create tables if they don't exist
+  _sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS "workspace" (
+      "id" text PRIMARY KEY NOT NULL,
+      "name" text NOT NULL DEFAULT 'Untitled workspace',
+      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+      "lastAccessedAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "service_instance" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "serviceId" text NOT NULL UNIQUE,
+      "name" text NOT NULL,
+      "apiKey" text NOT NULL,
+      "whitelistedPaths" text,
+      "lastSeen" integer,
+      "status" text DEFAULT 'offline',
+      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "note" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "content" text DEFAULT '',
+      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "chat_message" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "displayName" text NOT NULL DEFAULT 'Anonymous',
+      "content" text NOT NULL,
+      "createdAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "terminal_session" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
+      "status" text NOT NULL DEFAULT 'active',
+      "exitCode" integer,
+      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS "canvas_node" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "terminalSessionId" text REFERENCES "terminal_session"("id") ON DELETE SET NULL,
+      "nodeType" text NOT NULL DEFAULT 'terminal',
+      "noteId" text REFERENCES "note"("id") ON DELETE SET NULL,
+      "x" real NOT NULL DEFAULT 100,
+      "y" real NOT NULL DEFAULT 100,
+      "width" real NOT NULL DEFAULT 600,
+      "height" real NOT NULL DEFAULT 400,
+      "zIndex" integer NOT NULL DEFAULT 0,
+      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+  `);
+
+  _db = drizzle(_sqlite, { schema });
+
+  console.log("[db] Database initialized:", env.DATABASE_URL);
+  return _db;
+}
+
+export function getDb() {
+  if (!_db) {
+    throw new Error("Database not initialized. Call initializeDb() first.");
+  }
+  return _db;
+}
+
+export function getSqlite(): Database.Database {
+  if (!_sqlite) {
+    throw new Error("Database not initialized. Call initializeDb() first.");
+  }
+  return _sqlite;
+}
+
+export { schema };

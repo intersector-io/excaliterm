@@ -1,0 +1,147 @@
+import { useEffect, useMemo, useState } from "react";
+import { Route, Switch, useLocation, useParams } from "wouter";
+import { WorkspaceCtx } from "@/hooks/use-workspace";
+import { createWorkspace, getWorkspace } from "@/lib/api-client";
+import { initHubs } from "@/lib/signalr-client";
+import { getOrCreateCollaboratorProfile } from "@/lib/collaborator";
+import { AppShell } from "@/components/layout/AppShell";
+
+const WORKSPACE_STORAGE_KEY = "terminal-proxy.workspace-id";
+
+function CreateAndRedirect() {
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    // Resume last workspace if it still exists
+    const savedId = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
+    if (savedId) {
+      getWorkspace(savedId)
+        .then(() => navigate(`/w/${savedId}`, { replace: true }))
+        .catch(() => {
+          // Workspace expired or deleted — create a fresh one
+          window.localStorage.removeItem(WORKSPACE_STORAGE_KEY);
+          createWorkspace().then((ws) => {
+            window.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
+            navigate(`/w/${ws.id}`, { replace: true });
+          });
+        });
+    } else {
+      createWorkspace()
+        .then((ws) => {
+          window.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
+          navigate(`/w/${ws.id}`, { replace: true });
+        })
+        .catch((err) => console.error("Failed to create workspace:", err));
+    }
+  }, [navigate]);
+
+  return (
+    <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative h-8 w-8">
+          <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-accent-cyan" />
+          <div className="absolute inset-1 animate-spin rounded-full border-2 border-transparent border-b-accent-blue" style={{ animationDirection: "reverse", animationDuration: "0.8s" }} />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-foreground tracking-tight">
+            Setting up your workspace
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Share the link with anyone to collaborate
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceRoute() {
+  const params = useParams<{ workspaceId: string }>();
+  const workspaceId = params.workspaceId!;
+  const [valid, setValid] = useState<boolean | null>(null);
+  const collaborator = useMemo(() => getOrCreateCollaboratorProfile(), []);
+
+  useEffect(() => {
+    getWorkspace(workspaceId)
+      .then(() => {
+        window.localStorage.setItem(WORKSPACE_STORAGE_KEY, workspaceId);
+        setValid(true);
+      })
+      .catch(() => setValid(false));
+  }, [workspaceId]);
+
+  if (valid === null) {
+    return (
+      <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative h-8 w-8">
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-accent-cyan" />
+          </div>
+          <p className="text-sm text-muted-foreground font-mono tracking-tight">
+            Loading workspace...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Initialize hubs synchronously before children mount
+  // This must happen before AppShell renders so hooks can access hubs
+  if (valid) {
+    initHubs(workspaceId, collaborator);
+  }
+
+  if (!valid) {
+    return (
+      <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-6 text-center px-4">
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-6xl font-bold tracking-tighter text-foreground/20">404</span>
+            <p className="text-base font-medium text-foreground">
+              Workspace not found
+            </p>
+            <p className="text-sm text-muted-foreground max-w-[40ch] leading-relaxed">
+              This workspace doesn't exist or may have expired.
+              Create a fresh one to get started.
+            </p>
+          </div>
+          <a
+            href="/"
+            className="inline-flex h-9 items-center rounded-lg bg-accent-cyan/15 px-4 text-sm font-medium text-accent-cyan transition-colors hover:bg-accent-cyan/25"
+          >
+            Create new workspace
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <WorkspaceCtx.Provider value={{ workspaceId, collaborator }}>
+      <AppShell />
+    </WorkspaceCtx.Provider>
+  );
+}
+
+export function App() {
+  return (
+    <Switch>
+      <Route path="/w/:workspaceId" component={WorkspaceRoute} />
+      <Route path="/" component={CreateAndRedirect} />
+      <Route>
+        <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <span className="text-6xl font-bold tracking-tighter text-foreground/20">404</span>
+            <p className="text-sm text-muted-foreground">Page not found</p>
+            <a
+              href="/"
+              className="text-sm text-accent-cyan hover:underline underline-offset-4"
+            >
+              Go home
+            </a>
+          </div>
+        </div>
+      </Route>
+    </Switch>
+  );
+}

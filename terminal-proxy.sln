@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-075E-9E68-7218-25F1BD1BBEAB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "signalr-hub", "signalr-hub", "{E2D26F49-CBAA-FE5A-9FDD-3515CD3F0E9D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TerminalProxy.Hub", "apps\signalr-hub\TerminalProxy.Hub\TerminalProxy.Hub.csproj", "{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E2D26F49-CBAA-FE5A-9FDD-3515CD3F0E9D} = {1787FE1D-075E-9E68-7218-25F1BD1BBEAB}
+		{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8} = {E2D26F49-CBAA-FE5A-9FDD-3515CD3F0E9D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {75A1C932-4AD1-498F-BA5F-3D595EE122AF}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,74 @@
+import { config as dotenvConfig } from "dotenv";
+import { resolve } from "node:path";
+
+// Load .env from agent dir first, then fall back to monorepo root
+dotenvConfig();
+dotenvConfig({ path: resolve(import.meta.dirname, "../../../.env") });
+
+import { loadConfig } from "./config.js";
+import { TerminalManager } from "./terminal/manager.js";
+import { FileSystemHandler } from "./filesystem/handler.js";
+import { PathValidator } from "./filesystem/validator.js";
+import { TerminalHubConnection } from "./hub/terminal-hub.js";
+import { FileHubConnection } from "./hub/file-hub.js";
+
+async function main(): Promise<void> {
+  console.log("[terminal-agent] Starting...");
+
+  // Load configuration
+  const config = loadConfig();
+
+  console.log(`[terminal-agent] Service ID: ${config.serviceId}`);
+  console.log(`[terminal-agent] Tenant ID: ${config.tenantId}`);
+  console.log(`[terminal-agent] Hub URL: ${config.signalrHubUrl}`);
+  console.log(`[terminal-agent] Shell: ${config.shell}`);
+  console.log(
+    `[terminal-agent] Whitelisted paths: ${config.whitelistedPaths.length > 0 ? config.whitelistedPaths.join(", ") : "(none - all paths allowed)"}`
+  );
+
+  // Create terminal manager
+  const manager = new TerminalManager(config.shell);
+
+  // Create filesystem handler with path validator
+  const pathValidator = new PathValidator(config.whitelistedPaths);
+  const fileHandler = new FileSystemHandler(pathValidator);
+
+  // Create hub connections
+  const terminalHub = new TerminalHubConnection(config, manager);
+  const fileHub = new FileHubConnection(config, fileHandler);
+
+  // Graceful shutdown
+  const shutdown = async (signal: string) => {
+    console.log(`\n[terminal-agent] Received ${signal}, shutting down...`);
+
+    manager.destroyAll();
+
+    try {
+      await Promise.allSettled([terminalHub.stop(), fileHub.stop()]);
+    } catch (err) {
+      console.error("[terminal-agent] Error during shutdown:", err);
+    }
+
+    console.log("[terminal-agent] Shutdown complete");
+    process.exit(0);
+  };
+
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+  // Connect to hubs
+  try {
+    await terminalHub.start();
+    await fileHub.start();
+  } catch (err) {
+    console.error("[terminal-agent] Failed to connect to hub:", err);
+    process.exit(1);
+  }
+
+  console.log("[terminal-agent] Ready and waiting for commands");
+}
+
+main().catch((err) => {
+  console.error("[terminal-agent] Fatal error:", err);
+  process.exit(1);
+});

@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.db-journal
+data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# C# / .NET
+bin/
+obj/
+*.user
+*.suo
+*.csproj.user
+*.nupkg
+publish/
+
+# Test coverage
+coverage/
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
