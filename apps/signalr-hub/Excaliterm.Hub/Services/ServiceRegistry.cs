@@ -1,14 +1,15 @@
 using System.Collections.Concurrent;
-using TerminalProxy.Hub.Models;
+using Excaliterm.Hub.Models;
 
-namespace TerminalProxy.Hub.Services;
+namespace Excaliterm.Hub.Services;
 
 public class ServiceRegistry
 {
     private readonly ConcurrentDictionary<string, ServiceInstanceInfo> _byConnectionId = new();
     private readonly ConcurrentDictionary<string, ServiceInstanceInfo> _byServiceInstanceId = new();
-    // Track terminal hub connections separately from file hub connections
+    // Track terminal hub and file hub connections separately
     private readonly ConcurrentDictionary<string, string> _terminalHubConnections = new(); // serviceId -> terminalHub connectionId
+    private readonly ConcurrentDictionary<string, string> _fileHubConnections = new(); // serviceId -> fileHub connectionId
     private readonly ConcurrentDictionary<string, string> _terminalToService = new();
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _serviceToTerminals = new();
     private readonly ILogger<ServiceRegistry> _logger;
@@ -26,14 +27,16 @@ public class ServiceRegistry
 
         if (hubType == "terminal")
         {
-            // For TerminalHub connections, this is the primary registration
             _terminalHubConnections[serviceInstanceId] = connectionId;
             _byServiceInstanceId[serviceInstanceId] = info;
         }
-        else if (!_byServiceInstanceId.ContainsKey(serviceInstanceId))
+        else if (hubType == "file")
         {
-            // Only use file hub connection as fallback
-            _byServiceInstanceId[serviceInstanceId] = info;
+            _fileHubConnections[serviceInstanceId] = connectionId;
+            if (!_byServiceInstanceId.ContainsKey(serviceInstanceId))
+            {
+                _byServiceInstanceId[serviceInstanceId] = info;
+            }
         }
 
         _logger.LogInformation(
@@ -42,10 +45,16 @@ public class ServiceRegistry
         );
     }
 
-    /// <summary>Gets the TerminalHub connection ID for a service, preferring the terminal hub connection.</summary>
+    /// <summary>Gets the TerminalHub connection ID for a service.</summary>
     public string? GetTerminalHubConnection(string serviceInstanceId)
     {
         return _terminalHubConnections.TryGetValue(serviceInstanceId, out var connId) ? connId : null;
+    }
+
+    /// <summary>Gets the FileHub connection ID for a service.</summary>
+    public string? GetFileHubConnection(string serviceInstanceId)
+    {
+        return _fileHubConnections.TryGetValue(serviceInstanceId, out var connId) ? connId : null;
     }
 
     public ServiceDisconnectInfo? Unregister(string connectionId)
@@ -66,6 +75,13 @@ public class ServiceRegistry
                 && termConn == connectionId)
             {
                 _terminalHubConnections.TryRemove(info.ServiceInstanceId, out _);
+            }
+
+            // Remove file hub connection mapping
+            if (_fileHubConnections.TryGetValue(info.ServiceInstanceId, out var fileConn)
+                && fileConn == connectionId)
+            {
+                _fileHubConnections.TryRemove(info.ServiceInstanceId, out _);
             }
 
             // Clean up all terminals associated with this service

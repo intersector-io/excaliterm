@@ -1,11 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import {
   Terminal,
   StickyNote,
   Plus,
-  Circle,
-  AlertCircle,
   Server,
   Users,
 } from "lucide-react";
@@ -14,6 +13,8 @@ import { useNotes } from "@/hooks/use-notes";
 import { useServices } from "@/hooks/use-services";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
+import { MobileMediaSection } from "./MobileMediaViewer";
+import * as api from "@/lib/api-client";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { getTagColor } from "./TagEditor";
 import { Button } from "@/components/ui/button";
@@ -35,10 +36,16 @@ export function MobileTerminalListView({
   const { terminals, createTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { onlineCount } = useServices();
-  const { collaborator } = useWorkspace();
+  const { collaborator, workspaceId } = useWorkspace();
   const { collaboratorCount } = useTerminalCollaboration();
 
   const noHost = onlineCount === 0;
+
+  const screenshotsQuery = useQuery({
+    queryKey: ["screenshots", workspaceId],
+    queryFn: () => api.listScreenshots(workspaceId),
+  });
+  const screenshots = screenshotsQuery.data?.screenshots ?? [];
 
   const [fullScreenTerminal, setFullScreenTerminal] = useState<{
     terminalId: string;
@@ -228,6 +235,9 @@ export function MobileTerminalListView({
                 ))}
               </div>
             )}
+
+            {/* Media: Screenshots & Streams */}
+            <MobileMediaSection screenshots={screenshots} />
           </div>
         )}
       </div>

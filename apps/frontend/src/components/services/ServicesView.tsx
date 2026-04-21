@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Server } from "lucide-react";
+import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,11 +30,14 @@ export function ServicesView() {
     isUpdating,
     deleteService,
     isDeleting,
+    shutdownService,
+    isShuttingDown,
   } = useServices();
 
   const [registerOpen, setRegisterOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceInstance | null>(null);
   const [deletingService, setDeletingService] = useState<ServiceInstance | null>(null);
+  const [shuttingDownService, setShuttingDownService] = useState<ServiceInstance | null>(null);
 
   function handleDelete(service: ServiceInstance) {
     setDeletingService(service);
@@ -43,6 +47,21 @@ export function ServicesView() {
     if (!deletingService) return;
     await deleteService(deletingService.id);
     setDeletingService(null);
+  }
+
+  function handleShutdown(service: ServiceInstance) {
+    setShuttingDownService(service);
+  }
+
+  async function confirmShutdown() {
+    if (!shuttingDownService) return;
+    try {
+      await shutdownService(shuttingDownService.serviceId);
+      toast.success(`Shutdown initiated for ${shuttingDownService.name}`);
+    } catch {
+      toast.error("Failed to initiate shutdown");
+    }
+    setShuttingDownService(null);
   }
 
   if (isLoading) {
@@ -129,6 +148,7 @@ export function ServicesView() {
                 service={service}
                 onEdit={setEditingService}
                 onDelete={handleDelete}
+                onShutdown={handleShutdown}
               />
             ))}
           </div>
@@ -176,6 +196,19 @@ export function ServicesView() {
           isDeleting={isDeleting}
         />
       )}
+
+      {/* Shutdown confirmation dialog */}
+      {shuttingDownService && (
+        <ShutdownConfirmDialog
+          serviceName={shuttingDownService.name}
+          open={!!shuttingDownService}
+          onOpenChange={(open) => {
+            if (!open) setShuttingDownService(null);
+          }}
+          onConfirm={confirmShutdown}
+          isShuttingDown={isShuttingDown}
+        />
+      )}
     </div>
   );
 }
@@ -216,6 +249,50 @@ function DeleteConfirmDialog({
             disabled={isDeleting}
           >
             {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ShutdownConfirmDialog({
+  serviceName,
+  open,
+  onOpenChange,
+  onConfirm,
+  isShuttingDown,
+}: {
+  serviceName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => Promise<void>;
+  isShuttingDown: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Shutdown Host</DialogTitle>
+          <DialogDescription>
+            This will shut down the remote host machine running "{serviceName}".
+            All active terminals and screen shares on this host will be
+            terminated. This action cannot be undone remotely.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isShuttingDown}
+          >
+            {isShuttingDown ? "Shutting down..." : "Shutdown"}
           </Button>
         </DialogFooter>
       </DialogContent>

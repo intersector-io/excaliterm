@@ -63,12 +63,26 @@ export function initializeDb() {
       "updatedAt" integer NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS "screenshot" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
+      "imageData" text NOT NULL,
+      "monitorIndex" integer NOT NULL DEFAULT 0,
+      "width" integer NOT NULL DEFAULT 0,
+      "height" integer NOT NULL DEFAULT 0,
+      "capturedAt" integer NOT NULL DEFAULT (unixepoch()),
+      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+
     CREATE TABLE IF NOT EXISTS "canvas_node" (
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
       "terminalSessionId" text REFERENCES "terminal_session"("id") ON DELETE SET NULL,
       "nodeType" text NOT NULL DEFAULT 'terminal',
       "noteId" text REFERENCES "note"("id") ON DELETE SET NULL,
+      "screenshotId" text REFERENCES "screenshot"("id") ON DELETE SET NULL,
       "x" real NOT NULL DEFAULT 100,
       "y" real NOT NULL DEFAULT 100,
       "width" real NOT NULL DEFAULT 600,
@@ -77,11 +91,24 @@ export function initializeDb() {
       "createdAt" integer NOT NULL DEFAULT (unixepoch()),
       "updatedAt" integer NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS "canvas_edge" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "sourceNodeId" text NOT NULL REFERENCES "canvas_node"("id") ON DELETE CASCADE,
+      "targetNodeId" text NOT NULL REFERENCES "canvas_node"("id") ON DELETE CASCADE,
+      "createdAt" integer NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // Migrations for existing databases
   try {
     _sqlite.exec(`ALTER TABLE "terminal_session" ADD COLUMN "tags" text DEFAULT ''`);
+  } catch {
+    // Column already exists
+  }
+  try {
+    _sqlite.exec(`ALTER TABLE "canvas_node" ADD COLUMN "screenshotId" text REFERENCES "screenshot"("id") ON DELETE SET NULL`);
   } catch {
     // Column already exists
   }

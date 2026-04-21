@@ -1,4 +1,4 @@
-import type { CanvasNode, TerminalSession } from "./models.js";
+import type { CanvasNode, CanvasEdge, Screenshot, TerminalSession } from "./models.js";
 
 // ─── Terminal Sessions ──────────────────────────────────────────────────────
 
@@ -35,6 +35,31 @@ export interface UpdateCanvasNodeRequest {
 
 export interface ListCanvasNodesResponse {
   nodes: CanvasNode[];
+}
+
+// ─── Screenshots ───────────────────────────────────────────────────────────
+
+export interface CreateScreenshotRequest {
+  serviceInstanceId: string;
+  imageData: string;
+  monitorIndex: number;
+  width: number;
+  height: number;
+  sourceTerminalNodeId: string;
+  x?: number;
+  y?: number;
+}
+
+export interface CreateScreenshotResponse {
+  screenshot: Screenshot;
+  canvasNode: CanvasNode;
+  canvasEdge: CanvasEdge;
+}
+
+// ─── Canvas Edges ──────────────────────────────────────────────────────────
+
+export interface ListCanvasEdgesResponse {
+  edges: CanvasEdge[];
 }
 
 // ─── Health ─────────────────────────────────────────────────────────────────

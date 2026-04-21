@@ -2,6 +2,8 @@ export type TerminalStatus = "active" | "disconnected" | "exited" | "error";
 
 export interface TerminalSession {
   id: string;
+  serviceInstanceId: string | null;
+  serviceId: string | null;
   tags: string[];
   status: TerminalStatus;
   exitCode: number | null;
@@ -14,6 +16,7 @@ export interface CanvasNode {
   terminalSessionId: string | null;
   nodeType?: string;
   noteId?: string | null;
+  screenshotId?: string | null;
   x: number;
   y: number;
   width: number;
@@ -60,4 +63,38 @@ export interface FileEntry {
   isDirectory: boolean;
   size: number | null;
   modifiedAt: string | null;
+}
+
+// ─── Screenshot ─────────────────────────────────────────────────────────────
+
+export interface Screenshot {
+  id: string;
+  workspaceId: string;
+  serviceInstanceId: string;
+  imageData: string;
+  monitorIndex: number;
+  width: number;
+  height: number;
+  capturedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Canvas Edge ────────────────────────────────────────────────────────────
+
+export interface CanvasEdge {
+  id: string;
+  workspaceId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  createdAt: string;
+}
+
+// ─── Monitor Info ───────────────────────────────────────────────────────────
+
+export interface MonitorInfo {
+  index: number;
+  name: string;
+  width: number;
+  height: number;
 }

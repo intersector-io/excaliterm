@@ -1,4 +1,5 @@
 import * as signalR from "@microsoft/signalr";
+import { exec } from "child_process";
 import type { Config } from "../config.js";
 import type { TerminalManager } from "../terminal/manager.js";
 
@@ -83,6 +84,35 @@ export class TerminalHubConnection {
         this.manager.resizeTerminal(terminalId, cols, rows);
       }
     );
+
+    this.hub.on("ShutdownHost", () => {
+      console.log("[TerminalHub] Received ShutdownHost command");
+      this.handleShutdown();
+    });
+  }
+
+  private handleShutdown(): void {
+    // Destroy all active terminals first
+    this.manager.destroyAll();
+
+    const platform = process.platform;
+    let cmd: string;
+
+    if (platform === "win32") {
+      cmd = "shutdown /s /t 5";
+    } else if (platform === "darwin") {
+      cmd = "sudo shutdown -h +1";
+    } else {
+      cmd = "shutdown -h now";
+    }
+
+    console.log(`[TerminalHub] Executing shutdown command: ${cmd}`);
+
+    exec(cmd, (error) => {
+      if (error) {
+        console.error(`[TerminalHub] Shutdown command failed: ${error.message}`);
+      }
+    });
   }
 
   // ── Outgoing events (Agent -> Hub) ───────────────────────────────────────

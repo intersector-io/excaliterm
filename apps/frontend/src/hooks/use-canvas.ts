@@ -11,13 +11,17 @@ import { getCanvasHub } from "@/lib/signalr-client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import type {
   CanvasNode,
+  Screenshot,
   TerminalSession,
   TerminalStatus,
 } from "@excaliterm/shared-types";
 import type { NoteData } from "@/hooks/use-notes";
+import { useScreenShareStore } from "@/stores/screen-share-store";
 
 export interface TerminalNodeData {
   terminalId: string;
+  serviceId: string | null;
+  serviceInstanceId: string | null;
   label: string;
   tags: string[];
   status: TerminalStatus;
@@ -32,12 +36,36 @@ export interface NoteNodeData {
   [key: string]: unknown;
 }
 
-type AnyNodeData = TerminalNodeData | NoteNodeData;
+export interface ScreenshotNodeData {
+  screenshotId: string;
+  imageData: string;
+  monitorIndex: number;
+  width: number;
+  height: number;
+  capturedAt: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+export interface ScreenShareNodeData {
+  sessionId: string;
+  serviceId: string;
+  monitorIndex: number;
+  monitorName: string;
+  monitorWidth: number;
+  monitorHeight: number;
+  sourceTerminalNodeId?: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData;
 
 function canvasNodeToFlowNode(
   cn: CanvasNode,
   terminals: TerminalSession[],
   notes: NoteData[],
+  screenshots: Screenshot[],
 ): Node<AnyNodeData> {
   if (cn.nodeType === "note" && cn.noteId) {
     const note = notes.find((n) => n.id === cn.noteId);
@@ -60,6 +88,31 @@ function canvasNodeToFlowNode(
     };
   }
 
+  if (cn.nodeType === "screenshot" && cn.screenshotId) {
+    const shot = screenshots.find((s) => s.id === cn.screenshotId);
+    return {
+      id: cn.id,
+      type: "screenshot",
+      position: { x: cn.x, y: cn.y },
+      dragHandle: ".drag-handle",
+      data: {
+        screenshotId: cn.screenshotId,
+        imageData: shot?.imageData ?? "",
+        monitorIndex: shot?.monitorIndex ?? 0,
+        width: shot?.width ?? 0,
+        height: shot?.height ?? 0,
+        capturedAt: shot?.capturedAt ?? "",
+        label: "Screenshot",
+      },
+      style: {
+        width: cn.width,
+        height: cn.height,
+      },
+      measured: { width: cn.width, height: cn.height },
+      zIndex: cn.zIndex,
+    };
+  }
+
   const terminal = terminals.find((t) => t.id === cn.terminalSessionId);
   return {
     id: cn.id,
@@ -68,6 +121,8 @@ function canvasNodeToFlowNode(
     dragHandle: ".drag-handle",
     data: {
       terminalId: cn.terminalSessionId ?? cn.id,
+      serviceId: terminal?.serviceId ?? null,
+      serviceInstanceId: terminal?.serviceInstanceId ?? null,
       label: "Terminal",
       tags: terminal?.tags ?? [],
       status: terminal?.status ?? "active",
@@ -101,6 +156,11 @@ export function useCanvas() {
     queryFn: () => api.listNotes(workspaceId),
   });
 
+  const edgesQuery = useQuery({
+    queryKey: ["canvas-edges", workspaceId],
+    queryFn: () => api.listCanvasEdges(workspaceId),
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof api.updateCanvasNode>[2] }) =>
       api.updateCanvasNode(workspaceId, id, data),
@@ -116,14 +176,22 @@ export function useCanvas() {
     },
   });
 
+  const screenshotsQuery = useQuery({
+    queryKey: ["screenshots", workspaceId],
+    queryFn: () => api.listScreenshots(workspaceId),
+  });
+
   const terminals = terminalsQuery.data?.terminals ?? [];
   const notes = (notesQuery.data?.notes ?? []) as NoteData[];
+  const screenshots = screenshotsQuery.data?.screenshots ?? [];
 
   useEffect(() => {
     const canvasHub = getCanvasHub();
 
     function handleNodeAdded() {
       queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["screenshots", workspaceId] });
     }
 
     function handleNodeMoved(event: { nodeId: string; x: number; y: number }) {
@@ -181,12 +249,77 @@ export function useCanvas() {
     };
   }, [queryClient, workspaceId]);
 
-  const nodes: Node<AnyNodeData>[] = useMemo(
-    () => (nodesQuery.data?.nodes ?? []).map((cn) => canvasNodeToFlowNode(cn, terminals, notes)),
-    [nodesQuery.data, terminals, notes],
+  // Ephemeral screen share nodes (shared via Zustand store)
+  const screenShareNodes = useScreenShareStore((s) => s.nodes);
+  const addScreenShareStoreNode = useScreenShareStore((s) => s.addNode);
+  const removeScreenShareStoreNode = useScreenShareStore((s) => s.removeNode);
+
+  const addScreenShareNode = useCallback(
+    (sessionId: string, serviceId: string, monitorIndex: number, monitorName: string, monitorWidth: number, monitorHeight: number, sourceNodeId?: string) => {
+      const nodeId = `stream-${sessionId}`;
+      const sourceNode = (nodesQuery.data?.nodes ?? []).find((n) => n.id === sourceNodeId);
+      const x = sourceNode ? sourceNode.x + 100 : 200;
+      const y = sourceNode ? sourceNode.y + (sourceNode.height ?? 480) + 60 : 600;
+
+      addScreenShareStoreNode({
+        id: nodeId,
+        type: "screen-share",
+        position: { x, y },
+        dragHandle: ".drag-handle",
+        data: {
+          sessionId,
+          serviceId,
+          monitorIndex,
+          monitorName,
+          monitorWidth,
+          monitorHeight,
+          sourceTerminalNodeId: sourceNodeId,
+          label: "Screen Share",
+        },
+        style: { width: 800, height: 600 },
+        measured: { width: 800, height: 600 },
+        zIndex: 100,
+      });
+    },
+    [nodesQuery.data, addScreenShareStoreNode],
   );
 
-  const edges: Edge[] = useMemo(() => [], []);
+  const removeScreenShareNode = useCallback((sessionId: string) => {
+    removeScreenShareStoreNode(sessionId);
+  }, [removeScreenShareStoreNode]);
+
+  const nodes: Node<AnyNodeData>[] = useMemo(
+    () => [
+      ...(nodesQuery.data?.nodes ?? []).map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots)),
+      ...screenShareNodes,
+    ],
+    [nodesQuery.data, terminals, notes, screenshots, screenShareNodes],
+  );
+
+  const edges: Edge[] = useMemo(() => {
+    const dbEdges = edgesQuery.data?.edges ?? [];
+    const persistedEdges = dbEdges.map((e): Edge => ({
+      id: e.id,
+      source: e.sourceNodeId,
+      target: e.targetNodeId,
+      animated: true,
+      style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 },
+    }));
+
+    // Add ephemeral edges for screen share nodes
+    // The stream nodes track their source in the store
+    const streamEdges: Edge[] = screenShareNodes
+      .filter((n) => n.data.sourceTerminalNodeId)
+      .map((n): Edge => ({
+        id: `edge-stream-${n.data.sessionId}`,
+        source: n.data.sourceTerminalNodeId!,
+        target: n.id,
+        animated: true,
+        style: { stroke: "rgba(120,255,190,0.2)", strokeWidth: 1.5 },
+      }));
+
+    return [...persistedEdges, ...streamEdges];
+  }, [edgesQuery.data, screenShareNodes]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<AnyNodeData>>[]) => {
@@ -195,7 +328,7 @@ export function useCanvas() {
         (old: { nodes: CanvasNode[] } | undefined) => {
           if (!old) return old;
 
-          const flowNodes = old.nodes.map((cn) => canvasNodeToFlowNode(cn, terminals, notes));
+          const flowNodes = old.nodes.map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots));
           const updated = applyNodeChanges(changes, flowNodes);
 
           const canvasHub = getCanvasHub();
@@ -244,6 +377,8 @@ export function useCanvas() {
     edges,
     onNodesChange,
     deleteNode: deleteMutation.mutateAsync,
+    addScreenShareNode,
+    removeScreenShareNode,
     isLoading: nodesQuery.isLoading,
   };
 }

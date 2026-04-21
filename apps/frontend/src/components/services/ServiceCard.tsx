@@ -1,4 +1,4 @@
-import { Settings, Trash2, Clock, Terminal, FolderOpen } from "lucide-react";
+import { Settings, Trash2, Clock, Terminal, FolderOpen, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ServiceInstance } from "@/lib/api-client";
@@ -7,6 +7,7 @@ interface ServiceCardProps {
   service: ServiceInstance;
   onEdit: (service: ServiceInstance) => void;
   onDelete: (service: ServiceInstance) => void;
+  onShutdown: (service: ServiceInstance) => void;
 }
 
 function formatRelativeTime(isoString: string | null): string {
@@ -27,7 +28,7 @@ function formatRelativeTime(isoString: string | null): string {
   return date.toLocaleDateString();
 }
 
-export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
+export function ServiceCard({ service, onEdit, onDelete, onShutdown }: ServiceCardProps) {
   const isOnline = service.status === "online";
   const paths = service.whitelistedPaths
     ? service.whitelistedPaths
@@ -97,6 +98,17 @@ export function ServiceCard({ service, onEdit, onDelete }: ServiceCardProps) {
           <Settings className="h-3 w-3" />
           Edit
         </Button>
+        {isOnline && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs text-destructive hover:text-destructive"
+            onClick={() => onShutdown(service)}
+          >
+            <Power className="h-3 w-3" />
+            Shutdown
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

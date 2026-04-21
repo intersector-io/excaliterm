@@ -1,4 +1,4 @@
-namespace TerminalProxy.Hub.Models;
+namespace Excaliterm.Hub.Models;
 
 // ─── Terminal Hub ────────────────────────────────────────────────────────────
 
@@ -29,6 +29,10 @@ public record CollaboratorJoinedMessage(CollaboratorInfo Collaborator);
 public record CollaboratorLeftMessage(string ClientId);
 
 public record TerminalLockChangedMessage(string TerminalId, TerminalLockInfo? Lock);
+
+// ─── Shutdown ───────────────────────────────────────────────────────────────
+
+public record ShutdownInitiatedMessage(string ServiceId);
 
 // ─── Canvas Hub ──────────────────────────────────────────────────────────────
 
@@ -85,6 +89,24 @@ public record DirectoryListingMessage(string ServiceId, string Path, FileEntryDt
 public record FileContentMessage(string ServiceId, string Path, string Content);
 
 public record FileErrorMessage(string ServiceId, string Path, string Error);
+
+// ─── Screen Share / Screenshot ───────────────────────────────────────────────
+
+public record MonitorInfoDto(int Index, string Name, int Width, int Height);
+
+public record MonitorListingMessage(string ServiceId, MonitorInfoDto[] Monitors);
+
+public record ScreenshotCapturedMessage(string ServiceId, string ImageBase64, int MonitorIndex, int Width, int Height);
+
+public record ScreenShareFrameMessage(string ServiceId, string SessionId, string ImageBase64, int Width, int Height);
+
+public record ScreenShareSessionMessage(string ServiceId, string SessionId, int MonitorIndex);
+
+public record WebRtcOfferMessage(string ServiceId, string SessionId, string Sdp, string Type);
+
+public record WebRtcAnswerMessage(string ServiceId, string SessionId, string Sdp, string Type);
+
+public record WebRtcIceCandidateMessage(string ServiceId, string SessionId, string Candidate, string? SdpMid, int? SdpMLineIndex);
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 

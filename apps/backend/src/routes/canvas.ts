@@ -5,7 +5,11 @@ import { getDb, schema } from "../db/index.js";
 import type {
   UpdateCanvasNodeRequest,
   ListCanvasNodesResponse,
+  CreateScreenshotRequest,
+  CreateScreenshotResponse,
+  ListCanvasEdgesResponse,
   CanvasNode,
+  CanvasEdge,
 } from "@excaliterm/shared-types";
 import type { WorkspaceVariables } from "../middleware/workspace.js";
 
@@ -19,6 +23,7 @@ function toCanvasNodeResponse(
     terminalSessionId: row.terminalSessionId,
     nodeType: row.nodeType,
     noteId: row.noteId,
+    screenshotId: row.screenshotId,
     x: row.x,
     y: row.y,
     width: row.width,
@@ -111,6 +116,182 @@ canvas.delete("/nodes/:id", async (c) => {
   await db
     .delete(schema.canvasNode)
     .where(eq(schema.canvasNode.id, nodeId));
+
+  return c.json({ success: true });
+});
+
+// ─── Screenshots ────────────────────────────────────────────────────────────
+
+// GET /screenshots - List all screenshots for the workspace
+canvas.get("/screenshots", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const db = getDb();
+
+  const rows = await db
+    .select()
+    .from(schema.screenshot)
+    .where(eq(schema.screenshot.workspaceId, workspaceId));
+
+  return c.json({
+    screenshots: rows.map((r) => ({
+      id: r.id,
+      workspaceId: r.workspaceId,
+      serviceInstanceId: r.serviceInstanceId ?? "",
+      imageData: r.imageData,
+      monitorIndex: r.monitorIndex,
+      width: r.width,
+      height: r.height,
+      capturedAt: r.capturedAt.toISOString(),
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    })),
+  });
+});
+
+// POST /screenshots - Create screenshot + canvas node + edge
+canvas.post("/screenshots", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const db = getDb();
+  const body = await c.req.json<CreateScreenshotRequest>();
+
+  const screenshotId = crypto.randomUUID();
+  const nodeId = crypto.randomUUID();
+  const edgeId = crypto.randomUUID();
+
+  // Verify the source terminal node exists
+  const [sourceNode] = await db
+    .select()
+    .from(schema.canvasNode)
+    .where(
+      and(
+        eq(schema.canvasNode.id, body.sourceTerminalNodeId),
+        eq(schema.canvasNode.workspaceId, workspaceId),
+      ),
+    );
+
+  if (!sourceNode) {
+    throw new HTTPException(404, { message: "Source terminal node not found" });
+  }
+
+  // Position the screenshot node below and to the right of the source
+  const x = body.x ?? sourceNode.x + 100;
+  const y = body.y ?? sourceNode.y + sourceNode.height + 60;
+
+  // Create screenshot record
+  await db.insert(schema.screenshot).values({
+    id: screenshotId,
+    workspaceId,
+    serviceInstanceId: body.serviceInstanceId,
+    imageData: body.imageData,
+    monitorIndex: body.monitorIndex,
+    width: body.width,
+    height: body.height,
+  });
+
+  // Create canvas node for the screenshot
+  await db.insert(schema.canvasNode).values({
+    id: nodeId,
+    workspaceId,
+    nodeType: "screenshot",
+    screenshotId,
+    x,
+    y,
+    width: Math.min(body.width, 800),
+    height: Math.min(body.height, 600),
+  });
+
+  // Create edge connecting source terminal to screenshot
+  await db.insert(schema.canvasEdge).values({
+    id: edgeId,
+    workspaceId,
+    sourceNodeId: body.sourceTerminalNodeId,
+    targetNodeId: nodeId,
+  });
+
+  const [newNode] = await db
+    .select()
+    .from(schema.canvasNode)
+    .where(eq(schema.canvasNode.id, nodeId));
+
+  const [newScreenshot] = await db
+    .select()
+    .from(schema.screenshot)
+    .where(eq(schema.screenshot.id, screenshotId));
+
+  const response: CreateScreenshotResponse = {
+    screenshot: {
+      id: newScreenshot.id,
+      workspaceId: newScreenshot.workspaceId,
+      serviceInstanceId: newScreenshot.serviceInstanceId ?? "",
+      imageData: newScreenshot.imageData,
+      monitorIndex: newScreenshot.monitorIndex,
+      width: newScreenshot.width,
+      height: newScreenshot.height,
+      capturedAt: newScreenshot.capturedAt.toISOString(),
+      createdAt: newScreenshot.createdAt.toISOString(),
+      updatedAt: newScreenshot.updatedAt.toISOString(),
+    },
+    canvasNode: toCanvasNodeResponse(newNode),
+    canvasEdge: {
+      id: edgeId,
+      workspaceId,
+      sourceNodeId: body.sourceTerminalNodeId,
+      targetNodeId: nodeId,
+      createdAt: new Date().toISOString(),
+    },
+  };
+
+  return c.json(response, 201);
+});
+
+// ─── Canvas Edges ───────────────────────────────────────────────────────────
+
+// GET /edges - List all edges for the workspace
+canvas.get("/edges", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const db = getDb();
+
+  const rows = await db
+    .select()
+    .from(schema.canvasEdge)
+    .where(eq(schema.canvasEdge.workspaceId, workspaceId));
+
+  const response: ListCanvasEdgesResponse = {
+    edges: rows.map((r): CanvasEdge => ({
+      id: r.id,
+      workspaceId: r.workspaceId,
+      sourceNodeId: r.sourceNodeId,
+      targetNodeId: r.targetNodeId,
+      createdAt: r.createdAt.toISOString(),
+    })),
+  };
+
+  return c.json(response);
+});
+
+// DELETE /edges/:id - Delete an edge
+canvas.delete("/edges/:id", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const edgeId = c.req.param("id");
+  const db = getDb();
+
+  const [existing] = await db
+    .select()
+    .from(schema.canvasEdge)
+    .where(
+      and(
+        eq(schema.canvasEdge.id, edgeId),
+        eq(schema.canvasEdge.workspaceId, workspaceId),
+      ),
+    );
+
+  if (!existing) {
+    throw new HTTPException(404, { message: "Edge not found" });
+  }
+
+  await db
+    .delete(schema.canvasEdge)
+    .where(eq(schema.canvasEdge.id, edgeId));
 
   return c.json({ success: true });
 });

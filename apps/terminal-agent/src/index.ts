@@ -12,6 +12,8 @@ import { FileSystemHandler } from "./filesystem/handler.js";
 import { PathValidator } from "./filesystem/validator.js";
 import { TerminalHubConnection } from "./hub/terminal-hub.js";
 import { FileHubConnection } from "./hub/file-hub.js";
+import { ScreenshotHandler } from "./screenshot/handler.js";
+import { ScreenShareManager } from "./screen-share/manager.js";
 
 async function main(): Promise<void> {
   console.log("[terminal-agent] Starting...");
@@ -36,15 +38,20 @@ async function main(): Promise<void> {
   const pathValidator = new PathValidator(config.whitelistedPaths);
   const fileHandler = new FileSystemHandler(pathValidator);
 
+  // Create screenshot and screen share handlers
+  const screenshotHandler = new ScreenshotHandler();
+  const screenShareManager = new ScreenShareManager(screenshotHandler);
+
   // Create hub connections
   const terminalHub = new TerminalHubConnection(config, manager);
-  const fileHub = new FileHubConnection(config, fileHandler);
+  const fileHub = new FileHubConnection(config, fileHandler, screenshotHandler, screenShareManager);
 
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     console.log(`\n[terminal-agent] Received ${signal}, shutting down...`);
 
     manager.destroyAll();
+    screenShareManager.stopAll();
 
     try {
       await Promise.allSettled([terminalHub.stop(), fileHub.stop()]);

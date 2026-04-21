@@ -83,6 +83,30 @@ export const terminalSession = sqliteTable("terminal_session", {
     .default(sql`(unixepoch())`),
 });
 
+export const screenshot = sqliteTable("screenshot", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspaceId")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  serviceInstanceId: text("serviceInstanceId").references(
+    () => serviceInstance.id,
+    { onDelete: "set null" },
+  ),
+  imageData: text("imageData").notNull(),
+  monitorIndex: integer("monitorIndex").notNull().default(0),
+  width: integer("width").notNull().default(0),
+  height: integer("height").notNull().default(0),
+  capturedAt: integer("capturedAt", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  createdAt: integer("createdAt", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updatedAt", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 export const canvasNode = sqliteTable("canvas_node", {
   id: text("id").primaryKey(),
   workspaceId: text("workspaceId")
@@ -94,6 +118,9 @@ export const canvasNode = sqliteTable("canvas_node", {
   ),
   nodeType: text("nodeType").notNull().default("terminal"),
   noteId: text("noteId").references(() => note.id, { onDelete: "set null" }),
+  screenshotId: text("screenshotId").references(() => screenshot.id, {
+    onDelete: "set null",
+  }),
   x: real("x").notNull().default(100),
   y: real("y").notNull().default(100),
   width: real("width").notNull().default(600),
@@ -103,6 +130,22 @@ export const canvasNode = sqliteTable("canvas_node", {
     .notNull()
     .default(sql`(unixepoch())`),
   updatedAt: integer("updatedAt", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const canvasEdge = sqliteTable("canvas_edge", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspaceId")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  sourceNodeId: text("sourceNodeId")
+    .notNull()
+    .references(() => canvasNode.id, { onDelete: "cascade" }),
+  targetNodeId: text("targetNodeId")
+    .notNull()
+    .references(() => canvasNode.id, { onDelete: "cascade" }),
+  createdAt: integer("createdAt", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -126,3 +169,9 @@ export type InsertTerminalSession = InferInsertModel<typeof terminalSession>;
 
 export type SelectCanvasNode = InferSelectModel<typeof canvasNode>;
 export type InsertCanvasNode = InferInsertModel<typeof canvasNode>;
+
+export type SelectScreenshot = InferSelectModel<typeof screenshot>;
+export type InsertScreenshot = InferInsertModel<typeof screenshot>;
+
+export type SelectCanvasEdge = InferSelectModel<typeof canvasEdge>;
+export type InsertCanvasEdge = InferInsertModel<typeof canvasEdge>;
