@@ -4,7 +4,9 @@ import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
 import { TerminalListPanel } from "@/components/canvas/TerminalListPanel";
+import { MobileTerminalListView } from "@/components/canvas/MobileTerminalListView";
 import { useCanvas } from "@/hooks/use-canvas";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ActiveView } from "./AppShell";
 
 const EditorView = lazy(() =>
@@ -56,6 +58,7 @@ function SettingsView() {
 
 function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void }) {
   const { nodes } = useCanvas();
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const [terminalListOpen, setTerminalListOpen] = useState(false);
   const focusTerminalRef = useRef<((nodeId: string) => void) | null>(null);
   const fullScreenRef = useRef<((terminalId: string, status: string) => void) | null>(null);
@@ -67,6 +70,15 @@ function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void
   const handleFullScreenTerminal = useCallback((terminalId: string, status: string) => {
     fullScreenRef.current?.(terminalId, status);
   }, []);
+
+  // On mobile, show a terminal list instead of the canvas
+  if (isMobile) {
+    return (
+      <MobileTerminalListView
+        onNavigateToServices={() => onViewChange("services")}
+      />
+    );
+  }
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">

@@ -1,13 +1,21 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
-import { Lock, LockOpen } from "lucide-react";
+import { Lock, LockOpen, MoreHorizontal, Trash2, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { TerminalView } from "@/components/terminal/TerminalView";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { TagEditor } from "./TagEditor";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 type TerminalNodeType = Node<TerminalNodeData>;
 
@@ -15,6 +23,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   const { deleteTerminal, updateTerminal } = useTerminals();
   const { deleteNode } = useCanvas();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [isHovered, setIsHovered] = useState(false);
   const {
     lockInfo,
     activeTypers,
@@ -25,6 +34,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   } = useTerminalCollaboration(data.terminalId);
 
   const isActive = data.status === "active";
+  const showControls = selected || isHovered;
 
   const handleClose = useCallback(async () => {
     try {
@@ -43,7 +53,6 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         await unlockTerminal(data.terminalId);
         return;
       }
-
       if (!lockInfo) {
         await lockTerminal(data.terminalId);
       }
@@ -58,26 +67,27 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
     unlockTerminal,
   ]);
 
+  const handleCopyId = useCallback(() => {
+    navigator.clipboard.writeText(data.terminalId).catch(() => {});
+    toast.success("Terminal ID copied");
+  }, [data.terminalId]);
+
   const statusColor =
     data.status === "active"
       ? "bg-accent-green"
       : data.status === "error"
         ? "bg-accent-red"
         : "bg-accent-amber";
+
   const statusLabel =
     data.status === "active"
-      ? "Live terminal"
+      ? "Live"
       : data.status === "disconnected"
-        ? "Host offline"
+        ? "Offline"
         : data.status === "error"
-          ? "Needs attention"
-          : "Session exited";
-  const statusBadgeClass =
-    data.status === "active"
-      ? "border-accent-green/25 bg-accent-green/10 text-accent-green"
-      : data.status === "error"
-        ? "border-accent-red/25 bg-accent-red/10 text-accent-red"
-        : "border-accent-amber/25 bg-accent-amber/10 text-accent-amber";
+          ? "Error"
+          : "Exited";
+
   const firstActiveTyper = activeTypers[0] ?? null;
 
   return (
@@ -100,125 +110,149 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         className="!w-2 !h-2 !bg-accent-cyan/60 !border-0 !rounded-full"
       />
       <div
-        className={`flex h-full w-full flex-col overflow-hidden rounded-[24px] border shadow-[0_28px_80px_rgba(0,0,0,0.42)] transition-shadow duration-300 ${
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`flex h-full w-full flex-col overflow-hidden rounded-[24px] border transition-all duration-500 ${
           isActive
             ? "border-white/[0.08] bg-[#12122a]"
             : "border-white/[0.04] bg-[#12122a]/82"
+        } ${
+          activeTypers.length > 0
+            ? "terminal-glow-typing border-accent-cyan/25"
+            : lockedByOther
+              ? "terminal-glow-locked border-accent-amber/20"
+              : "shadow-[0_28px_80px_rgba(0,0,0,0.42)]"
         }`}
       >
-        <div className={`drag-handle flex items-center justify-between border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))] px-4 ${
-          isMobile ? "min-h-[58px] py-3" : "min-h-[62px] py-3"
-        }`}>
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex gap-1.5 pt-1">
-              <button
-                onClick={handleClose}
-                className="h-3 w-3 rounded-full bg-[#ff5f57] hover:bg-[#ff5f57]/80 transition-colors active:scale-90"
-                title={isActive ? "Close terminal" : "Dismiss"}
-              />
-              <div className={`h-3 w-3 rounded-full ${isActive ? "bg-[#febc2e]" : "bg-white/[0.06]"}`} />
-              <div className={`h-3 w-3 rounded-full ${isActive ? "bg-[#28c840]" : "bg-white/[0.06]"}`} />
-            </div>
+        {/* ─── Title Bar ─────────────────────────────────────────────── */}
+        <div className="drag-handle flex items-center justify-between border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))] px-4 min-h-[44px] py-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {/* Status dot */}
+            <div
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${statusColor} ${
+                isActive ? "animate-pulse shadow-[0_0_10px_rgba(120,255,190,0.4)]" : ""
+              }`}
+            />
+            {/* Terminal ID + status */}
             <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-[12px] font-semibold tracking-[0.02em] text-white/88">
-                  {statusLabel}
-                </span>
-                <div className={`h-2 w-2 shrink-0 rounded-full ${statusColor} ${isActive ? "animate-pulse shadow-[0_0_14px_rgba(120,255,190,0.45)]" : ""}`} />
-              </div>
-              <div className="mt-1 flex min-w-0 items-center gap-2">
-                <span className="truncate font-mono text-[10px] tracking-[0.22em] text-white/30 uppercase">
+              <div className="flex items-center gap-2">
+                <span className="truncate font-mono text-body-sm font-semibold text-white/90">
                   {data.terminalId.slice(0, 8)}
                 </span>
+                <span className="text-caption text-white/40">{statusLabel}</span>
                 {data.exitCode !== null && (
-                  <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-white/46">
+                  <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-1.5 py-0 text-caption text-white/40">
                     exit {data.exitCode}
                   </span>
                 )}
               </div>
-              <div className="nodrag nopan mt-1">
-                <TagEditor
-                  tags={data.tags ?? []}
-                  onTagsChange={(tags) => {
-                    updateTerminal({
-                      id: data.terminalId,
-                      data: { tags },
-                    }).catch(() => {});
-                  }}
-                  compact
-                />
-              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 pl-3">
+
+          <div className="flex items-center gap-1.5 pl-2">
+            {/* Typing indicator — always visible when active */}
             {firstActiveTyper && (
-              <span className="hidden max-w-40 truncate rounded-full border border-accent-cyan/15 bg-accent-cyan/10 px-2.5 py-1 text-[10px] font-medium text-accent-cyan/85 lg:inline-flex">
+              <span className="hidden max-w-32 truncate rounded-full border border-accent-cyan/15 bg-accent-cyan/10 px-2 py-0.5 text-caption font-medium text-accent-cyan/85 lg:inline-flex">
                 {firstActiveTyper.displayName}
                 {activeTypers.length > 1 ? ` +${activeTypers.length - 1}` : ""} typing
               </span>
             )}
-            <span
-              className={`hidden rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] uppercase md:inline-flex ${statusBadgeClass}`}
-            >
-              {data.status}
-            </span>
+
+            {/* Lock indicator — shown when locked */}
             {lockInfo && (
               <span
-                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
+                className={`rounded-full border px-2 py-0.5 text-caption font-semibold ${
                   lockedByCurrentCollaborator
                     ? "border-accent-cyan/20 bg-accent-cyan/15 text-accent-cyan"
                     : "border-accent-amber/20 bg-accent-amber/15 text-accent-amber"
                 }`}
               >
-                {lockedByCurrentCollaborator ? "Locked by you" : `Locked by ${lockInfo.displayName}`}
+                {lockedByCurrentCollaborator
+                  ? "Locked by you"
+                  : `Locked: ${lockInfo.displayName}`}
               </span>
             )}
-            {isActive && (
+
+            {/* Lock button — hover/select only */}
+            {showControls && isActive && (
               <button
-                onClick={(event) => {
-                  event.stopPropagation();
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleToggleLock().catch(() => {});
                 }}
                 disabled={lockedByOther}
-                className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-semibold transition-colors ${
+                className={`nodrag nopan flex items-center gap-1 rounded-full border px-2 py-1 text-caption font-semibold transition-colors ${
                   lockedByCurrentCollaborator
                     ? "border-accent-cyan/25 bg-accent-cyan/15 text-accent-cyan hover:bg-accent-cyan/25"
                     : lockedByOther
                       ? "border-white/[0.05] bg-white/[0.03] text-white/25"
-                      : "border-white/[0.08] bg-white/[0.05] text-white/72 hover:bg-white/[0.1] hover:text-white/90"
+                      : "border-white/[0.08] bg-white/[0.05] text-white/60 hover:bg-white/[0.1] hover:text-white/90"
                 }`}
-                title={
-                  lockedByCurrentCollaborator
-                    ? "Release terminal lock"
-                    : lockedByOther
-                      ? `Locked by ${lockInfo?.displayName}`
-                      : "Lock terminal for exclusive input"
-                }
               >
                 {lockedByCurrentCollaborator ? (
                   <LockOpen className="h-3 w-3" />
                 ) : (
                   <Lock className="h-3 w-3" />
                 )}
-                <span>{lockedByCurrentCollaborator ? "Unlock" : "Lock input"}</span>
               </button>
             )}
-            {!isActive && (
-              <span className={`text-[10px] font-semibold uppercase tracking-[0.16em] md:hidden ${data.status === "error" ? "text-accent-red" : "text-white/38"}`}>
-                {data.status}
-              </span>
+
+            {/* Overflow menu — hover/select only */}
+            {showControls && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="nodrag nopan flex h-6 w-6 items-center justify-center rounded-md text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/70"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleCopyId}>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Copy terminal ID</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleClose}
+                    className="text-accent-red focus:text-accent-red"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>{isActive ? "Close terminal" : "Dismiss"}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
-        <div className={`nodrag nopan nowheel flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,rgba(75,140,255,0.08),transparent_52%)] p-3 ${
-          !isActive ? "opacity-70" : ""
-        }`}>
+
+        {/* ─── Tags Row ────────────────────────────────────────────────── */}
+        <div className="nodrag nopan flex items-center border-b border-white/[0.03] bg-white/[0.02] px-4 py-1.5">
+          <TagEditor
+            tags={data.tags ?? []}
+            onTagsChange={(tags) => {
+              updateTerminal({
+                id: data.terminalId,
+                data: { tags },
+              }).catch(() => {});
+            }}
+            compact
+          />
+        </div>
+
+        {/* ─── Terminal Content ───────────────────────────────────────── */}
+        <div
+          className={`nodrag nopan nowheel flex-1 overflow-hidden p-3 ${
+            !isActive ? "opacity-70" : ""
+          }`}
+        >
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/[0.05] bg-[#0c1020] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_20px_45px_rgba(0,0,0,0.26)]">
-            <div className="pointer-events-none flex items-center justify-between border-b border-white/[0.05] px-4 py-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/26">
+            <div className="pointer-events-none flex items-center justify-between border-b border-white/[0.05] px-4 py-1.5">
+              <span className="font-mono text-caption uppercase tracking-[0.24em] text-white/26">
                 {isActive ? "Attached shell" : "Session snapshot"}
               </span>
-              <span className="text-[10px] text-white/26">
+              <span className="text-caption text-white/26">
                 {isActive ? "Interactive" : statusLabel}
               </span>
             </div>

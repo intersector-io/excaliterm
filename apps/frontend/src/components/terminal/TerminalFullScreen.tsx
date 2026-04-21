@@ -54,7 +54,7 @@ export function TerminalFullScreen({
             {tags!.map((tag) => (
               <span
                 key={tag}
-                className={`rounded-full border px-1.5 py-0 text-[9px] font-medium ${getTagColor(tag)}`}
+                className={`rounded-full border px-1.5 py-0 text-caption font-medium ${getTagColor(tag)}`}
               >
                 {tag}
               </span>
@@ -63,7 +63,7 @@ export function TerminalFullScreen({
         )}
         {lockInfo && (
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            className={`rounded-full px-2 py-0.5 text-caption font-semibold ${
               lockedByCurrentCollaborator
                 ? "bg-accent-cyan/15 text-accent-cyan"
                 : "bg-accent-amber/15 text-accent-amber"
@@ -84,7 +84,7 @@ export function TerminalFullScreen({
               }
             }}
             disabled={lockedByOther}
-            className={`ml-auto flex h-8 items-center gap-1 rounded-md px-2 text-[10px] ${
+            className={`ml-auto flex h-8 items-center gap-1 rounded-md px-2 text-caption ${
               lockedByCurrentCollaborator
                 ? "bg-accent-cyan/15 text-accent-cyan"
                 : lockedByOther
@@ -101,7 +101,7 @@ export function TerminalFullScreen({
           </button>
         )}
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+          className={`rounded-full px-2 py-0.5 text-caption font-semibold uppercase tracking-wider ${
             status === "active"
               ? "bg-accent-green/20 text-accent-green"
               : status === "error"

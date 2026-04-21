@@ -124,7 +124,7 @@ export function TerminalListPanel({
             <span className="text-sm font-semibold text-foreground">
               Terminals
             </span>
-            <span className="rounded-full bg-surface-raised px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="rounded-full bg-surface-raised px-1.5 py-0.5 text-caption font-medium text-muted-foreground">
               {filteredTerminals.length}
             </span>
           </div>
@@ -135,7 +135,7 @@ export function TerminalListPanel({
                 size="sm"
                 onClick={handleCloseAll}
                 disabled={isClosingAll}
-                className="h-7 gap-1 px-2 text-[11px] text-accent-red hover:text-accent-red"
+                className="h-7 gap-1 px-2 text-caption text-accent-red hover:text-accent-red"
               >
                 <Trash2 className="h-3 w-3" />
                 {isClosingAll ? "Closing..." : "Close all"}
@@ -183,14 +183,14 @@ export function TerminalListPanel({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate font-mono text-[11px] text-foreground">
+                      <span className="truncate font-mono text-caption text-foreground">
                         {terminal.id.slice(0, 8)}
                       </span>
                       <Circle
                         className={`h-2 w-2 fill-current ${statusColor(terminal.status)}`}
                       />
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <div className="mt-0.5 flex items-center gap-2 text-caption text-muted-foreground">
                       <span className={statusColor(terminal.status)}>
                         {statusLabel(terminal.status)}
                       </span>
@@ -203,7 +203,7 @@ export function TerminalListPanel({
                         {terminal.tags.map((tag) => (
                           <span
                             key={tag}
-                            className={`rounded-full border px-1.5 py-0 text-[8px] font-medium ${getTagColor(tag)}`}
+                            className={`rounded-full border px-1.5 py-0 text-caption font-medium ${getTagColor(tag)}`}
                           >
                             {tag}
                           </span>

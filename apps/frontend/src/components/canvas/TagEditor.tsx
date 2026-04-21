@@ -50,7 +50,7 @@ export function TagEditor({ tags, onTagsChange, compact }: TagEditorProps) {
       {tags.map((tag) => (
         <span
           key={tag}
-          className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${getTagColor(tag)}`}
+          className={`inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-caption font-medium ${getTagColor(tag)}`}
         >
           {tag}
           <button
@@ -78,7 +78,7 @@ export function TagEditor({ tags, onTagsChange, compact }: TagEditorProps) {
           }}
           onBlur={addTag}
           placeholder="tag"
-          className="h-6 w-16 rounded border border-border/50 bg-transparent px-1.5 text-[10px] text-foreground outline-none placeholder:text-muted-foreground/40"
+          className="h-6 w-16 rounded border border-border/50 bg-transparent px-1.5 text-caption text-foreground outline-none placeholder:text-muted-foreground/40"
         />
       ) : (
         <button
@@ -86,13 +86,16 @@ export function TagEditor({ tags, onTagsChange, compact }: TagEditorProps) {
             e.stopPropagation();
             setIsAdding(true);
           }}
-          className="flex h-5 items-center gap-0.5 rounded-full border border-dashed border-border/50 px-1.5 text-[9px] text-muted-foreground/50 transition-colors hover:border-accent-cyan/30 hover:text-accent-cyan/70"
+          className="flex h-5 items-center gap-1 rounded-full border border-dashed border-border/50 px-1.5 text-caption text-muted-foreground/40 transition-colors hover:border-accent-cyan/30 hover:text-accent-cyan/70"
           title="Add tag"
         >
           {compact && tags.length === 0 ? (
-            <Tag className="h-2.5 w-2.5" />
+            <>
+              <Tag className="h-2.5 w-2.5" />
+              <span className="text-caption">Add tag</span>
+            </>
           ) : (
-            <Plus className="h-2 w-2" />
+            <Plus className="h-2.5 w-2.5" />
           )}
         </button>
       )}
@@ -113,7 +116,7 @@ export function TagChips({ tags, selectedTag, onSelectTag }: TagChipsProps) {
     <div className="flex flex-wrap gap-1">
       <button
         onClick={() => onSelectTag?.(null)}
-        className={`rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+        className={`rounded-full border px-2 py-0.5 text-caption font-medium transition-colors ${
           selectedTag === null
             ? "border-accent-cyan/30 bg-accent-cyan/15 text-accent-cyan"
             : "border-border/40 bg-transparent text-muted-foreground hover:border-border"
@@ -125,7 +128,7 @@ export function TagChips({ tags, selectedTag, onSelectTag }: TagChipsProps) {
         <button
           key={tag}
           onClick={() => onSelectTag?.(selectedTag === tag ? null : tag)}
-          className={`rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+          className={`rounded-full border px-2 py-0.5 text-caption font-medium transition-colors ${
             selectedTag === tag
               ? `${getTagColor(tag)}`
               : "border-border/40 bg-transparent text-muted-foreground hover:border-border"

@@ -3,7 +3,7 @@ import {
   Code2,
   MessageSquare,
   Server,
-  Menu,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActiveView } from "./AppShell";
@@ -27,7 +27,7 @@ export function BottomNav({ activeView, onViewChange, unreadChat }: BottomNavPro
     { id: "editor", icon: Code2, label: "Editor" },
     { id: "chat", icon: MessageSquare, label: "Chat", badge: unreadChat },
     { id: "services", icon: Server, label: "Services" },
-    { id: "settings", icon: Menu, label: "Menu" },
+    { id: "settings", icon: Settings, label: "Settings" },
   ];
 
   return (
@@ -48,9 +48,9 @@ export function BottomNav({ activeView, onViewChange, unreadChat }: BottomNavPro
             )}
           >
             <Icon className="h-5 w-5" />
-            <span className="text-[10px] font-medium">{tab.label}</span>
+            <span className="text-caption font-medium">{tab.label}</span>
             {tab.badge != null && tab.badge > 0 && (
-              <span className="absolute right-1/4 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-blue px-0.5 text-[10px] font-semibold text-white">
+              <span className="absolute right-1/4 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-blue px-0.5 text-caption font-semibold text-white">
                 {tab.badge > 99 ? "99+" : tab.badge}
               </span>
             )}

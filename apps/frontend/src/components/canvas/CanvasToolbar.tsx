@@ -98,7 +98,7 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
           <h1 className="text-sm font-semibold tracking-tight text-foreground">
             Canvas
           </h1>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-2 text-caption text-muted-foreground">
             <span className="truncate">{collaborator.displayName}</span>
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
@@ -116,7 +116,7 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
           {terminalCount > 0 && (
             <button
               onClick={onOpenTerminalList}
-              className="flex h-7 items-center gap-1 rounded-full border border-border/50 bg-surface-raised/50 px-2 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+              className="flex h-7 items-center gap-1 rounded-full border border-border/50 bg-surface-raised/50 px-2 text-caption text-muted-foreground transition-colors hover:text-foreground"
             >
               <List className="h-3 w-3" />
               {terminalCount}
@@ -127,7 +127,7 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
             variant="secondary"
             onClick={onNewTerminal}
             disabled={isCreating}
-            className={`h-7 gap-1 rounded-full px-2.5 text-[11px] ${
+            className={`h-7 gap-1 rounded-full px-2.5 text-caption ${
               noHost
                 ? "border border-border/50 bg-muted/40 text-muted-foreground opacity-60"
                 : "border border-accent-cyan/25 bg-accent-cyan/14 text-accent-cyan"
@@ -159,19 +159,19 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
           <h1 className="text-sm font-semibold tracking-tight text-foreground">
             Terminal canvas
           </h1>
-          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground/85">
+          <div className="mt-0.5 flex items-center gap-2 text-caption text-muted-foreground/85">
             <span className="truncate">{collaborator.displayName}</span>
             <span className="hidden font-mono tracking-[0.2em] text-muted-foreground/45 md:inline">
               {workspaceId.slice(0, 8)}
             </span>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface-raised/70 px-2.5 py-1 text-[10px] text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface-raised/70 px-2.5 py-1 text-caption text-muted-foreground">
           <Users className="h-3 w-3" />
           {collaboratorCount} here
         </span>
         <span
-          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] ${
+          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-caption ${
             noHost
               ? "border-accent-amber/20 bg-accent-amber/8 text-accent-amber"
               : "border-accent-green/20 bg-accent-green/8 text-accent-green"
@@ -185,7 +185,7 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
             : `${onlineCount} host${onlineCount === 1 ? "" : "s"} ready`}
         </span>
         {terminalCount > 0 && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface-raised/70 px-2.5 py-1 text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface-raised/70 px-2.5 py-1 text-caption text-muted-foreground">
             <Terminal className="h-3 w-3" />
             {terminalCount} terminal{terminalCount === 1 ? "" : "s"}
           </span>

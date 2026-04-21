@@ -119,7 +119,7 @@ export function CanvasEmptyState({
                 isMobile ? "px-4 py-3" : "px-5 py-4"
               }`}
             >
-              <p className="text-[11px] font-medium text-muted-foreground/80">
+              <p className="text-caption font-medium text-muted-foreground/80">
                 How it works
               </p>
               <ol className="mt-2 space-y-1.5 text-left">
@@ -130,9 +130,9 @@ export function CanvasEmptyState({
                 ].map((step, i) => (
                   <li
                     key={i}
-                    className="flex items-start gap-2 text-[11px] text-muted-foreground/60"
+                    className="flex items-start gap-2 text-caption text-muted-foreground/60"
                   >
-                    <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-cyan/10 text-[9px] font-bold text-accent-cyan/70">
+                    <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-cyan/10 text-caption font-bold text-accent-cyan/70">
                       {i + 1}
                     </span>
                     <span className="leading-relaxed">{step}</span>

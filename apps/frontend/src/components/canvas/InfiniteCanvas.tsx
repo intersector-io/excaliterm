@@ -5,6 +5,7 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  SelectionMode,
   addEdge,
   useReactFlow,
   type NodeTypes,
@@ -182,13 +183,8 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_72%_18%,rgba(34,197,94,0.06),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_16%),#090b14]">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-10 top-8 h-[min(52vh,560px)] w-[min(78vw,980px)] rounded-[44px] border border-white/[0.04] bg-[linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01)_52%,transparent)] shadow-[0_45px_120px_rgba(0,0,0,0.3)]" />
-        <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent)]" />
-      </div>
+    <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.03),transparent_70%),#090b14]">
       <ReactFlow
-        className="relative z-10"
         nodes={nodes}
         edges={[...edges, ...localEdges]}
         onNodesChange={onNodesChange}
@@ -202,6 +198,11 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
         fitView
         fitViewOptions={fitViewOptions}
         selectNodesOnDrag={false}
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        selectionKeyCode="Shift"
+        multiSelectionKeyCode="Shift"
+        panOnDrag={[0, 2]}
         panOnScroll
         zoomOnScroll
         colorMode="dark"
@@ -210,7 +211,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          color="rgba(255, 255, 255, 0.08)"
+          color="rgba(255, 255, 255, 0.04)"
         />
         {!isMobile && !isEmpty && <Controls position="bottom-left" />}
         {!isMobile && nodes.length > 1 && (

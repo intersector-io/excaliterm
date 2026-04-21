@@ -1,6 +1,7 @@
 import { useRef, useEffect, useMemo } from "react";
 import { Loader2, MessageSquare } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ChatMessageItem } from "@/stores/chat-store";
 
 interface ChatMessageListProps {
@@ -88,8 +89,20 @@ export function ChatMessageList({
 
   if (isLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="flex-1 space-y-4 p-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex gap-2.5">
+            <Skeleton className="h-7 w-7 shrink-0 rounded-full" />
+            <div className="space-y-1.5 flex-1">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3 w-10" />
+              </div>
+              <Skeleton className={`h-4 ${i % 2 === 0 ? "w-3/4" : "w-1/2"}`} />
+              {i % 3 === 0 && <Skeleton className="h-4 w-2/3" />}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -102,9 +115,9 @@ export function ChatMessageList({
             <MessageSquare className="h-5 w-5 text-muted-foreground/50" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground/80">No messages yet</p>
+            <p className="text-sm font-medium text-foreground/80">Start a conversation</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Chat with collaborators in this workspace
+              Messages are shared with all collaborators in this workspace
             </p>
           </div>
         </div>
@@ -140,7 +153,7 @@ export function ChatMessageList({
           {/* Date separator */}
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-[10px] font-medium text-muted-foreground">
+            <span className="text-caption font-medium text-muted-foreground">
               {group.label}
             </span>
             <div className="h-px flex-1 bg-border" />

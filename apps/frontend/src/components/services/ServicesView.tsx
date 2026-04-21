@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Server } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -46,8 +47,31 @@ export function ServicesView() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        <p className="text-sm">Loading services...</p>
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-8 w-36 rounded-lg" />
+        </div>
+        <div className="flex-1 p-4 sm:p-6">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-lg border border-border bg-surface-raised p-4 space-y-3">
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-14 rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-36" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Skeleton className="h-7 w-14 rounded-md" />
+                  <Skeleton className="h-7 w-16 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -81,8 +105,10 @@ export function ServicesView() {
               <p className="text-sm font-medium text-foreground">
                 No services registered
               </p>
-              <p className="mt-1 text-xs">
-                Register one to get started.
+              <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                Connect your first host machine to start creating terminal
+                sessions. Services run the Excaliterm agent and provide shell
+                access.
               </p>
             </div>
             <Button

@@ -46,7 +46,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div className="group flex gap-2.5 px-3 py-1.5">
       {/* Avatar */}
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground mt-0.5">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-caption font-semibold text-secondary-foreground mt-0.5">
         {initials}
       </div>
 
@@ -56,7 +56,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <span className="text-xs font-semibold text-foreground">
             {message.displayName}
           </span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {relativeTime}
           </span>
         </div>

@@ -93,7 +93,7 @@ export function RegisterServiceDialog({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 gap-1 px-2 text-[10px]"
+                  className="h-6 gap-1 px-2 text-caption"
                   onClick={handleCopyConfig}
                 >
                   {copiedConfig ? (
@@ -109,7 +109,7 @@ export function RegisterServiceDialog({
                   )}
                 </Button>
               </div>
-              <pre className="max-h-48 overflow-auto rounded border border-border bg-surface-sunken p-3 font-mono text-[11px] leading-relaxed text-foreground">
+              <pre className="max-h-48 overflow-auto rounded border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
                 {getConfigSnippet()}
               </pre>
             </div>

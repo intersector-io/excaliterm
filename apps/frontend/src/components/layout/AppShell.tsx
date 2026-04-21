@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
@@ -11,6 +11,7 @@ import { useServices } from "@/hooks/use-services";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { ViewRouter } from "./ViewRouter";
+import { CommandPalette } from "@/components/command-palette/CommandPalette";
 
 export type ActiveView = "canvas" | "editor" | "chat" | "services" | "settings";
 
@@ -25,6 +26,19 @@ export function AppShell() {
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Global Cmd+K / Ctrl+K listener
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Start SignalR connections (hubs already initialized in App.tsx)
   useEffect(() => {
@@ -47,6 +61,14 @@ export function AppShell() {
     }
   }, [activeView, resetUnread]);
 
+  const palette = (
+    <CommandPalette
+      open={commandPaletteOpen}
+      onClose={() => setCommandPaletteOpen(false)}
+      onViewChange={setActiveView}
+    />
+  );
+
   if (isDesktop) {
     return (
       <div className="flex min-h-[100dvh] w-screen bg-background">
@@ -60,6 +82,7 @@ export function AppShell() {
         <main className="flex flex-1 flex-col overflow-hidden">
           <ViewRouter activeView={activeView} onViewChange={setActiveView} />
         </main>
+        {palette}
       </div>
     );
   }
@@ -75,6 +98,7 @@ export function AppShell() {
           onViewChange={setActiveView}
           unreadChat={unreadChat}
         />
+        {palette}
       </div>
     );
   }
@@ -91,6 +115,7 @@ export function AppShell() {
       <main className="flex flex-1 flex-col overflow-hidden">
         <ViewRouter activeView={activeView} onViewChange={setActiveView} />
       </main>
+      {palette}
     </div>
   );
 }

@@ -100,7 +100,7 @@ export function ServiceConfigDialog({
               value={whitelistedPaths}
               onChange={(e) => setWhitelistedPaths(e.target.value)}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               One path per line. Only these paths will be accessible.
             </p>
           </div>

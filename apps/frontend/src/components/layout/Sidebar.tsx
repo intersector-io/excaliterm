@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   LayoutDashboard,
   Code2,
@@ -8,9 +8,17 @@ import {
   Link2,
   Check,
   Users,
+  PanelLeftOpen,
+  PanelLeftClose,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/hooks/use-workspace";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import type { ActiveView } from "./AppShell";
 
 interface SidebarProps {
@@ -35,9 +43,15 @@ export function Sidebar({
   onlineServices,
   collaboratorCount,
 }: SidebarProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [pinned, setPinned] = useState(
+    () => localStorage.getItem("sidebar-pinned") === "true",
+  );
   const [copied, setCopied] = useState(false);
   const { workspaceId, collaborator } = useWorkspace();
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-pinned", String(pinned));
+  }, [pinned]);
 
   const navItems: NavItem[] = [
     { id: "canvas", icon: LayoutDashboard, label: "Canvas" },
@@ -58,105 +72,180 @@ export function Sidebar({
   }, []);
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col border-r border-border/60 bg-card/60 backdrop-blur-sm transition-[width] duration-200 ease-in-out",
-        expanded ? "w-56" : "w-12",
+    <TooltipProvider delayDuration={200}>
+      {/* Backdrop when pinned (click to unpin) */}
+      {pinned && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[2px] transition-opacity lg:block hidden"
+          onClick={() => setPinned(false)}
+        />
       )}
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-    >
-      {/* Logo area */}
-      <div className="flex h-12 items-center px-3 border-b border-border/40">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-cyan/15">
-          <span className="text-[10px] font-bold text-accent-cyan tracking-tighter">ET</span>
-        </div>
-        {expanded && (
-          <span className="ml-2.5 text-xs font-semibold text-foreground tracking-tight truncate">
-            Excaliterm
-          </span>
+      <div
+        className={cn(
+          "flex h-full flex-col border-r border-border-default/60 bg-card/80 backdrop-blur-sm transition-[width] duration-200 ease-in-out",
+          pinned
+            ? "fixed left-0 top-0 bottom-0 z-40 w-56 shadow-2xl"
+            : "w-14",
         )}
-      </div>
+      >
+        {/* Logo area */}
+        <div className="flex h-12 items-center px-3 border-b border-border-subtle">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-cyan/15">
+            <span className="text-caption font-bold text-accent-cyan tracking-tighter">
+              ET
+            </span>
+          </div>
+          {pinned && (
+            <span className="ml-2.5 text-body-sm font-semibold text-foreground tracking-tight truncate">
+              Excaliterm
+            </span>
+          )}
+        </div>
 
-      {/* Nav items */}
-      <nav className="flex flex-1 flex-col gap-0.5 px-1.5 pt-2">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeView === item.id;
+        {/* Nav items */}
+        <nav className="flex flex-1 flex-col gap-0.5 px-1.5 pt-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.id;
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => onViewChange(item.id)}
-              className={cn(
-                "relative flex h-9 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all duration-150",
-                isActive
-                  ? "bg-accent-cyan/10 text-accent-cyan shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
-              )}
-              title={item.label}
-            >
-              <Icon className="h-4 w-4 shrink-0" strokeWidth={isActive ? 2 : 1.5} />
-              {expanded && (
-                <span className="truncate text-[13px]">{item.label}</span>
-              )}
-              {item.badge != null && item.badge > 0 && (
-                <span
+            const button = (
+              <button
+                key={item.id}
+                onClick={() => onViewChange(item.id)}
+                className={cn(
+                  "relative flex items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-all duration-150",
+                  pinned ? "h-9" : "h-10 justify-center",
+                  isActive
+                    ? "bg-accent-blue/12 text-accent-blue shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                )}
+              >
+                <Icon
+                  className="h-[18px] w-[18px] shrink-0"
+                  strokeWidth={isActive ? 2 : 1.5}
+                />
+                {pinned && (
+                  <span className="truncate text-body-sm">{item.label}</span>
+                )}
+                {item.badge != null && item.badge > 0 && (
+                  <span
+                    className={cn(
+                      "absolute flex items-center justify-center rounded-full bg-accent-cyan text-caption font-bold text-background",
+                      pinned
+                        ? "right-2 h-[18px] min-w-[18px] px-1"
+                        : "right-0.5 top-0.5 h-[14px] min-w-[14px] px-0.5",
+                    )}
+                  >
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
+              </button>
+            );
+
+            if (pinned) return <div key={item.id}>{button}</div>;
+
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent side="right">
+                  <p className="font-medium">{item.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+
+          {/* Pin toggle */}
+          <div className="mt-auto">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setPinned((p) => !p)}
                   className={cn(
-                    "absolute flex items-center justify-center rounded-full bg-accent-cyan text-[9px] font-bold text-background",
-                    expanded
-                      ? "right-2 h-[18px] min-w-[18px] px-1"
-                      : "right-0 top-0.5 h-[14px] min-w-[14px] px-0.5 text-[8px]",
+                    "flex items-center gap-3 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-white/[0.04] hover:text-foreground",
+                    pinned ? "h-9" : "h-10 justify-center",
                   )}
                 >
-                  {item.badge > 99 ? "99+" : item.badge}
-                </span>
+                  {pinned ? (
+                    <PanelLeftClose className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+                  ) : (
+                    <PanelLeftOpen className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+                  )}
+                  {pinned && (
+                    <span className="truncate text-body-sm">Collapse</span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              {!pinned && (
+                <TooltipContent side="right">
+                  <p className="font-medium">Expand sidebar</p>
+                </TooltipContent>
               )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Bottom section */}
-      <div className="border-t border-border/40 px-1.5 py-2 space-y-0.5">
-        {/* Workspace ID */}
-        {expanded && (
-          <div className="px-2 py-1">
-            <span className="font-mono text-[9px] text-muted-foreground/50 tracking-wider uppercase">
-              Workspace
-            </span>
-            <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
-              {workspaceId}
-            </p>
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <Users className="h-3 w-3" />
-              <span>
-                {collaboratorCount} collaborator{collaboratorCount === 1 ? "" : "s"}
-              </span>
-            </div>
-            <p className="mt-1 truncate text-[10px] text-muted-foreground/80">
-              {collaborator.displayName}
-            </p>
+            </Tooltip>
           </div>
-        )}
-        {/* Share button */}
-        <button
-          onClick={handleShare}
-          className="flex h-9 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-all duration-150"
-          title="Copy workspace link"
-        >
-          {copied ? (
-            <Check className="h-4 w-4 shrink-0 text-accent-green" strokeWidth={1.5} />
+        </nav>
+
+        {/* Bottom section */}
+        <div className="border-t border-border-subtle px-1.5 py-2 space-y-0.5">
+          {/* Workspace ID — only when pinned */}
+          {pinned && (
+            <div className="px-2.5 py-1.5">
+              <span className="font-mono text-caption text-muted-foreground/50 tracking-wider uppercase">
+                Workspace
+              </span>
+              <p className="font-mono text-caption text-muted-foreground mt-0.5">
+                {workspaceId}
+              </p>
+              <div className="mt-2 flex items-center gap-1.5 text-caption text-muted-foreground">
+                <Users className="h-3 w-3" />
+                <span>
+                  {collaboratorCount} collaborator
+                  {collaboratorCount === 1 ? "" : "s"}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-caption text-muted-foreground/80">
+                {collaborator.displayName}
+              </p>
+            </div>
+          )}
+          {/* Share button */}
+          {pinned ? (
+            <button
+              onClick={handleShare}
+              className="flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-all duration-150"
+            >
+              {copied ? (
+                <Check className="h-[18px] w-[18px] shrink-0 text-accent-green" strokeWidth={1.5} />
+              ) : (
+                <Link2 className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
+              )}
+              <span className="truncate text-body-sm">
+                {copied ? "Link copied" : "Share workspace"}
+              </span>
+            </button>
           ) : (
-            <Link2 className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleShare}
+                  className="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-all duration-150"
+                  title="Copy workspace link"
+                >
+                  {copied ? (
+                    <Check className="h-[18px] w-[18px] text-accent-green" strokeWidth={1.5} />
+                  ) : (
+                    <Link2 className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p className="font-medium">
+                  {copied ? "Link copied!" : "Share workspace"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
           )}
-          {expanded && (
-            <span className="truncate text-[13px]">
-              {copied ? "Link copied" : "Share workspace"}
-            </span>
-          )}
-        </button>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

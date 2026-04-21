@@ -189,7 +189,7 @@ export function FileTree({
               {filter ? "No matching files" : "Empty directory"}
             </p>
             {!filter && (
-              <p className="text-[10px] text-muted-foreground/60">
+              <p className="text-caption text-muted-foreground/60">
                 Configure whitelisted paths in your service settings
               </p>
             )}
