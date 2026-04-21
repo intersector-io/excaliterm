@@ -1,6 +1,9 @@
 # Stage 1: Build
 FROM node:22-alpine AS builder
 
+# Install build tools for native addons (better-sqlite3)
+RUN apk add --no-cache python3 make g++
+
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
