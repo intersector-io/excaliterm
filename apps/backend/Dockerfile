@@ -23,24 +23,20 @@ RUN pnpm --filter @excaliterm/backend build
 # Stage 2: Production
 FROM node:22-alpine
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
-# Copy workspace config for pnpm to resolve workspace packages
-COPY package.json pnpm-workspace.yaml ./
-COPY pnpm-lock.yaml* ./
+# Copy node_modules from builder (includes compiled native addons like better-sqlite3)
+COPY --from=builder /app/node_modules/ node_modules/
 
 # Copy built shared-types
 COPY --from=builder /app/packages/shared-types/package.json packages/shared-types/package.json
 COPY --from=builder /app/packages/shared-types/dist/ packages/shared-types/dist/
+COPY --from=builder /app/packages/shared-types/node_modules/ packages/shared-types/node_modules/
 
 # Copy built backend
 COPY --from=builder /app/apps/backend/package.json apps/backend/package.json
 COPY --from=builder /app/apps/backend/dist/ apps/backend/dist/
-
-# Install production dependencies only
-RUN pnpm install --prod --frozen-lockfile || pnpm install --prod
+COPY --from=builder /app/apps/backend/node_modules/ apps/backend/node_modules/
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
