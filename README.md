@@ -7,7 +7,7 @@ Collaborative terminal workspace with an infinite canvas UI, shared notes, chat,
 ```text
 +-----------+     REST      +-----------+     Redis      +-------------+
 | Frontend  | <-----------> | Backend   | <-----------> | SignalR Hub |
-| React/Vite|               | Hono/TS   |               | .NET 8      |
+| React/Vite|               | Hono/TS   |               | .NET 10     |
 +-----------+               +-----------+               +-------------+
       ^                           ^                            ^
       | SignalR (/hubs/*)         | SQLite                     | SignalR
@@ -15,8 +15,8 @@ Collaborative terminal workspace with an infinite canvas UI, shared notes, chat,
       +---------------------------+----------------------------+
                                   |
                            +-------------+
-                           | terminal-   |
-                           | agent       |
+                           | excaliterm  |
+                           | CLI agent   |
                            | node-pty    |
                            +-------------+
 ```
@@ -25,17 +25,58 @@ Collaborative terminal workspace with an infinite canvas UI, shared notes, chat,
 
 - Frontend: React 19, Vite 6, Tailwind CSS 4, `@xyflow/react`, xterm.js, TanStack Query, Zustand, SignalR
 - Backend: Hono, TypeScript, Drizzle ORM, SQLite, Redis
-- Realtime hub: ASP.NET Core SignalR on .NET 8
-- Agent: Node.js, `node-pty`, SignalR client
+- Realtime hub: ASP.NET Core SignalR on .NET 10 LTS
+- Agent: Node.js, `node-pty`, SignalR client (`npm install -g excaliterm`)
 - Tooling: pnpm workspaces, Turborepo, Docker Compose
 
-## Quick Start
+## Getting Started
+
+### 1. Start the platform
+
+```bash
+docker compose up --build -d
+```
+
+This starts four containers: Redis, Backend API, SignalR Hub, and Frontend. Open **http://localhost:5173** in your browser -- a workspace is created automatically.
+
+### 2. Register a service
+
+In the web UI, go to the **Services** tab and click **Register Service**. Give it a name (e.g. "My Laptop"). Copy the config that appears.
+
+### 3. Connect your machine
+
+Install the CLI agent globally:
+
+```bash
+npm install -g excaliterm
+```
+
+Set the environment variables from the service config and the workspace ID from the browser URL (`/w/<id>`):
+
+```bash
+export SIGNALR_HUB_URL="http://localhost:5000"
+export SERVICE_API_KEY="<key from your .env>"
+export WORKSPACE_ID="<id from URL>"
+excaliterm
+```
+
+Once the agent logs `Ready and waiting for commands`, the UI shows **"1 host ready"**.
+
+### 4. Create terminals
+
+Click the **Terminal** button in the canvas toolbar. A live shell session appears on the canvas. Create as many as you need -- they arrange in a grid automatically. Tag them, filter by tag, drag them around, resize, and collaborate in real-time.
+
+### 5. Share with others
+
+Copy the workspace URL and send it to anyone. They join instantly as a collaborator -- no accounts needed.
+
+## Quick Start (Local Development)
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - pnpm 10+
-- .NET 8 SDK
+- .NET 10 SDK
 - Redis 7+
 
 ### Install
@@ -54,7 +95,7 @@ Set at least these values in `.env`:
 - `SIGNALR_HUB_URL`
 - `SERVICE_API_KEY`
 
-### Local Development
+### Run
 
 Start Redis first, then run the backend and frontend:
 
@@ -117,4 +158,4 @@ dotnet build apps/signalr-hub/Excaliterm.Hub
 
 ## License
 
-Private
+MIT
