@@ -13,7 +13,8 @@ type StatusChangeHandler = (hub: string, status: ConnectionStatus) => void;
 const statusHandlers = new Set<StatusChangeHandler>();
 
 function buildConnection(path: string, workspaceId: string, collaborator: CollaboratorProfile): HubConnection {
-  const url = new URL(path, window.location.origin);
+  const hubBase = import.meta.env.VITE_HUB_URL || window.location.origin;
+  const url = new URL(path, hubBase);
   url.searchParams.set("workspaceId", workspaceId);
   url.searchParams.set("clientId", collaborator.clientId);
   url.searchParams.set("displayName", collaborator.displayName);
