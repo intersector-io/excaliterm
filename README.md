@@ -2,6 +2,36 @@
 
 Collaborative terminal workspace with an infinite canvas UI, shared notes, chat, and file access.
 
+## Screenshots
+
+### Desktop
+
+Infinite canvas with live terminals, sticky notes, and tag-based organization:
+
+![Desktop canvas with terminals and tags](screenshots/after-05-terminal-tags-row.png)
+
+Pinned sidebar for quick navigation between Canvas, Editor, Chat, Services, and Settings:
+
+![Desktop sidebar expanded](screenshots/after-02-desktop-sidebar-pinned.png)
+
+Command palette for keyboard-driven workflows:
+
+![Command palette](screenshots/after-03-command-palette.png)
+
+### Mobile
+
+Terminal list with live status indicators and one-tap access:
+
+<p>
+  <img src="screenshots/after-04-mobile-terminal-list.png" alt="Mobile terminal list" width="300">
+</p>
+
+Fullscreen terminal with swipe navigation between sessions:
+
+<p>
+  <img src="screenshots/14-mobile-terminal-fullscreen.png" alt="Mobile fullscreen terminal" width="300">
+</p>
+
 ## Architecture
 
 ```text

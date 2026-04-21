@@ -17,8 +17,8 @@ COPY apps/backend/ apps/backend/
 RUN pnpm install --frozen-lockfile || pnpm install
 
 # Build shared-types first, then backend
-RUN pnpm --filter @terminal-proxy/shared-types build
-RUN pnpm --filter @terminal-proxy/backend build
+RUN pnpm --filter @excaliterm/shared-types build
+RUN pnpm --filter @excaliterm/backend build
 
 # Stage 2: Production
 FROM node:22-alpine

@@ -17,8 +17,8 @@ COPY apps/frontend/ apps/frontend/
 RUN pnpm install --frozen-lockfile || pnpm install
 
 # Build shared-types first, then frontend
-RUN pnpm --filter @terminal-proxy/shared-types build
-RUN pnpm --filter @terminal-proxy/frontend build
+RUN pnpm --filter @excaliterm/shared-types build
+RUN pnpm --filter @excaliterm/frontend build
 
 # Stage 2: Production
 FROM nginx:1.27-alpine
