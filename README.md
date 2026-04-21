@@ -1,4 +1,4 @@
-# Terminal Proxy
+# Excaliterm
 
 Collaborative terminal workspace with an infinite canvas UI, shared notes, chat, and file access.
 
