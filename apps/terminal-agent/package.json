@@ -1,6 +1,6 @@
 {
   "name": "excaliterm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Terminal agent for Excaliterm - connect your machine to a collaborative terminal canvas",
   "type": "module",
   "bin": {
