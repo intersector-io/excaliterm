@@ -2,6 +2,8 @@
 
 Collaborative terminal workspace with an infinite canvas UI, shared notes, chat, and file access.
 
+[excaliterm.com](https://excaliterm.com) | [npm](https://www.npmjs.com/package/excaliterm)
+
 ## Screenshots
 
 ### Desktop
@@ -32,6 +34,67 @@ Fullscreen terminal with swipe navigation between sessions:
   <img src="screenshots/14-mobile-terminal-fullscreen.png" alt="Mobile fullscreen terminal" width="300">
 </p>
 
+## Getting Started
+
+### 1. Create a workspace
+
+Go to [excaliterm.com](https://excaliterm.com) -- a workspace is created automatically. Copy the **workspace ID** from the URL (`/w/<id>`).
+
+### 2. Register a service
+
+In the sidebar, open the **Services** tab and click **Register Service**. Give it a name (e.g. "My Laptop"). Copy the **API key** and **hub URL** from the config that appears.
+
+### 3. Install the CLI
+
+```bash
+npm install -g excaliterm
+```
+
+Requires [Node.js](https://nodejs.org/) 18 or later.
+
+### 4. Connect your machine
+
+Set the environment variables from the previous steps and run the CLI:
+
+**Linux / macOS:**
+
+```bash
+export SIGNALR_HUB_URL="<hub URL from service config>"
+export SERVICE_API_KEY="<API key from service config>"
+export WORKSPACE_ID="<workspace ID from URL>"
+excaliterm
+```
+
+**Windows (PowerShell):**
+
+```powershell
+$env:SIGNALR_HUB_URL = "<hub URL from service config>"
+$env:SERVICE_API_KEY = "<API key from service config>"
+$env:WORKSPACE_ID = "<workspace ID from URL>"
+excaliterm
+```
+
+Once the agent logs `Ready and waiting for commands`, the UI shows **"1 host ready"** -- your machine is connected.
+
+### 5. Create terminals
+
+Click the **Terminal** button in the canvas toolbar. A live shell session appears on the canvas. Create as many as you need -- they arrange in a grid automatically. Tag them, filter by tag, drag them around, resize, and collaborate in real-time.
+
+### 6. Share with others
+
+Copy the workspace URL and send it to anyone. They join instantly as a collaborator -- no accounts needed.
+
+## CLI Reference
+
+| Environment Variable | Required | Default | Description |
+|---|---|---|---|
+| `SERVICE_API_KEY` | Yes | -- | API key from the service registration step |
+| `SIGNALR_HUB_URL` | Yes | `http://localhost:5000` | SignalR hub URL from the service config |
+| `WORKSPACE_ID` | Yes | -- | Workspace ID from the browser URL |
+| `SHELL_OVERRIDE` | No | Auto-detected | Override the default shell (e.g. `/bin/zsh`, `bash.exe`) |
+| `WHITELISTED_PATHS` | No | -- | Comma-separated list of allowed working directories |
+| `SERVICE_ID` | No | `<hostname>-<pid>` | Custom identifier for this agent instance |
+
 ## Architecture
 
 ```text
@@ -59,48 +122,17 @@ Fullscreen terminal with swipe navigation between sessions:
 - Agent: Node.js, `node-pty`, SignalR client (`npm install -g excaliterm`)
 - Tooling: pnpm workspaces, Turborepo, Docker Compose
 
-## Getting Started
+## Self-Hosting
 
-### 1. Start the platform
+### Docker
 
 ```bash
 docker compose up --build -d
 ```
 
-This starts four containers: Redis, Backend API, SignalR Hub, and Frontend. Open **http://localhost:5173** in your browser -- a workspace is created automatically.
+This starts four containers: Redis, Backend API, SignalR Hub, and Frontend. Open **http://localhost:5173** -- a workspace is created automatically. Then follow steps 2-6 above, using `http://localhost:5000` as the hub URL and the `SERVICE_API_KEY` from your `.env` file.
 
-### 2. Register a service
-
-In the web UI, go to the **Services** tab and click **Register Service**. Give it a name (e.g. "My Laptop"). Copy the config that appears.
-
-### 3. Connect your machine
-
-Install the CLI agent globally:
-
-```bash
-npm install -g excaliterm
-```
-
-Set the environment variables from the service config and the workspace ID from the browser URL (`/w/<id>`):
-
-```bash
-export SIGNALR_HUB_URL="http://localhost:5000"
-export SERVICE_API_KEY="<key from your .env>"
-export WORKSPACE_ID="<id from URL>"
-excaliterm
-```
-
-Once the agent logs `Ready and waiting for commands`, the UI shows **"1 host ready"**.
-
-### 4. Create terminals
-
-Click the **Terminal** button in the canvas toolbar. A live shell session appears on the canvas. Create as many as you need -- they arrange in a grid automatically. Tag them, filter by tag, drag them around, resize, and collaborate in real-time.
-
-### 5. Share with others
-
-Copy the workspace URL and send it to anyone. They join instantly as a collaborator -- no accounts needed.
-
-## Quick Start (Local Development)
+## Local Development
 
 ### Prerequisites
 
@@ -158,14 +190,6 @@ pnpm --filter @excaliterm/terminal-agent dev
 ```
 
 Once your env is already configured, `pnpm dev` can be used to launch the JavaScript workspaces together. The .NET SignalR hub still runs separately.
-
-### Docker
-
-```bash
-docker compose up --build
-```
-
-This starts `redis`, `backend`, `signalr-hub`, and `frontend`. The terminal agent still runs outside Docker and connects to the hub with the same `SERVICE_API_KEY` and a `WORKSPACE_ID` matching the target workspace.
 
 ### Tests
 
