@@ -6,7 +6,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{1787FE1D-0
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "signalr-hub", "signalr-hub", "{E2D26F49-CBAA-FE5A-9FDD-3515CD3F0E9D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TerminalProxy.Hub", "apps\signalr-hub\TerminalProxy.Hub\TerminalProxy.Hub.csproj", "{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Excaliterm.Hub", "apps\signalr-hub\Excaliterm.Hub\Excaliterm.Hub.csproj", "{9E87B5C1-2A0A-01F1-9EA7-BFA15E3623F8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

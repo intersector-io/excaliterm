@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using TerminalProxy.Hub.Models;
+using Excaliterm.Hub.Models;
 
-namespace TerminalProxy.Hub.Services;
+namespace Excaliterm.Hub.Services;
 
 public class TerminalCollaborationRegistry
 {

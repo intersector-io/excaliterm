@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
-using TerminalProxy.Hub.Auth;
-using TerminalProxy.Hub.Models;
+using Excaliterm.Hub.Auth;
+using Excaliterm.Hub.Models;
 
-namespace TerminalProxy.Hub.Hubs;
+namespace Excaliterm.Hub.Hubs;
 
 public class CanvasHub : BaseHub
 {

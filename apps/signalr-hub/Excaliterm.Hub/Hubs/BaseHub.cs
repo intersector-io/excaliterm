@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
-using TerminalProxy.Hub.Auth;
+using Excaliterm.Hub.Auth;
 
-namespace TerminalProxy.Hub.Hubs;
+namespace Excaliterm.Hub.Hubs;
 
 public abstract class BaseHub : Microsoft.AspNetCore.SignalR.Hub
 {

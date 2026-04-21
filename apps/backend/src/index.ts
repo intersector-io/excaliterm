@@ -6,6 +6,7 @@ import { initializeDb } from "./db/index.js";
 import { initializeRedis, subscribe } from "./lib/redis.js";
 import { HTTPException } from "hono/http-exception";
 import { workspaceMiddleware } from "./middleware/workspace.js";
+import { rateLimiter } from "./middleware/rate-limit.js";
 import { health } from "./routes/health.js";
 import { workspaces } from "./routes/workspaces.js";
 import { terminals } from "./routes/terminals.js";
@@ -114,6 +115,9 @@ app.use(
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }),
 );
+
+// Rate limiting – 100 requests per 60s per IP
+app.use("*", rateLimiter({ max: 100, windowMs: 60_000 }));
 
 // ─── Health (public) ───────────────────────────────────────────────────────
 

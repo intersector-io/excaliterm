@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
-using TerminalProxy.Hub.Hubs;
-using TerminalProxy.Hub.Models;
+using Excaliterm.Hub.Hubs;
+using Excaliterm.Hub.Models;
 
-namespace TerminalProxy.Hub.Services;
+namespace Excaliterm.Hub.Services;
 
 public class RedisSubscriber : IHostedService
 {

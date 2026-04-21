@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace TerminalProxy.Hub.Auth;
+namespace Excaliterm.Hub.Auth;
 
 public class WorkspaceValidator
 {
