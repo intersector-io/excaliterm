@@ -1,9 +1,9 @@
 {
-  "name": "terminal-proxy",
+  "name": "excaliterm",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.33.0",
-  "description": "Remote terminal proxy with infinite canvas UI",
+  "description": "Infinite canvas with remote terminals",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",

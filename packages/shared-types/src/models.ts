@@ -2,6 +2,7 @@ export type TerminalStatus = "active" | "disconnected" | "exited" | "error";
 
 export interface TerminalSession {
   id: string;
+  tags: string[];
   status: TerminalStatus;
   exitCode: number | null;
   createdAt: string;

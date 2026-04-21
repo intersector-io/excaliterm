@@ -6,7 +6,7 @@ import type {
   DirectoryListingEvent,
   FileContentEvent,
   FileErrorEvent,
-} from "@terminal-proxy/shared-types";
+} from "@excaliterm/shared-types";
 
 interface UseFilesReturn {
   entries: FileEntryDto[];

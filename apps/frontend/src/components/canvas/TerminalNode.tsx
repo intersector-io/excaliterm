@@ -7,11 +7,12 @@ import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { TagEditor } from "./TagEditor";
 
 type TerminalNodeType = Node<TerminalNodeData>;
 
 function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeType>) {
-  const { deleteTerminal } = useTerminals();
+  const { deleteTerminal, updateTerminal } = useTerminals();
   const { deleteNode } = useCanvas();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const {
@@ -134,6 +135,18 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
                     exit {data.exitCode}
                   </span>
                 )}
+              </div>
+              <div className="nodrag nopan mt-1">
+                <TagEditor
+                  tags={data.tags ?? []}
+                  onTagsChange={(tags) => {
+                    updateTerminal({
+                      id: data.terminalId,
+                      data: { tags },
+                    }).catch(() => {});
+                  }}
+                  compact
+                />
               </div>
             </div>
           </div>

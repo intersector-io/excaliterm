@@ -8,7 +8,7 @@ import type {
   CreateTerminalRequest,
   ListTerminalsResponse,
   TerminalStatus,
-} from "@terminal-proxy/shared-types";
+} from "@excaliterm/shared-types";
 
 export function useTerminals() {
   const queryClient = useQueryClient();
@@ -33,6 +33,23 @@ export function useTerminals() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
       queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { tags?: string[] } }) =>
+      api.updateTerminal(workspaceId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
+    },
+  });
+
+  const closeAllMutation = useMutation({
+    mutationFn: () => api.closeAllTerminals(workspaceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["notes", workspaceId] });
     },
   });
 
@@ -104,7 +121,10 @@ export function useTerminals() {
     terminals: terminalsQuery.data?.terminals ?? [],
     isLoading: terminalsQuery.isLoading,
     createTerminal: createMutation.mutateAsync,
+    updateTerminal: updateMutation.mutateAsync,
     deleteTerminal: deleteMutation.mutateAsync,
+    closeAllTerminals: closeAllMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    isClosingAll: closeAllMutation.isPending,
   };
 }

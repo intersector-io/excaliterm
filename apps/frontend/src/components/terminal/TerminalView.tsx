@@ -6,7 +6,7 @@ import "@xterm/xterm/css/xterm.css";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { getTerminalHub } from "@/lib/signalr-client";
 import { useTerminalStore } from "@/stores/terminal-store";
-import type { TerminalStatus } from "@terminal-proxy/shared-types";
+import type { TerminalStatus } from "@excaliterm/shared-types";
 
 interface TerminalViewProps {
   terminalId: string;

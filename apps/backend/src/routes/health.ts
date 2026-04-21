@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
-import type { HealthResponse } from "@terminal-proxy/shared-types";
+import type { HealthResponse } from "@excaliterm/shared-types";
 
 const health = new Hono();
 

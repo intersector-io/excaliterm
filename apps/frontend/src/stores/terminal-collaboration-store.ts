@@ -5,7 +5,7 @@ import type {
   TerminalLockChangedEvent,
   TerminalLockInfo,
   TerminalTypingEvent,
-} from "@terminal-proxy/shared-types";
+} from "@excaliterm/shared-types";
 
 type TypingByTerminal = Record<string, Record<string, TerminalTypingEvent>>;
 

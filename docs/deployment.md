@@ -30,7 +30,7 @@ The terminal agent is deployed separately and is not part of the compose stack.
 
 | Variable | Example |
 |----------|---------|
-| `DATABASE_URL` | `/app/data/terminal-proxy.db` |
+| `DATABASE_URL` | `/app/data/excaliterm.db` |
 | `FRONTEND_URL` | `https://your-domain.example` |
 | `BACKEND_PORT` | `3001` |
 | `REDIS_URL` | `redis://redis:6379` |
@@ -103,7 +103,7 @@ A typical production flow is:
 1. Build the agent:
 
 ```bash
-pnpm --filter @terminal-proxy/terminal-agent build
+pnpm --filter @excaliterm/terminal-agent build
 ```
 
 2. Provide the required environment variables.
@@ -118,7 +118,7 @@ node apps/terminal-agent/dist/index.js
 
 ### SQLite
 
-- The backend stores SQLite data under `/app/data/terminal-proxy.db` in the container.
+- The backend stores SQLite data under `/app/data/excaliterm.db` in the container.
 - The compose stack persists that path through the `backend-data` volume.
 
 ### Redis

@@ -1,9 +1,9 @@
 import { useRef, useCallback, useEffect, lazy, Suspense } from "react";
-import { Save, Lock } from "lucide-react";
+import { Save, Lock, FileCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEditorStore } from "@/stores/editor-store";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { THEME_NAME, terminalProxyDarkTheme } from "@/lib/monaco-theme";
+import { THEME_NAME, excalitermDarkTheme } from "@/lib/monaco-theme";
 import { EditorTabs } from "./EditorTabs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,7 +30,7 @@ export function EditorPane({ onSave, readOnly = false }: EditorPaneProps) {
       editorRef.current = editor;
 
       // Register custom theme
-      monaco.editor.defineTheme(THEME_NAME, terminalProxyDarkTheme);
+      monaco.editor.defineTheme(THEME_NAME, excalitermDarkTheme);
       monaco.editor.setTheme(THEME_NAME);
 
       // Ctrl+S / Cmd+S to save
@@ -83,11 +83,14 @@ export function EditorPane({ onSave, readOnly = false }: EditorPaneProps) {
       <div className="flex h-full flex-col">
         <EditorTabs />
         <div className="flex flex-1 items-center justify-center text-muted-foreground">
-          <div className="text-center">
-            <p className="text-sm">No file open</p>
-            <p className="mt-1 text-xs">
-              Select a file from the tree to start editing
-            </p>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-surface-raised/40">
+              <FileCode className="h-5 w-5 text-muted-foreground/50" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground/80">No file open</p>
+              <p className="mt-1 text-xs">Select a file from the tree to start editing</p>
+            </div>
           </div>
         </div>
       </div>

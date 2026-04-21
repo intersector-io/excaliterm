@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, FolderRoot } from "lucide-react";
+import { Search, FolderRoot, FolderOpen } from "lucide-react";
 import { useEditorStore } from "@/stores/editor-store";
 import { getLanguageFromPath } from "@/lib/language-map";
 import { FileTreeItem } from "./FileTreeItem";
-import type { FileEntryDto } from "@terminal-proxy/shared-types";
+import type { FileEntryDto } from "@excaliterm/shared-types";
 
 interface FileTreeProps {
   serviceId: string | null;
@@ -183,8 +183,16 @@ export function FileTree({
             Loading files...
           </div>
         ) : treeItems.length === 0 ? (
-          <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-            {filter ? "No matching files" : "Empty directory"}
+          <div className="flex flex-col items-center gap-2 px-3 py-8 text-center text-muted-foreground">
+            <FolderOpen className="h-8 w-8 opacity-30" />
+            <p className="text-xs">
+              {filter ? "No matching files" : "Empty directory"}
+            </p>
+            {!filter && (
+              <p className="text-[10px] text-muted-foreground/60">
+                Configure whitelisted paths in your service settings
+              </p>
+            )}
           </div>
         ) : (
           treeItems

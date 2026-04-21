@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -6,21 +6,24 @@ import {
   Controls,
   MiniMap,
   addEdge,
+  useReactFlow,
   type NodeTypes,
   type NodeMouseHandler,
   type Edge,
   type OnConnect,
 } from "@xyflow/react";
 import { Plus, Terminal, StickyNote } from "lucide-react";
+import { toast } from "sonner";
 import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
+import { useServices } from "@/hooks/use-services";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { TerminalNode } from "./TerminalNode";
 import { NoteNode } from "./NoteNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
-import type { TerminalStatus } from "@terminal-proxy/shared-types";
+import type { TerminalStatus } from "@excaliterm/shared-types";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -35,11 +38,71 @@ const nodeTypes: NodeTypes = {
 
 const defaultViewport = { x: 0, y: 0, zoom: 1 };
 
-export function InfiniteCanvas() {
+interface InfiniteCanvasProps {
+  onFocusTerminalRef?: React.MutableRefObject<((nodeId: string) => void) | null>;
+  onFullScreenRef?: React.MutableRefObject<((terminalId: string, status: string) => void) | null>;
+}
+
+export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: InfiniteCanvasProps) {
   const { nodes, edges, onNodesChange } = useCanvas();
-  const { createTerminal, isCreating } = useTerminals();
+  const { createTerminal, isCreating, terminals } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
+  const { onlineCount } = useServices();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const reactFlow = useReactFlow();
+
+  const noHost = onlineCount === 0;
+  const isEmpty = nodes.length === 0;
+  const prevNodeCount = useRef(nodes.length);
+
+  // Auto-zoom to latest node when a new one is added
+  useEffect(() => {
+    if (nodes.length > prevNodeCount.current && nodes.length > 0) {
+      const latestNode = nodes[nodes.length - 1];
+      if (latestNode) {
+        setTimeout(() => {
+          reactFlow.fitView({
+            nodes: [{ id: latestNode.id }],
+            padding: isMobile ? 0.05 : 0.15,
+            maxZoom: isMobile ? 0.5 : 0.85,
+            duration: 400,
+          });
+        }, 100);
+      }
+    }
+    prevNodeCount.current = nodes.length;
+  }, [nodes.length, nodes, reactFlow, isMobile]);
+
+  // Expose focus function to parent
+  useEffect(() => {
+    if (onFocusTerminalRef) {
+      onFocusTerminalRef.current = (nodeId: string) => {
+        const node = nodes.find((n) => n.id === nodeId);
+        if (node) {
+          reactFlow.fitView({
+            nodes: [{ id: nodeId }],
+            padding: isMobile ? 0.05 : 0.15,
+            maxZoom: isMobile ? 0.5 : 0.85,
+            duration: 400,
+          });
+        }
+      };
+    }
+  }, [onFocusTerminalRef, nodes, reactFlow, isMobile]);
+
+  // Expose fullscreen trigger to parent
+  useEffect(() => {
+    if (onFullScreenRef) {
+      onFullScreenRef.current = (terminalId: string, status: string) => {
+        const terminal = terminals.find((t) => t.id === terminalId);
+        setFullScreenTerminal({
+          terminalId,
+          status: (status as TerminalStatus) ?? "active",
+          tags: terminal?.tags,
+        });
+      };
+    }
+  }, [onFullScreenRef, terminals]);
 
   const [localEdges, setLocalEdges] = useState<Edge[]>([]);
 
@@ -62,6 +125,7 @@ export function InfiniteCanvas() {
   const [fullScreenTerminal, setFullScreenTerminal] = useState<{
     terminalId: string;
     status: TerminalStatus;
+    tags?: string[];
   } | null>(null);
 
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
@@ -81,6 +145,7 @@ export function InfiniteCanvas() {
       setFullScreenTerminal({
         terminalId: data.terminalId,
         status: data.status,
+        tags: data.tags,
       });
     },
     [isMobile],
@@ -91,18 +156,28 @@ export function InfiniteCanvas() {
   }, []);
 
   async function onNewTerminal() {
+    if (noHost) {
+      toast.error("No host available", {
+        description:
+          "Register and connect a service before creating terminals.",
+      });
+      return;
+    }
     try {
       await createTerminal({});
-    } catch (err) {
-      console.error("Failed to create terminal:", err);
+      toast.success("Terminal created");
+    } catch {
+      toast.error("Failed to create terminal", {
+        description: "The host service may have gone offline.",
+      });
     }
   }
 
   async function onNewNote() {
     try {
       await createNote({});
-    } catch (err) {
-      console.error("Failed to create note:", err);
+    } catch {
+      toast.error("Failed to create note");
     }
   }
 
@@ -137,19 +212,23 @@ export function InfiniteCanvas() {
           size={1}
           color="rgba(255, 255, 255, 0.08)"
         />
-        {!isMobile && <Controls position="bottom-left" />}
+        {!isMobile && !isEmpty && <Controls position="bottom-left" />}
         {!isMobile && nodes.length > 1 && (
           <MiniMap
             position="bottom-right"
             zoomable
             pannable
-            nodeColor="rgba(255, 255, 255, 0.15)"
+            nodeColor="rgba(34, 211, 238, 0.7)"
+            nodeStrokeColor="rgba(34, 211, 238, 0.4)"
+            nodeStrokeWidth={2}
+            nodeBorderRadius={8}
+            maskColor="rgba(0, 0, 0, 0.6)"
           />
         )}
       </ReactFlow>
 
-      {/* Mobile FAB */}
-      {isMobile && (
+      {/* Mobile FAB - only show when canvas has items */}
+      {isMobile && !isEmpty && (
         <div className="absolute bottom-20 right-4 z-10">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -162,9 +241,15 @@ export function InfiniteCanvas() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="end">
-              <DropdownMenuItem onClick={onNewTerminal} disabled={isCreating}>
+              <DropdownMenuItem onClick={onNewTerminal} disabled={isCreating || noHost}>
                 <Terminal className="h-4 w-4" />
-                <span>{isCreating ? "Creating..." : "New Terminal"}</span>
+                <span>
+                  {noHost
+                    ? "No host connected"
+                    : isCreating
+                      ? "Creating..."
+                      : "New Terminal"}
+                </span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onNewNote} disabled={isCreatingNote}>
                 <StickyNote className="h-4 w-4" />
@@ -180,7 +265,20 @@ export function InfiniteCanvas() {
         <TerminalFullScreen
           terminalId={fullScreenTerminal.terminalId}
           status={fullScreenTerminal.status}
+          tags={fullScreenTerminal.tags}
           onBack={handleBackFromFullScreen}
+          currentIndex={terminals.findIndex((t) => t.id === fullScreenTerminal.terminalId)}
+          totalCount={terminals.length}
+          onPrev={() => {
+            const idx = terminals.findIndex((t) => t.id === fullScreenTerminal.terminalId);
+            const prev = terminals[(idx - 1 + terminals.length) % terminals.length];
+            if (prev) setFullScreenTerminal({ terminalId: prev.id, status: prev.status, tags: prev.tags });
+          }}
+          onNext={() => {
+            const idx = terminals.findIndex((t) => t.id === fullScreenTerminal.terminalId);
+            const next = terminals[(idx + 1) % terminals.length];
+            if (next) setFullScreenTerminal({ terminalId: next.id, status: next.status, tags: next.tags });
+          }}
         />
       )}
     </div>

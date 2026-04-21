@@ -5,7 +5,7 @@ import type {
   CollaboratorLeftEvent,
   TerminalLockChangedEvent,
   TerminalTypingEvent,
-} from "@terminal-proxy/shared-types";
+} from "@excaliterm/shared-types";
 import { getTerminalHub } from "@/lib/signalr-client";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useTerminalCollaborationStore } from "@/stores/terminal-collaboration-store";

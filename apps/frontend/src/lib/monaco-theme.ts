@@ -1,6 +1,6 @@
-export const THEME_NAME = "terminal-proxy-dark";
+export const THEME_NAME = "excaliterm-dark";
 
-export const terminalProxyDarkTheme = {
+export const excalitermDarkTheme = {
   base: "vs-dark",
   inherit: true,
   rules: [

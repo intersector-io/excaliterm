@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import type { ChatMessageItem } from "@/stores/chat-store";
 
@@ -96,8 +96,18 @@ export function ChatMessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-        No messages yet. Start the conversation!
+      <div className="flex flex-1 items-end justify-center pb-8">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-surface-raised/40">
+            <MessageSquare className="h-5 w-5 text-muted-foreground/50" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground/80">No messages yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Chat with collaborators in this workspace
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

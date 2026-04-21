@@ -1,17 +1,27 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { v4 as uuidv4 } from "uuid";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
 import { publish } from "../lib/redis.js";
 import type {
   CreateTerminalRequest,
   CreateTerminalResponse,
   ListTerminalsResponse,
-} from "@terminal-proxy/shared-types";
+  UpdateTerminalRequest,
+} from "@excaliterm/shared-types";
 import type { WorkspaceVariables } from "../middleware/workspace.js";
 
 const terminals = new Hono<{ Variables: WorkspaceVariables }>();
+
+function parseTags(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  return raw.split(",").map((t) => t.trim()).filter(Boolean);
+}
+
+function serializeTags(tags: string[]): string {
+  return tags.map((t) => t.trim()).filter(Boolean).join(",");
+}
 
 // POST / - Create a terminal session
 terminals.post("/", async (c) => {
@@ -20,10 +30,27 @@ terminals.post("/", async (c) => {
 
   const cols = body.cols ?? 96;
   const rows = body.rows ?? 28;
-  const x = body.x ?? 72;
-  const y = body.y ?? 76;
 
   const db = getDb();
+
+  // Count existing canvas nodes to cascade new terminal positions
+  const [{ value: existingCount }] = await db
+    .select({ value: count() })
+    .from(schema.canvasNode)
+    .where(eq(schema.canvasNode.workspaceId, workspaceId));
+
+  const COLS = 3;
+  const NODE_W = 760;
+  const NODE_H = 480;
+  const GAP_X = 40;
+  const GAP_Y = 40;
+  const ORIGIN_X = 72;
+  const ORIGIN_Y = 76;
+
+  const col = existingCount % COLS;
+  const row = Math.floor(existingCount / COLS);
+  const x = body.x ?? ORIGIN_X + col * (NODE_W + GAP_X);
+  const y = body.y ?? ORIGIN_Y + row * (NODE_H + GAP_Y);
 
   // Check if any service is online for this workspace
   const [targetService] = await db
@@ -54,6 +81,7 @@ terminals.post("/", async (c) => {
     id: terminalId,
     workspaceId,
     serviceInstanceId: targetService.id,
+    tags: serializeTags(body.tags ?? []),
     status: "active",
     createdAt: now,
     updatedAt: now,
@@ -97,6 +125,7 @@ terminals.post("/", async (c) => {
   const response: CreateTerminalResponse = {
     terminal: {
       id: terminal.id,
+      tags: parseTags(terminal.tags),
       status: terminal.status,
       exitCode: terminal.exitCode,
       createdAt: terminal.createdAt.toISOString(),
@@ -133,6 +162,7 @@ terminals.get("/", async (c) => {
   const response: ListTerminalsResponse = {
     terminals: rows.map((t) => ({
       id: t.id,
+      tags: parseTags(t.tags),
       status: t.status,
       exitCode: t.exitCode,
       createdAt: t.createdAt.toISOString(),
@@ -141,6 +171,54 @@ terminals.get("/", async (c) => {
   };
 
   return c.json(response);
+});
+
+// PATCH /:id - Update terminal (tags)
+terminals.patch("/:id", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const terminalId = c.req.param("id");
+  const body = (await c.req.json<UpdateTerminalRequest>().catch(() => ({}))) as Partial<UpdateTerminalRequest>;
+  const db = getDb();
+
+  const [terminal] = await db
+    .select()
+    .from(schema.terminalSession)
+    .where(
+      and(
+        eq(schema.terminalSession.id, terminalId),
+        eq(schema.terminalSession.workspaceId, workspaceId),
+      ),
+    );
+
+  if (!terminal) {
+    throw new HTTPException(404, { message: "Terminal session not found" });
+  }
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (body.tags !== undefined) {
+    updates.tags = serializeTags(body.tags);
+  }
+
+  await db
+    .update(schema.terminalSession)
+    .set(updates)
+    .where(eq(schema.terminalSession.id, terminalId));
+
+  const [updated] = await db
+    .select()
+    .from(schema.terminalSession)
+    .where(eq(schema.terminalSession.id, terminalId));
+
+  return c.json({
+    terminal: {
+      id: updated.id,
+      tags: parseTags(updated.tags),
+      status: updated.status,
+      exitCode: updated.exitCode,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    },
+  });
 });
 
 // DELETE /:id - Destroy a terminal
@@ -191,6 +269,61 @@ terminals.delete("/:id", async (c) => {
     .where(eq(schema.terminalSession.id, terminalId));
 
   return c.json({ success: true });
+});
+
+// DELETE / - Close all terminals in workspace
+terminals.delete("/", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const db = getDb();
+
+  const activeTerminals = await db
+    .select()
+    .from(schema.terminalSession)
+    .where(
+      and(
+        eq(schema.terminalSession.workspaceId, workspaceId),
+        eq(schema.terminalSession.status, "active"),
+      ),
+    );
+
+  for (const terminal of activeTerminals) {
+    let targetServiceId: string | undefined;
+
+    if (terminal.serviceInstanceId) {
+      const [service] = await db
+        .select({ serviceId: schema.serviceInstance.serviceId })
+        .from(schema.serviceInstance)
+        .where(eq(schema.serviceInstance.id, terminal.serviceInstanceId));
+      targetServiceId = service?.serviceId;
+    }
+
+    await publish("terminal:commands", {
+      command: "terminal:destroy",
+      terminalId: terminal.id,
+      serviceInstanceId: targetServiceId,
+      workspaceId,
+    }).catch(
+      (err) => console.error("[redis] Failed to publish terminal:destroy:", err.message),
+    );
+  }
+
+  // Mark all active terminals as exited
+  await db
+    .update(schema.terminalSession)
+    .set({ status: "exited", updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.terminalSession.workspaceId, workspaceId),
+        eq(schema.terminalSession.status, "active"),
+      ),
+    );
+
+  // Remove all canvas nodes for this workspace
+  await db
+    .delete(schema.canvasNode)
+    .where(eq(schema.canvasNode.workspaceId, workspaceId));
+
+  return c.json({ success: true, closed: activeTerminals.length });
 });
 
 export { terminals };

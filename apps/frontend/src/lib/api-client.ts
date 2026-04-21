@@ -5,7 +5,7 @@ import type {
   ListCanvasNodesResponse,
   UpdateCanvasNodeRequest,
   CanvasNode,
-} from "@terminal-proxy/shared-types";
+} from "@excaliterm/shared-types";
 
 const BASE = "/api";
 
@@ -63,6 +63,23 @@ export function deleteTerminal(workspaceId: string, id: string): Promise<void> {
   return request(`/w/${workspaceId}/terminals/${id}`, { method: "DELETE" });
 }
 
+export function updateTerminal(
+  workspaceId: string,
+  id: string,
+  data: { tags?: string[] },
+): Promise<{ terminal: import("@excaliterm/shared-types").TerminalSession }> {
+  return request(`/w/${workspaceId}/terminals/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function closeAllTerminals(
+  workspaceId: string,
+): Promise<{ success: boolean; closed: number }> {
+  return request(`/w/${workspaceId}/terminals`, { method: "DELETE" });
+}
+
 // ─── Canvas ────────────────────────────────────────────────────────────────
 
 export function listCanvasNodes(workspaceId: string): Promise<ListCanvasNodesResponse> {
@@ -102,7 +119,7 @@ export interface CreateNoteResponse {
     createdAt: string;
     updatedAt: string;
   };
-  canvasNode: import("@terminal-proxy/shared-types").CanvasNode;
+  canvasNode: import("@excaliterm/shared-types").CanvasNode;
 }
 
 export function listNotes(workspaceId: string): Promise<ListNotesResponse> {

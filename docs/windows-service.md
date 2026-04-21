@@ -56,14 +56,14 @@ Important:
 ## Running in Development
 
 ```bash
-pnpm --filter @terminal-proxy/terminal-agent dev
+pnpm --filter @excaliterm/terminal-agent dev
 ```
 
 PowerShell example with an explicit workspace:
 
 ```powershell
 $env:WORKSPACE_ID = "<workspaceId>"
-pnpm --filter @terminal-proxy/terminal-agent dev
+pnpm --filter @excaliterm/terminal-agent dev
 ```
 
 On startup, the agent logs:
@@ -79,7 +79,7 @@ On startup, the agent logs:
 Build first:
 
 ```bash
-pnpm --filter @terminal-proxy/terminal-agent build
+pnpm --filter @excaliterm/terminal-agent build
 ```
 
 Then run:

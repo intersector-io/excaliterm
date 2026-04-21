@@ -1,16 +1,39 @@
 {
-  "name": "@terminal-proxy/terminal-agent",
-  "version": "1.0.0",
+  "name": "excaliterm",
+  "version": "0.1.0",
+  "description": "Terminal agent for Excaliterm - connect your machine to a collaborative terminal canvas",
   "type": "module",
-  "private": true,
+  "bin": {
+    "excaliterm": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "terminal",
+    "collaborative",
+    "canvas",
+    "remote",
+    "signalr",
+    "pty",
+    "shell",
+    "excaliterm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intersector/excaliterm",
+    "directory": "apps/terminal-agent"
+  },
+  "license": "MIT",
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "prepublishOnly": "npm run build",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@microsoft/signalr": "^8.0.0",
+    "@microsoft/signalr": "^10.0.0",
     "dotenv": "^17.4.2",
     "node-pty": "^1.0.0"
   },
@@ -18,5 +41,8 @@
     "@types/node": "^22.10.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

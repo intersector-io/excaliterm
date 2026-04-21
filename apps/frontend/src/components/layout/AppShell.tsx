@@ -57,8 +57,8 @@ export function AppShell() {
           onlineServices={onlineServices}
           collaboratorCount={collaboratorCount}
         />
-        <main className="flex-1 overflow-hidden">
-          <ViewRouter activeView={activeView} />
+        <main className="flex flex-1 flex-col overflow-hidden">
+          <ViewRouter activeView={activeView} onViewChange={setActiveView} />
         </main>
       </div>
     );
@@ -67,8 +67,8 @@ export function AppShell() {
   if (isMobile) {
     return (
       <div className="flex min-h-[100dvh] w-screen flex-col bg-background">
-        <main className="flex-1 overflow-hidden pb-14">
-          <ViewRouter activeView={activeView} />
+        <main className="flex flex-1 flex-col overflow-hidden pb-14">
+          <ViewRouter activeView={activeView} onViewChange={setActiveView} />
         </main>
         <BottomNav
           activeView={activeView}
@@ -88,8 +88,8 @@ export function AppShell() {
         onlineServices={onlineServices}
         collaboratorCount={collaboratorCount}
       />
-      <main className="flex-1 overflow-hidden">
-        <ViewRouter activeView={activeView} />
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <ViewRouter activeView={activeView} onViewChange={setActiveView} />
       </main>
     </div>
   );

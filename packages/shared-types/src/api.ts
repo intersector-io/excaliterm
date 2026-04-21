@@ -7,6 +7,11 @@ export interface CreateTerminalRequest {
   rows?: number;
   x?: number;
   y?: number;
+  tags?: string[];
+}
+
+export interface UpdateTerminalRequest {
+  tags?: string[];
 }
 
 export interface CreateTerminalResponse {

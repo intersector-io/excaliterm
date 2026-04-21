@@ -114,7 +114,7 @@ Add `browserSessionId` to `CanvasNode` interface in `models.ts`.
 
 ### 3. SignalR Hub (.NET)
 
-**Modified: `apps/signalr-hub/TerminalProxy.Hub/Models/HubModels.cs`**
+**Modified: `apps/signalr-hub/Excaliterm.Hub/Models/HubModels.cs`**
 ```csharp
 // Add browser records
 public record BrowserOpenedMessage(string BrowserId, string Url, string Title);
@@ -123,7 +123,7 @@ public record BrowserScreencastMessage(string BrowserId, string Data, double Tim
 public record BrowserClosedMessage(string BrowserId);
 ```
 
-**Modified: `apps/signalr-hub/TerminalProxy.Hub/Hubs/TerminalHub.cs`**
+**Modified: `apps/signalr-hub/Excaliterm.Hub/Hubs/TerminalHub.cs`**
 
 Add agent-to-client methods (follow exact `TerminalOutput`/`TerminalCreated` pattern):
 - `BrowserOpened(browserId, url, title)` -- guard with `IsServiceConnection()`, register in `ServiceRegistry` (reuse terminal routing), broadcast to `OthersInGroup`
@@ -137,7 +137,7 @@ Add client-to-agent routing methods (follow `TerminalInput` pattern):
 - `BrowserGoBack(browserId)` / `BrowserGoForward(browserId)` -- same routing
 - `BrowserClose(browserId)` -- same routing
 
-**Modified: `apps/signalr-hub/TerminalProxy.Hub/Program.cs`**
+**Modified: `apps/signalr-hub/Excaliterm.Hub/Program.cs`**
 - Increase max SignalR message size for screenshot frames:
   ```csharp
   builder.Services.AddSignalR(options => {

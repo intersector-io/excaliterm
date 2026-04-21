@@ -31,7 +31,7 @@ Key responsibilities:
 - Publish terminal commands to Redis
 - Subscribe to service presence events from Redis and update service status
 
-### SignalR Hub (`apps/signalr-hub/TerminalProxy.Hub`)
+### SignalR Hub (`apps/signalr-hub/Excaliterm.Hub`)
 
 The hub is the realtime transport layer. Browser clients connect to `/hubs/terminal`, `/hubs/canvas`, `/hubs/chat`, and `/hubs/file`. The terminal agent connects to the terminal and file hubs as a service client.
 

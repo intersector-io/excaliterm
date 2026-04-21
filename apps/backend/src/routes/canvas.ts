@@ -6,7 +6,7 @@ import type {
   UpdateCanvasNodeRequest,
   ListCanvasNodesResponse,
   CanvasNode,
-} from "@terminal-proxy/shared-types";
+} from "@excaliterm/shared-types";
 import type { WorkspaceVariables } from "../middleware/workspace.js";
 
 const canvas = new Hono<{ Variables: WorkspaceVariables }>();

@@ -1,6 +1,10 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState, useRef, useCallback } from "react";
+import { Settings } from "lucide-react";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
+import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
+import { TerminalListPanel } from "@/components/canvas/TerminalListPanel";
+import { useCanvas } from "@/hooks/use-canvas";
 import type { ActiveView } from "./AppShell";
 
 const EditorView = lazy(() =>
@@ -15,6 +19,7 @@ const ServicesView = lazy(() =>
 
 interface ViewRouterProps {
   activeView: ActiveView;
+  onViewChange: (view: ActiveView) => void;
 }
 
 function ViewLoadingFallback() {
@@ -27,26 +32,67 @@ function ViewLoadingFallback() {
 
 function SettingsView() {
   return (
-    <div className="flex h-full items-center justify-center text-muted-foreground">
-      <div className="text-center">
-        <p className="text-lg font-medium text-foreground">Settings</p>
-        <p className="mt-1 text-sm">Coming soon</p>
+    <div className="flex h-full flex-col">
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+        <Settings className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">Settings</span>
+      </div>
+      <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-surface-raised/40">
+            <Settings className="h-5 w-5 text-muted-foreground/50" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground/80">Settings</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Workspace configuration coming soon
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-export function ViewRouter({ activeView }: ViewRouterProps) {
+function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void }) {
+  const { nodes } = useCanvas();
+  const [terminalListOpen, setTerminalListOpen] = useState(false);
+  const focusTerminalRef = useRef<((nodeId: string) => void) | null>(null);
+  const fullScreenRef = useRef<((terminalId: string, status: string) => void) | null>(null);
+
+  const handleFocusTerminal = useCallback((nodeId: string) => {
+    focusTerminalRef.current?.(nodeId);
+  }, []);
+
+  const handleFullScreenTerminal = useCallback((terminalId: string, status: string) => {
+    fullScreenRef.current?.(terminalId, status);
+  }, []);
+
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <CanvasToolbar onOpenTerminalList={() => setTerminalListOpen(true)} />
+      <div className="relative min-h-0 flex-1">
+        <InfiniteCanvas onFocusTerminalRef={focusTerminalRef} onFullScreenRef={fullScreenRef} />
+        {nodes.length === 0 && (
+          <CanvasEmptyState
+            onNavigateToServices={() => onViewChange("services")}
+          />
+        )}
+      </div>
+      <TerminalListPanel
+        open={terminalListOpen}
+        onClose={() => setTerminalListOpen(false)}
+        onFocusTerminal={handleFocusTerminal}
+        onFullScreenTerminal={handleFullScreenTerminal}
+      />
+    </div>
+  );
+}
+
+export function ViewRouter({ activeView, onViewChange }: ViewRouterProps) {
   switch (activeView) {
     case "canvas":
-      return (
-        <div className="flex h-full flex-col">
-          <CanvasToolbar />
-          <div className="flex-1 overflow-hidden">
-            <InfiniteCanvas />
-          </div>
-        </div>
-      );
+      return <CanvasView onViewChange={onViewChange} />;
     case "editor":
       return (
         <Suspense fallback={<ViewLoadingFallback />}>

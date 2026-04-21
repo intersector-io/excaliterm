@@ -3,8 +3,8 @@ export interface CollaboratorProfile {
   displayName: string;
 }
 
-const CLIENT_ID_STORAGE_KEY = "terminal-proxy.client-id";
-const DISPLAY_NAME_STORAGE_KEY = "terminal-proxy.display-name";
+const CLIENT_ID_STORAGE_KEY = "excaliterm.client-id";
+const DISPLAY_NAME_STORAGE_KEY = "excaliterm.display-name";
 
 function createAnonymousDisplayName(): string {
   return `Anonymous ${Math.random().toString(36).slice(2, 6).toUpperCase()}`;

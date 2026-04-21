@@ -56,6 +56,7 @@ export function initializeDb() {
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
       "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
+      "tags" text DEFAULT '',
       "status" text NOT NULL DEFAULT 'active',
       "exitCode" integer,
       "createdAt" integer NOT NULL DEFAULT (unixepoch()),
@@ -77,6 +78,13 @@ export function initializeDb() {
       "updatedAt" integer NOT NULL DEFAULT (unixepoch())
     );
   `);
+
+  // Migrations for existing databases
+  try {
+    _sqlite.exec(`ALTER TABLE "terminal_session" ADD COLUMN "tags" text DEFAULT ''`);
+  } catch {
+    // Column already exists
+  }
 
   _db = drizzle(_sqlite, { schema });
 

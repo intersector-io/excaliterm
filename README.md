@@ -60,8 +60,8 @@ Start Redis first, then run the backend and frontend:
 
 ```bash
 docker compose up redis -d
-pnpm --filter @terminal-proxy/backend dev
-pnpm --filter @terminal-proxy/frontend dev
+pnpm --filter @excaliterm/backend dev
+pnpm --filter @excaliterm/frontend dev
 ```
 
 Run the SignalR hub with Redis enabled. In PowerShell:
@@ -69,7 +69,7 @@ Run the SignalR hub with Redis enabled. In PowerShell:
 ```powershell
 $env:REDIS_ENABLED = "true"
 $env:REDIS_CONNECTION_STRING = "localhost:6379"
-dotnet run --project apps/signalr-hub/TerminalProxy.Hub
+dotnet run --project apps/signalr-hub/Excaliterm.Hub
 ```
 
 Then:
@@ -83,7 +83,7 @@ PowerShell example:
 
 ```powershell
 $env:WORKSPACE_ID = "<workspaceId>"
-pnpm --filter @terminal-proxy/terminal-agent dev
+pnpm --filter @excaliterm/terminal-agent dev
 ```
 
 Once your env is already configured, `pnpm dev` can be used to launch the JavaScript workspaces together. The .NET SignalR hub still runs separately.
@@ -100,9 +100,9 @@ This starts `redis`, `backend`, `signalr-hub`, and `frontend`. The terminal agen
 
 ```bash
 pnpm test
-pnpm --filter @terminal-proxy/backend test
-pnpm --filter @terminal-proxy/frontend test
-dotnet build apps/signalr-hub/TerminalProxy.Hub
+pnpm --filter @excaliterm/backend test
+pnpm --filter @excaliterm/frontend test
+dotnet build apps/signalr-hub/Excaliterm.Hub
 ```
 
 ## Documentation

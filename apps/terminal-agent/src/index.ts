@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { config as dotenvConfig } from "dotenv";
 import { resolve } from "node:path";
 

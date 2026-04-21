@@ -49,7 +49,7 @@ Important:
 
 ### SignalR hub settings
 
-The hub reads defaults from `apps/signalr-hub/TerminalProxy.Hub/appsettings.json`.
+The hub reads defaults from `apps/signalr-hub/Excaliterm.Hub/appsettings.json`.
 
 For local development, you usually need these overrides:
 
@@ -73,7 +73,7 @@ If you already run Redis locally, use that instead.
 ### 2. Start the backend
 
 ```bash
-pnpm --filter @terminal-proxy/backend dev
+pnpm --filter @excaliterm/backend dev
 ```
 
 ### 3. Start the SignalR hub with Redis enabled
@@ -85,7 +85,7 @@ $env:REDIS_ENABLED = "true"
 $env:REDIS_CONNECTION_STRING = "localhost:6379"
 $env:BACKEND_URL = "http://localhost:3001"
 $env:FRONTEND_URL = "http://localhost:5173"
-dotnet run --project apps/signalr-hub/TerminalProxy.Hub
+dotnet run --project apps/signalr-hub/Excaliterm.Hub
 ```
 
 Bash:
@@ -95,13 +95,13 @@ REDIS_ENABLED=true \
 REDIS_CONNECTION_STRING=localhost:6379 \
 BACKEND_URL=http://localhost:3001 \
 FRONTEND_URL=http://localhost:5173 \
-dotnet run --project apps/signalr-hub/TerminalProxy.Hub
+dotnet run --project apps/signalr-hub/Excaliterm.Hub
 ```
 
 ### 4. Start the frontend
 
 ```bash
-pnpm --filter @terminal-proxy/frontend dev
+pnpm --filter @excaliterm/frontend dev
 ```
 
 ### 5. Create or open a workspace
@@ -120,13 +120,13 @@ PowerShell:
 
 ```powershell
 $env:WORKSPACE_ID = "<workspaceId>"
-pnpm --filter @terminal-proxy/terminal-agent dev
+pnpm --filter @excaliterm/terminal-agent dev
 ```
 
 Bash:
 
 ```bash
-WORKSPACE_ID=<workspaceId> pnpm --filter @terminal-proxy/terminal-agent dev
+WORKSPACE_ID=<workspaceId> pnpm --filter @excaliterm/terminal-agent dev
 ```
 
 At this point:
@@ -139,9 +139,9 @@ At this point:
 
 `pnpm dev` runs the JavaScript workspaces managed by Turbo:
 
-- `@terminal-proxy/backend`
-- `@terminal-proxy/frontend`
-- `@terminal-proxy/terminal-agent`
+- `@excaliterm/backend`
+- `@excaliterm/frontend`
+- `@excaliterm/terminal-agent`
 
 The .NET SignalR hub is not part of the pnpm workspace and must still be started separately.
 

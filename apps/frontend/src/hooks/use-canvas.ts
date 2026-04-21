@@ -13,12 +13,13 @@ import type {
   CanvasNode,
   TerminalSession,
   TerminalStatus,
-} from "@terminal-proxy/shared-types";
+} from "@excaliterm/shared-types";
 import type { NoteData } from "@/hooks/use-notes";
 
 export interface TerminalNodeData {
   terminalId: string;
   label: string;
+  tags: string[];
   status: TerminalStatus;
   exitCode: number | null;
   [key: string]: unknown;
@@ -54,6 +55,7 @@ function canvasNodeToFlowNode(
         width: cn.width,
         height: cn.height,
       },
+      measured: { width: cn.width, height: cn.height },
       zIndex: cn.zIndex,
     };
   }
@@ -67,6 +69,7 @@ function canvasNodeToFlowNode(
     data: {
       terminalId: cn.terminalSessionId ?? cn.id,
       label: "Terminal",
+      tags: terminal?.tags ?? [],
       status: terminal?.status ?? "active",
       exitCode: terminal?.exitCode ?? null,
     },
@@ -74,6 +77,7 @@ function canvasNodeToFlowNode(
       width: cn.width,
       height: cn.height,
     },
+    measured: { width: cn.width, height: cn.height },
     zIndex: cn.zIndex,
   };
 }

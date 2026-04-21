@@ -8,7 +8,7 @@ apps/
   frontend/                React/Vite client
   terminal-agent/          PTY and file agent using SignalR
   signalr-hub/
-    TerminalProxy.Hub/     ASP.NET Core SignalR hub
+    Excaliterm.Hub/     ASP.NET Core SignalR hub
 
 packages/
   shared-types/            Shared TS API and SignalR types
@@ -34,7 +34,7 @@ packages/
 - File system read/write/list operations
 - Service registration with the terminal and file hubs
 
-### `apps/signalr-hub/TerminalProxy.Hub`
+### `apps/signalr-hub/Excaliterm.Hub`
 
 - SignalR endpoints under `/hubs/*`
 - Workspace validation and connection grouping
@@ -59,21 +59,21 @@ pnpm test
 ### Targeted workspace commands
 
 ```bash
-pnpm --filter @terminal-proxy/backend dev
-pnpm --filter @terminal-proxy/frontend dev
-pnpm --filter @terminal-proxy/terminal-agent dev
-pnpm --filter @terminal-proxy/shared-types build
-pnpm --filter @terminal-proxy/backend test
-pnpm --filter @terminal-proxy/frontend test
-dotnet run --project apps/signalr-hub/TerminalProxy.Hub
-dotnet build apps/signalr-hub/TerminalProxy.Hub
+pnpm --filter @excaliterm/backend dev
+pnpm --filter @excaliterm/frontend dev
+pnpm --filter @excaliterm/terminal-agent dev
+pnpm --filter @excaliterm/shared-types build
+pnpm --filter @excaliterm/backend test
+pnpm --filter @excaliterm/frontend test
+dotnet run --project apps/signalr-hub/Excaliterm.Hub
+dotnet build apps/signalr-hub/Excaliterm.Hub
 ```
 
 Notes:
 
 - `pnpm dev` only covers pnpm workspaces. The SignalR hub still runs separately.
 - `turbo.json` marks `build`, `test`, and `lint` as depending on upstream builds.
-- `shared-types` does not run in watch mode by default, so schema changes usually need `pnpm --filter @terminal-proxy/shared-types build`.
+- `shared-types` does not run in watch mode by default, so schema changes usually need `pnpm --filter @excaliterm/shared-types build`.
 
 ## Where to Change Things
 
@@ -102,10 +102,10 @@ Notes:
 
 ### SignalR hub
 
-- Hub endpoints: `apps/signalr-hub/TerminalProxy.Hub/Hubs`
-- Hub DTOs: `apps/signalr-hub/TerminalProxy.Hub/Models/HubModels.cs`
-- Service and presence registries: `apps/signalr-hub/TerminalProxy.Hub/Services`
-- Workspace validation: `apps/signalr-hub/TerminalProxy.Hub/Auth`
+- Hub endpoints: `apps/signalr-hub/Excaliterm.Hub/Hubs`
+- Hub DTOs: `apps/signalr-hub/Excaliterm.Hub/Models/HubModels.cs`
+- Service and presence registries: `apps/signalr-hub/Excaliterm.Hub/Services`
+- Workspace validation: `apps/signalr-hub/Excaliterm.Hub/Auth`
 
 ## Realtime Development Notes
 
@@ -121,8 +121,8 @@ If the frontend connects but terminal creation does nothing, the first thing to 
 Backend and frontend tests use Vitest:
 
 ```bash
-pnpm --filter @terminal-proxy/backend test
-pnpm --filter @terminal-proxy/frontend test
+pnpm --filter @excaliterm/backend test
+pnpm --filter @excaliterm/frontend test
 ```
 
 The .NET hub currently has a buildable project in the repo, but no separate test project is checked in.

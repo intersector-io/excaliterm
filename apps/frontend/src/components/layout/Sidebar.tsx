@@ -69,11 +69,11 @@ export function Sidebar({
       {/* Logo area */}
       <div className="flex h-12 items-center px-3 border-b border-border/40">
         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-cyan/15">
-          <span className="text-[10px] font-bold text-accent-cyan tracking-tighter">TP</span>
+          <span className="text-[10px] font-bold text-accent-cyan tracking-tighter">ET</span>
         </div>
         {expanded && (
           <span className="ml-2.5 text-xs font-semibold text-foreground tracking-tight truncate">
-            Terminal Proxy
+            Excaliterm
           </span>
         )}
       </div>

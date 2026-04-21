@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Route, Switch, useLocation, useParams } from "wouter";
+import { Toaster } from "sonner";
 import { WorkspaceCtx } from "@/hooks/use-workspace";
 import { createWorkspace, getWorkspace } from "@/lib/api-client";
 import { initHubs } from "@/lib/signalr-client";
 import { getOrCreateCollaboratorProfile } from "@/lib/collaborator";
 import { AppShell } from "@/components/layout/AppShell";
 
-const WORKSPACE_STORAGE_KEY = "terminal-proxy.workspace-id";
+const WORKSPACE_STORAGE_KEY = "excaliterm.workspace-id";
 
 function CreateAndRedirect() {
   const [, navigate] = useLocation();
@@ -125,23 +126,40 @@ function WorkspaceRoute() {
 
 export function App() {
   return (
-    <Switch>
-      <Route path="/w/:workspaceId" component={WorkspaceRoute} />
-      <Route path="/" component={CreateAndRedirect} />
-      <Route>
-        <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <span className="text-6xl font-bold tracking-tighter text-foreground/20">404</span>
-            <p className="text-sm text-muted-foreground">Page not found</p>
-            <a
-              href="/"
-              className="text-sm text-accent-cyan hover:underline underline-offset-4"
-            >
-              Go home
-            </a>
+    <>
+      <Toaster
+        theme="dark"
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "oklch(0.16 0.008 270)",
+            border: "1px solid oklch(0.24 0.008 270)",
+            color: "oklch(0.95 0.005 270)",
+            fontFamily: "'Outfit', sans-serif",
+            fontSize: "13px",
+          },
+        }}
+        offset={16}
+        gap={8}
+      />
+      <Switch>
+        <Route path="/w/:workspaceId" component={WorkspaceRoute} />
+        <Route path="/" component={CreateAndRedirect} />
+        <Route>
+          <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <span className="text-6xl font-bold tracking-tighter text-foreground/20">404</span>
+              <p className="text-sm text-muted-foreground">Page not found</p>
+              <a
+                href="/"
+                className="text-sm text-accent-cyan hover:underline underline-offset-4"
+              >
+                Go home
+              </a>
+            </div>
           </div>
-        </div>
-      </Route>
-    </Switch>
+        </Route>
+      </Switch>
+    </>
   );
 }

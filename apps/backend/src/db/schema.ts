@@ -70,6 +70,7 @@ export const terminalSession = sqliteTable("terminal_session", {
     () => serviceInstance.id,
     { onDelete: "set null" },
   ),
+  tags: text("tags").default(""),
   status: text("status", { enum: ["active", "disconnected", "exited", "error"] })
     .notNull()
     .default("active"),
