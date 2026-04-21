@@ -4,7 +4,6 @@ import {
   StickyNote,
   LayoutDashboard,
   Code2,
-  MessageSquare,
   Server,
   Settings,
   Search,
@@ -109,14 +108,6 @@ export function CommandPalette({
         icon: Code2,
         keywords: ["editor", "code", "files", "browse"],
         action: () => onViewChange("editor"),
-      },
-      {
-        id: "nav-chat",
-        label: "Go to Chat",
-        category: "Navigate",
-        icon: MessageSquare,
-        keywords: ["chat", "messages", "collaborate"],
-        action: () => onViewChange("chat"),
       },
       {
         id: "nav-services",
@@ -266,7 +257,7 @@ export function CommandPalette({
 
       {/* Palette */}
       <div className="fixed inset-x-0 top-[15%] z-[201] mx-auto w-full max-w-lg px-4">
-        <div className="overflow-hidden rounded-2xl border border-border-default bg-card/95 shadow-2xl backdrop-blur-xl">
+        <div className="overflow-hidden rounded-lg border border-border-default bg-card shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
           {/* Search input */}
           <div className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />

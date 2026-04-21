@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useWorkspace } from "@/hooks/use-workspace";
 import {
@@ -11,12 +11,14 @@ import { useServices } from "@/hooks/use-services";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { ViewRouter } from "./ViewRouter";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 
-export type ActiveView = "canvas" | "editor" | "chat" | "services" | "settings";
+export type ActiveView = "canvas" | "editor" | "services" | "settings";
 
 export function AppShell() {
   const [activeView, setActiveView] = useState<ActiveView>("canvas");
+  const [chatOpen, setChatOpen] = useState(false);
   const unreadChat = useChatStore((s) => s.unreadCount);
   const resetUnread = useChatStore((s) => s.resetUnread);
   const { onlineCount: onlineServices } = useServices();
@@ -24,16 +26,23 @@ export function AppShell() {
   useInitializeTerminalCollaboration();
   const { collaboratorCount } = useTerminalCollaboration();
 
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
-  // Global Cmd+K / Ctrl+K listener
+  const toggleChat = useCallback(() => {
+    setChatOpen((prev) => !prev);
+  }, []);
+
+  // Global keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setCommandPaletteOpen(true);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "C") {
+        e.preventDefault();
+        setChatOpen((prev) => !prev);
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -43,7 +52,6 @@ export function AppShell() {
   // Start SignalR connections (hubs already initialized in App.tsx)
   useEffect(() => {
     let cancelled = false;
-    // Delay slightly to survive React StrictMode's mount/unmount/remount cycle
     const timer = setTimeout(() => {
       if (!cancelled) startAll();
     }, 50);
@@ -54,12 +62,12 @@ export function AppShell() {
     };
   }, [workspaceId]);
 
-  // Reset unread when switching to chat view
+  // Reset unread when chat panel is open
   useEffect(() => {
-    if (activeView === "chat") {
+    if (chatOpen) {
       resetUnread();
     }
-  }, [activeView, resetUnread]);
+  }, [chatOpen, resetUnread]);
 
   const palette = (
     <CommandPalette
@@ -68,24 +76,6 @@ export function AppShell() {
       onViewChange={setActiveView}
     />
   );
-
-  if (isDesktop) {
-    return (
-      <div className="flex min-h-[100dvh] w-screen bg-background">
-        <Sidebar
-          activeView={activeView}
-          onViewChange={setActiveView}
-          unreadChat={unreadChat}
-          onlineServices={onlineServices}
-          collaboratorCount={collaboratorCount}
-        />
-        <main className="flex flex-1 flex-col overflow-hidden">
-          <ViewRouter activeView={activeView} onViewChange={setActiveView} />
-        </main>
-        {palette}
-      </div>
-    );
-  }
 
   if (isMobile) {
     return (
@@ -97,6 +87,8 @@ export function AppShell() {
           activeView={activeView}
           onViewChange={setActiveView}
           unreadChat={unreadChat}
+          onToggleChat={toggleChat}
+          chatOpen={chatOpen}
         />
         {palette}
       </div>
@@ -111,9 +103,14 @@ export function AppShell() {
         unreadChat={unreadChat}
         onlineServices={onlineServices}
         collaboratorCount={collaboratorCount}
+        chatOpen={chatOpen}
+        onToggleChat={toggleChat}
       />
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <ViewRouter activeView={activeView} onViewChange={setActiveView} />
+      <main className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <ViewRouter activeView={activeView} onViewChange={setActiveView} />
+        </div>
+        <ChatPanel open={chatOpen} onClose={toggleChat} />
       </main>
       {palette}
     </div>

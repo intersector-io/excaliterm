@@ -14,7 +14,7 @@ export function ChatView({ isActive }: ChatViewProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border-default px-3">
         <MessageSquare className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">Chat</span>
       </div>

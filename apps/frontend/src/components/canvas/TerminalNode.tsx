@@ -152,42 +152,40 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         minWidth={isMobile ? 340 : 520}
         minHeight={isMobile ? 240 : 340}
         isVisible={!!selected && !lockedByOther}
-        lineClassName="!border-accent-cyan/40"
-        handleClassName="!w-2.5 !h-2.5 !bg-accent-cyan !border-0 !rounded-full !shadow-[0_0_6px_rgba(0,200,200,0.3)]"
+        lineClassName="!border-white/20"
+        handleClassName="!w-2 !h-2 !bg-white/60 !border-0 !rounded-sm"
       />
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-2 !h-2 !bg-accent-cyan/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-white/40 !border-0 !rounded-sm"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-2 !h-2 !bg-accent-cyan/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-white/40 !border-0 !rounded-sm"
       />
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`flex h-full w-full flex-col overflow-hidden rounded-[24px] border transition-all duration-500 ${
+        className={`flex h-full w-full flex-col overflow-hidden rounded-xl border transition-all duration-300 ${
           isActive
-            ? "border-white/[0.08] bg-[#12122a]"
-            : "border-white/[0.04] bg-[#12122a]/82"
+            ? "border-border-default/60 bg-card"
+            : "border-border-subtle/40 bg-card/80"
         } ${
           activeTypers.length > 0
-            ? "terminal-glow-typing border-accent-cyan/25"
+            ? "terminal-glow-typing border-accent-cyan/20"
             : lockedByOther
-              ? "terminal-glow-locked border-accent-amber/20"
-              : "shadow-[0_28px_80px_rgba(0,0,0,0.42)]"
+              ? "terminal-glow-locked border-accent-amber/15"
+              : "shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
         }`}
       >
         {/* ─── Title Bar ─────────────────────────────────────────────── */}
-        <div className="drag-handle flex items-center justify-between border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))] px-4 min-h-[44px] py-2">
+        <div className="drag-handle flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-1.5">
           <div className="flex min-w-0 items-center gap-2.5">
             {/* Status dot */}
             <div
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${statusColor} ${
-                isActive ? "animate-pulse shadow-[0_0_10px_rgba(120,255,190,0.4)]" : ""
-              }`}
+              className={`h-2 w-2 shrink-0 rounded-full ${statusColor}`}
             />
             {/* Terminal ID + status */}
             <div className="min-w-0">
@@ -297,7 +295,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         </div>
 
         {/* ─── Tags Row ────────────────────────────────────────────────── */}
-        <div className="nodrag nopan flex items-center border-b border-white/[0.03] bg-white/[0.02] px-4 py-1.5">
+        <div className="nodrag nopan flex items-center border-b border-border-subtle/50 px-3.5 py-1">
           <TagEditor
             tags={data.tags ?? []}
             onTagsChange={(tags) => {
@@ -312,16 +310,16 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
 
         {/* ─── Terminal Content ───────────────────────────────────────── */}
         <div
-          className={`nodrag nopan nowheel flex-1 overflow-hidden p-3 ${
+          className={`nodrag nopan nowheel flex-1 overflow-hidden p-2.5 ${
             !isActive ? "opacity-70" : ""
           }`}
         >
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/[0.05] bg-[#0c1020] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_20px_45px_rgba(0,0,0,0.26)]">
-            <div className="pointer-events-none flex items-center justify-between border-b border-white/[0.05] px-4 py-1.5">
-              <span className="font-mono text-caption uppercase tracking-[0.24em] text-white/26">
+          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border-subtle/50 bg-surface-sunken">
+            <div className="pointer-events-none flex items-center justify-between border-b border-border-subtle/50 px-3 py-1">
+              <span className="font-mono text-caption uppercase tracking-[0.18em] text-muted-foreground/40">
                 {isActive ? "Attached shell" : "Session snapshot"}
               </span>
-              <span className="text-caption text-white/26">
+              <span className="text-caption text-muted-foreground/40">
                 {isActive ? "Interactive" : statusLabel}
               </span>
             </div>

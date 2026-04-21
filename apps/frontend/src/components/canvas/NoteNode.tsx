@@ -64,29 +64,27 @@ function NoteNodeComponent({ data, selected }: NodeProps<NoteNodeType>) {
         minWidth={200}
         minHeight={150}
         isVisible={!!selected}
-        lineClassName="!border-accent-amber/40"
-        handleClassName="!w-2.5 !h-2.5 !bg-accent-amber !border-0 !rounded-full !shadow-[0_0_6px_rgba(251,191,36,0.3)]"
+        lineClassName="!border-white/20"
+        handleClassName="!w-2 !h-2 !bg-white/60 !border-0 !rounded-sm"
       />
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-2 !h-2 !bg-accent-amber/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-white/40 !border-0 !rounded-sm"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-2 !h-2 !bg-accent-amber/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-white/40 !border-0 !rounded-sm"
       />
       <div
-        className={`flex h-full w-full flex-col overflow-hidden rounded-[24px] border border-accent-amber/15 ${
-          isMobile ? "" : "shadow-[0_28px_80px_rgba(0,0,0,0.42)]"
-        } bg-[linear-gradient(135deg,rgba(251,191,36,0.06),transparent_40%)] bg-surface-raised`}
+        className={`flex h-full w-full flex-col overflow-hidden rounded-xl border border-accent-amber/12 ${
+          isMobile ? "" : "shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+        } bg-surface-raised`}
       >
         {/* Title bar */}
         <div
-          className={`flex items-center justify-between border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent)] px-4 drag-handle ${
-            isMobile ? "min-h-[44px]" : "min-h-[44px]"
-          } py-2`}
+          className="flex items-center justify-between border-b border-border-subtle px-3.5 drag-handle min-h-[40px] py-1.5"
         >
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-2 w-2 shrink-0 rounded-full bg-accent-amber/60" />

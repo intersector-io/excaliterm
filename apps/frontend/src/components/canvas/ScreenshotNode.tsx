@@ -46,25 +46,25 @@ function ScreenshotNodeComponent({ id, data, selected }: NodeProps<ScreenshotNod
         minHeight={isMobile ? 150 : 200}
         isVisible={!!selected}
         lineClassName="!border-accent-purple/40"
-        handleClassName="!w-2.5 !h-2.5 !bg-accent-purple !border-0 !rounded-full !shadow-[0_0_6px_rgba(168,85,247,0.3)]"
+        handleClassName="!w-2 !h-2 !bg-accent-purple !border-0 !rounded-sm"
       />
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-2 !h-2 !bg-accent-purple/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-accent-purple/60 !border-0 !rounded-full"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-2 !h-2 !bg-accent-purple/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-accent-purple/60 !border-0 !rounded-full"
       />
       <div
-        className={`flex h-full w-full flex-col overflow-hidden rounded-[24px] border border-accent-purple/15 ${
-          isMobile ? "" : "shadow-[0_28px_80px_rgba(0,0,0,0.42)]"
-        } bg-[linear-gradient(135deg,rgba(168,85,247,0.06),transparent_40%)] bg-surface-raised`}
+        className={`flex h-full w-full flex-col overflow-hidden rounded-xl border border-accent-purple/15 ${
+          isMobile ? "" : "shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+        } bg-surface-raised`}
       >
         {/* Title bar */}
-        <div className="drag-handle flex items-center justify-between border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent)] px-4 min-h-[44px] py-2">
+        <div className="drag-handle flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-2">
           <div className="flex items-center gap-2 min-w-0">
             <Camera className="h-3.5 w-3.5 shrink-0 text-accent-purple/60" />
             <span className="text-body-sm font-medium text-white/60">

@@ -55,7 +55,7 @@ export function CanvasEmptyState({
       >
         {/* Icon cluster */}
         <div className="relative">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-cyan/15 bg-accent-cyan/[0.06] shadow-[0_0_80px_rgba(34,211,238,0.08)]">
+          <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-accent-cyan/15 bg-accent-cyan/[0.06]">
             <Terminal
               className="h-7 w-7 text-accent-cyan/70"
               strokeWidth={1.5}
@@ -92,7 +92,7 @@ export function CanvasEmptyState({
             {/* Primary: connect a host */}
             <Button
               onClick={onNavigateToServices}
-              className={`gap-2 rounded-xl border border-accent-cyan/20 bg-accent-cyan/12 text-accent-cyan shadow-[0_8px_32px_rgba(34,211,238,0.1)] transition-all hover:bg-accent-cyan/20 hover:shadow-[0_12px_40px_rgba(34,211,238,0.15)] ${
+              className={`gap-2 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan transition-colors hover:bg-accent-cyan/16 ${
                 isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
               }`}
             >
@@ -115,7 +115,7 @@ export function CanvasEmptyState({
 
             {/* Setup hint */}
             <div
-              className={`mt-2 w-full rounded-xl border border-border/50 bg-surface-raised/40 backdrop-blur-sm ${
+              className={`mt-2 w-full rounded-lg border border-border/50 bg-surface-raised/40 ${
                 isMobile ? "px-4 py-3" : "px-5 py-4"
               }`}
             >
@@ -148,7 +148,7 @@ export function CanvasEmptyState({
             <Button
               onClick={handleCreateTerminal}
               disabled={isCreating}
-              className={`gap-2 rounded-xl border border-accent-cyan/20 bg-accent-cyan/12 text-accent-cyan shadow-[0_8px_32px_rgba(34,211,238,0.1)] transition-all hover:bg-accent-cyan/20 hover:shadow-[0_12px_40px_rgba(34,211,238,0.15)] ${
+              className={`gap-2 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan transition-colors hover:bg-accent-cyan/16 ${
                 isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
               }`}
             >
@@ -159,7 +159,7 @@ export function CanvasEmptyState({
               onClick={handleCreateNote}
               disabled={isCreatingNote}
               variant="secondary"
-              className={`gap-2 rounded-xl border border-border/60 bg-secondary/60 text-muted-foreground transition-all hover:text-foreground ${
+              className={`gap-2 rounded-md border border-border-default/50 bg-secondary/60 text-muted-foreground transition-colors hover:text-foreground ${
                 isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
               }`}
             >

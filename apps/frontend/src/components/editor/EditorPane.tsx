@@ -84,7 +84,7 @@ export function EditorPane({ onSave, readOnly = false }: EditorPaneProps) {
         <EditorTabs />
         <div className="flex flex-1 items-center justify-center text-muted-foreground">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-surface-raised/40">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/40 bg-surface-raised/40">
               <FileCode className="h-5 w-5 text-muted-foreground/50" />
             </div>
             <div>

@@ -43,7 +43,7 @@ export function ChatInput({ onSend }: ChatInputProps) {
   const isEmpty = value.trim().length === 0;
 
   return (
-    <div className="border-t border-border bg-card px-3 py-2">
+    <div className="border-t border-border-default px-3 py-2">
       <div className="flex items-end gap-2">
         <textarea
           ref={textareaRef}
@@ -56,8 +56,8 @@ export function ChatInput({ onSend }: ChatInputProps) {
           placeholder="Type a message... (Markdown supported)"
           rows={1}
           className={cn(
-            "flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground",
-            "rounded-md border border-border px-3 py-2",
+            "flex-1 resize-none bg-surface-sunken text-body-sm text-foreground placeholder:text-muted-foreground/50",
+            "rounded-md border border-border-default px-3 py-2",
             "focus:outline-none focus:ring-1 focus:ring-ring",
             "scrollbar-thin",
           )}

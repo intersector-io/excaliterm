@@ -109,17 +109,12 @@ export function ChatMessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 items-end justify-center pb-8">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-surface-raised/40">
-            <MessageSquare className="h-5 w-5 text-muted-foreground/50" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground/80">Start a conversation</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Messages are shared with all collaborators in this workspace
-            </p>
-          </div>
+      <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-col items-center gap-2 px-6 text-center">
+          <MessageSquare className="h-5 w-5 text-muted-foreground/25" />
+          <p className="text-caption text-muted-foreground/50">
+            No messages yet
+          </p>
         </div>
       </div>
     );

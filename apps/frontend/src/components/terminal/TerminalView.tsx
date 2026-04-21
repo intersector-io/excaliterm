@@ -213,7 +213,7 @@ export function TerminalView({ terminalId, status }: TerminalViewProps) {
   return (
     <div
       ref={containerRef}
-      className="h-full w-full rounded-[18px] border border-white/[0.04] bg-[#0c1020] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      className="h-full w-full rounded-lg border border-border-subtle bg-surface-sunken shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
       style={{ padding: "14px 14px 12px" }}
     />
   );

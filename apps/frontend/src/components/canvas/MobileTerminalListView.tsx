@@ -148,7 +148,7 @@ export function MobileTerminalListView({
         {terminals.length === 0 ? (
           /* Empty state */
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-accent-cyan/15 bg-accent-cyan/[0.06]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-accent-cyan/15 bg-accent-cyan/[0.06]">
               <Terminal className="h-6 w-6 text-accent-cyan/70" strokeWidth={1.5} />
             </div>
             <div className="space-y-1.5">

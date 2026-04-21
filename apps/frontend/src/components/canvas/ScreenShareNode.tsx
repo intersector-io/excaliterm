@@ -58,27 +58,27 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
         minHeight={isMobile ? 240 : 340}
         isVisible={!!selected}
         lineClassName="!border-accent-green/40"
-        handleClassName="!w-2.5 !h-2.5 !bg-accent-green !border-0 !rounded-full !shadow-[0_0_6px_rgba(120,255,190,0.3)]"
+        handleClassName="!w-2 !h-2 !bg-accent-green !border-0 !rounded-sm"
       />
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-2 !h-2 !bg-accent-green/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-accent-green/60 !border-0 !rounded-full"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-2 !h-2 !bg-accent-green/60 !border-0 !rounded-full"
+        className="!w-1.5 !h-1.5 !bg-accent-green/60 !border-0 !rounded-full"
       />
       <div
-        className={`flex h-full w-full flex-col overflow-hidden rounded-[24px] border transition-all duration-500 ${
+        className={`flex h-full w-full flex-col overflow-hidden rounded-xl border transition-all duration-500 ${
           isStreaming
-            ? "border-accent-green/15 bg-[#12122a]"
-            : "border-white/[0.04] bg-[#12122a]/82"
-        } shadow-[0_28px_80px_rgba(0,0,0,0.42)]`}
+            ? "border-accent-green/15 bg-card"
+            : "border-white/[0.04] bg-card/82"
+        } shadow-[0_12px_40px_rgba(0,0,0,0.35)]`}
       >
         {/* Title bar */}
-        <div className="drag-handle flex items-center justify-between border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))] px-4 min-h-[44px] py-2">
+        <div className="drag-handle flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${statusColor}`} />
             <Monitor className="h-3.5 w-3.5 shrink-0 text-accent-green/60" />

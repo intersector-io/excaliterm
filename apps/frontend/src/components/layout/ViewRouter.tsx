@@ -12,9 +12,6 @@ import type { ActiveView } from "./AppShell";
 const EditorView = lazy(() =>
   import("@/components/editor/EditorView").then((m) => ({ default: m.EditorView })),
 );
-const ChatView = lazy(() =>
-  import("@/components/chat/ChatView").then((m) => ({ default: m.ChatView })),
-);
 const ServicesView = lazy(() =>
   import("@/components/services/ServicesView").then((m) => ({ default: m.ServicesView })),
 );
@@ -35,13 +32,13 @@ function ViewLoadingFallback() {
 function SettingsView() {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border-default px-3">
         <Settings className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">Settings</span>
       </div>
       <div className="flex flex-1 items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-surface-raised/40">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/40 bg-surface-raised/40">
             <Settings className="h-5 w-5 text-muted-foreground/50" />
           </div>
           <div>
@@ -71,7 +68,6 @@ function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void
     fullScreenRef.current?.(terminalId, status);
   }, []);
 
-  // On mobile, show a terminal list instead of the canvas
   if (isMobile) {
     return (
       <MobileTerminalListView
@@ -109,12 +105,6 @@ export function ViewRouter({ activeView, onViewChange }: ViewRouterProps) {
       return (
         <Suspense fallback={<ViewLoadingFallback />}>
           <EditorView />
-        </Suspense>
-      );
-    case "chat":
-      return (
-        <Suspense fallback={<ViewLoadingFallback />}>
-          <ChatView isActive={activeView === "chat"} />
         </Suspense>
       );
     case "services":

@@ -117,7 +117,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
         addEdge(
           {
             ...connection,
-            style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 },
+            style: { stroke: "rgba(255,255,255,0.1)", strokeWidth: 1 },
             animated: true,
           },
           eds,
@@ -187,7 +187,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.03),transparent_70%),#090b14]">
+    <div className="relative h-full w-full overflow-hidden bg-background">
       <ReactFlow
         nodes={nodes}
         edges={[...edges, ...localEdges]}
@@ -223,10 +223,10 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
             position="bottom-right"
             zoomable
             pannable
-            nodeColor="rgba(34, 211, 238, 0.7)"
-            nodeStrokeColor="rgba(34, 211, 238, 0.4)"
-            nodeStrokeWidth={2}
-            nodeBorderRadius={8}
+            nodeColor="rgba(255, 255, 255, 0.35)"
+            nodeStrokeColor="rgba(255, 255, 255, 0.15)"
+            nodeStrokeWidth={1}
+            nodeBorderRadius={4}
             maskColor="rgba(0, 0, 0, 0.6)"
           />
         )}

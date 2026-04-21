@@ -1,18 +1,12 @@
-import { useState, useCallback, useEffect } from "react";
+import { Link2, Check } from "lucide-react";
 import {
   LayoutDashboard,
   Code2,
   MessageSquare,
   Server,
-  Settings,
-  Link2,
-  Check,
-  Users,
-  PanelLeftOpen,
-  PanelLeftClose,
 } from "lucide-react";
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "@/hooks/use-workspace";
 import {
   Tooltip,
   TooltipTrigger,
@@ -27,6 +21,8 @@ interface SidebarProps {
   unreadChat: number;
   onlineServices: number;
   collaboratorCount: number;
+  chatOpen: boolean;
+  onToggleChat: () => void;
 }
 
 interface NavItem {
@@ -41,24 +37,15 @@ export function Sidebar({
   onViewChange,
   unreadChat,
   onlineServices,
-  collaboratorCount,
+  chatOpen,
+  onToggleChat,
 }: SidebarProps) {
-  const [pinned, setPinned] = useState(
-    () => localStorage.getItem("sidebar-pinned") === "true",
-  );
   const [copied, setCopied] = useState(false);
-  const { workspaceId, collaborator } = useWorkspace();
-
-  useEffect(() => {
-    localStorage.setItem("sidebar-pinned", String(pinned));
-  }, [pinned]);
 
   const navItems: NavItem[] = [
     { id: "canvas", icon: LayoutDashboard, label: "Canvas" },
     { id: "editor", icon: Code2, label: "Editor" },
-    { id: "chat", icon: MessageSquare, label: "Chat", badge: unreadChat },
-    { id: "services", icon: Server, label: "Services", badge: onlineServices },
-    { id: "settings", icon: Settings, label: "Settings" },
+    { id: "services", icon: Server, label: "Hosts", badge: onlineServices },
   ];
 
   const handleShare = useCallback(async () => {
@@ -72,178 +59,105 @@ export function Sidebar({
   }, []);
 
   return (
-    <TooltipProvider delayDuration={200}>
-      {/* Backdrop when pinned (click to unpin) */}
-      {pinned && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[2px] transition-opacity lg:block hidden"
-          onClick={() => setPinned(false)}
-        />
-      )}
-      <div
-        className={cn(
-          "flex h-full flex-col border-r border-border-default/60 bg-card/80 backdrop-blur-sm transition-[width] duration-200 ease-in-out",
-          pinned
-            ? "fixed left-0 top-0 bottom-0 z-40 w-56 shadow-2xl"
-            : "w-14",
-        )}
-      >
-        {/* Logo area */}
-        <div className="flex h-12 items-center px-3 border-b border-border-subtle">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-cyan/15">
-            <span className="text-caption font-bold text-accent-cyan tracking-tighter">
-              ET
-            </span>
-          </div>
-          {pinned && (
-            <span className="ml-2.5 text-body-sm font-semibold text-foreground tracking-tight truncate">
-              Excaliterm
-            </span>
-          )}
+    <TooltipProvider delayDuration={120}>
+      <div className="flex h-full w-12 flex-col items-center border-r border-border-default/50 bg-background py-2">
+        {/* Logo */}
+        <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-md bg-accent-cyan/12">
+          <span className="text-[11px] font-bold tracking-tight text-accent-cyan">
+            ET
+          </span>
         </div>
 
         {/* Nav items */}
-        <nav className="flex flex-1 flex-col gap-0.5 px-1.5 pt-2">
+        <nav className="flex flex-1 flex-col items-center gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
 
-            const button = (
-              <button
-                key={item.id}
-                onClick={() => onViewChange(item.id)}
-                className={cn(
-                  "relative flex items-center gap-3 rounded-lg px-2.5 text-sm font-medium transition-all duration-150",
-                  pinned ? "h-9" : "h-10 justify-center",
-                  isActive
-                    ? "bg-accent-blue/12 text-accent-blue shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                    : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
-                )}
-              >
-                <Icon
-                  className="h-[18px] w-[18px] shrink-0"
-                  strokeWidth={isActive ? 2 : 1.5}
-                />
-                {pinned && (
-                  <span className="truncate text-body-sm">{item.label}</span>
-                )}
-                {item.badge != null && item.badge > 0 && (
-                  <span
-                    className={cn(
-                      "absolute flex items-center justify-center rounded-full bg-accent-cyan text-caption font-bold text-background",
-                      pinned
-                        ? "right-2 h-[18px] min-w-[18px] px-1"
-                        : "right-0.5 top-0.5 h-[14px] min-w-[14px] px-0.5",
-                    )}
-                  >
-                    {item.badge > 99 ? "99+" : item.badge}
-                  </span>
-                )}
-              </button>
-            );
-
-            if (pinned) return <div key={item.id}>{button}</div>;
-
             return (
               <Tooltip key={item.id}>
-                <TooltipTrigger asChild>{button}</TooltipTrigger>
-                <TooltipContent side="right">
-                  <p className="font-medium">{item.label}</p>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onViewChange(item.id)}
+                    className={cn(
+                      "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-100",
+                      isActive
+                        ? "bg-white/[0.08] text-foreground shadow-[inset_2px_0_0_var(--color-accent-cyan)]"
+                        : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                    )}
+                  >
+                    <Icon
+                      className="h-[17px] w-[17px]"
+                      strokeWidth={isActive ? 2 : 1.5}
+                    />
+                    {item.badge != null && item.badge > 0 && (
+                      <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-cyan px-0.5 text-[9px] font-bold text-background">
+                        {item.badge > 99 ? "+" : item.badge}
+                      </span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>
+                  <p className="text-xs font-medium">{item.label}</p>
                 </TooltipContent>
               </Tooltip>
             );
           })}
 
-          {/* Pin toggle */}
-          <div className="mt-auto">
+          {/* Chat toggle — separate from view nav */}
+          <div className="mt-1 pt-1 border-t border-border-subtle/50">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setPinned((p) => !p)}
+                  onClick={onToggleChat}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-white/[0.04] hover:text-foreground",
-                    pinned ? "h-9" : "h-10 justify-center",
+                    "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-100",
+                    chatOpen
+                      ? "bg-white/[0.08] text-foreground shadow-[inset_2px_0_0_var(--color-accent-cyan)]"
+                      : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
                   )}
                 >
-                  {pinned ? (
-                    <PanelLeftClose className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
-                  ) : (
-                    <PanelLeftOpen className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
-                  )}
-                  {pinned && (
-                    <span className="truncate text-body-sm">Collapse</span>
+                  <MessageSquare
+                    className="h-[17px] w-[17px]"
+                    strokeWidth={chatOpen ? 2 : 1.5}
+                  />
+                  {!chatOpen && unreadChat > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-cyan px-0.5 text-[9px] font-bold text-background">
+                      {unreadChat > 99 ? "+" : unreadChat}
+                    </span>
                   )}
                 </button>
               </TooltipTrigger>
-              {!pinned && (
-                <TooltipContent side="right">
-                  <p className="font-medium">Expand sidebar</p>
-                </TooltipContent>
-              )}
+              <TooltipContent side="right" sideOffset={8}>
+                <p className="text-xs font-medium">
+                  {chatOpen ? "Close chat" : "Chat"}
+                </p>
+              </TooltipContent>
             </Tooltip>
           </div>
         </nav>
 
-        {/* Bottom section */}
-        <div className="border-t border-border-subtle px-1.5 py-2 space-y-0.5">
-          {/* Workspace ID — only when pinned */}
-          {pinned && (
-            <div className="px-2.5 py-1.5">
-              <span className="font-mono text-caption text-muted-foreground/50 tracking-wider uppercase">
-                Workspace
-              </span>
-              <p className="font-mono text-caption text-muted-foreground mt-0.5">
-                {workspaceId}
-              </p>
-              <div className="mt-2 flex items-center gap-1.5 text-caption text-muted-foreground">
-                <Users className="h-3 w-3" />
-                <span>
-                  {collaboratorCount} collaborator
-                  {collaboratorCount === 1 ? "" : "s"}
-                </span>
-              </div>
-              <p className="mt-1 truncate text-caption text-muted-foreground/80">
-                {collaborator.displayName}
-              </p>
-            </div>
-          )}
-          {/* Share button */}
-          {pinned ? (
-            <button
-              onClick={handleShare}
-              className="flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-all duration-150"
-            >
-              {copied ? (
-                <Check className="h-[18px] w-[18px] shrink-0 text-accent-green" strokeWidth={1.5} />
-              ) : (
-                <Link2 className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
-              )}
-              <span className="truncate text-body-sm">
+        {/* Bottom — share */}
+        <div className="mt-auto flex flex-col items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={handleShare}
+                className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors duration-100 hover:bg-white/[0.04] hover:text-foreground"
+              >
+                {copied ? (
+                  <Check className="h-[17px] w-[17px] text-accent-green" strokeWidth={1.5} />
+                ) : (
+                  <Link2 className="h-[17px] w-[17px]" strokeWidth={1.5} />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>
+              <p className="text-xs font-medium">
                 {copied ? "Link copied" : "Share workspace"}
-              </span>
-            </button>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleShare}
-                  className="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground hover:bg-white/[0.04] hover:text-foreground transition-all duration-150"
-                  title="Copy workspace link"
-                >
-                  {copied ? (
-                    <Check className="h-[18px] w-[18px] text-accent-green" strokeWidth={1.5} />
-                  ) : (
-                    <Link2 className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p className="font-medium">
-                  {copied ? "Link copied!" : "Share workspace"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          )}
+              </p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </TooltipProvider>

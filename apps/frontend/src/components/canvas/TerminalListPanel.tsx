@@ -111,7 +111,7 @@ export function TerminalListPanel({
 
       {/* Panel */}
       <div
-        className={`fixed z-50 flex flex-col border-border/60 bg-card/95 backdrop-blur-md ${
+        className={`fixed z-50 flex flex-col border-border/60 bg-card ${
           isMobile
             ? "inset-x-0 bottom-14 max-h-[70vh] rounded-t-2xl border-t"
             : "bottom-0 right-0 top-14 w-80 border-l"
