@@ -11,6 +11,13 @@
     "lint": "turbo lint",
     "clean": "turbo clean"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "node-pty",
+      "robotjs",
+      "wrtc"
+    ]
+  },
   "devDependencies": {
     "turbo": "^2.5.0"
   }

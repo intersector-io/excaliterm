@@ -1,8 +1,11 @@
 import type {
   CreateTerminalRequest,
   CreateTerminalResponse,
+  CreateScreenshotRequest,
+  CreateScreenshotResponse,
   ListTerminalsResponse,
   ListCanvasNodesResponse,
+  ListCanvasEdgesResponse,
   UpdateCanvasNodeRequest,
   CanvasNode,
 } from "@excaliterm/shared-types";
@@ -99,6 +102,34 @@ export function updateCanvasNode(
 
 export function deleteCanvasNode(workspaceId: string, id: string): Promise<void> {
   return request(`/w/${workspaceId}/canvas/nodes/${id}`, { method: "DELETE" });
+}
+
+// ─── Screenshots ──────────────────────────────────────────────────────────
+
+export function listScreenshots(
+  workspaceId: string,
+): Promise<{ screenshots: import("@excaliterm/shared-types").Screenshot[] }> {
+  return request(`/w/${workspaceId}/canvas/screenshots`);
+}
+
+export function createScreenshot(
+  workspaceId: string,
+  data: CreateScreenshotRequest,
+): Promise<CreateScreenshotResponse> {
+  return request(`/w/${workspaceId}/canvas/screenshots`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ─── Canvas Edges ─────────────────────────────────────────────────────────
+
+export function listCanvasEdges(workspaceId: string): Promise<ListCanvasEdgesResponse> {
+  return request(`/w/${workspaceId}/canvas/edges`);
+}
+
+export function deleteCanvasEdge(workspaceId: string, id: string): Promise<void> {
+  return request(`/w/${workspaceId}/canvas/edges/${id}`, { method: "DELETE" });
 }
 
 // ─── Notes ─────────────────────────────────────────────────────────────────

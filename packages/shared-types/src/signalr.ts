@@ -173,6 +173,55 @@ export interface FileErrorEvent {
   error: string;
 }
 
+// ─── Screen Share / Screenshot (via File Hub) ──────────────────────────────
+
+export interface MonitorListingEvent {
+  serviceId: string;
+  monitors: import("./models.js").MonitorInfo[];
+}
+
+export interface ScreenshotCapturedEvent {
+  serviceId: string;
+  imageBase64: string;
+  monitorIndex: number;
+  width: number;
+  height: number;
+}
+
+export interface WebRtcOfferEvent {
+  serviceId: string;
+  sessionId: string;
+  sdp: string;
+  type: string;
+}
+
+export interface WebRtcAnswerEvent {
+  serviceId: string;
+  sessionId: string;
+  sdp: string;
+  type: string;
+}
+
+export interface WebRtcIceCandidateEvent {
+  serviceId: string;
+  sessionId: string;
+  candidate: string;
+  sdpMid: string | null;
+  sdpMLineIndex: number | null;
+}
+
+export interface ScreenShareSessionEvent {
+  serviceId: string;
+  sessionId: string;
+  monitorIndex: number;
+}
+
+// ─── Shutdown ───────────────────────────────────────────────────────────────
+
+export interface ShutdownInitiatedEvent {
+  serviceId: string;
+}
+
 // ─── Hub Endpoints ───────────────────────────────────────────────────────────
 
 export const HUB_ENDPOINTS = {
@@ -191,6 +240,7 @@ export const TerminalHubMethods = {
   RequestCollaborationState: "RequestCollaborationState",
   AcquireTerminalLock: "AcquireTerminalLock",
   ReleaseTerminalLock: "ReleaseTerminalLock",
+  ShutdownService: "ShutdownService",
   // Server -> Client
   TerminalOutput: "TerminalOutput",
   TerminalCreated: "TerminalCreated",
@@ -202,6 +252,9 @@ export const TerminalHubMethods = {
   CollaboratorLeft: "CollaboratorLeft",
   TerminalTyping: "TerminalTyping",
   TerminalLockChanged: "TerminalLockChanged",
+  ShutdownInitiated: "ShutdownInitiated",
+  // Server -> Service
+  ShutdownHost: "ShutdownHost",
 } as const;
 
 export const CanvasHubMethods = {
@@ -221,8 +274,19 @@ export const FileHubMethods = {
   ListDirectory: "ListDirectory",
   ReadFile: "ReadFile",
   WriteFile: "WriteFile",
+  ListMonitors: "ListMonitors",
+  CaptureScreenshot: "CaptureScreenshot",
+  StartScreenShare: "StartScreenShare",
+  StopScreenShare: "StopScreenShare",
+  ScreenShareAnswer: "ScreenShareAnswer",
+  ScreenShareIceCandidate: "ScreenShareIceCandidate",
   // Server -> Client
   DirectoryListing: "DirectoryListing",
   FileContent: "FileContent",
   FileError: "FileError",
+  MonitorListing: "MonitorListing",
+  ScreenshotCaptured: "ScreenshotCaptured",
+  ScreenShareOffer: "ScreenShareOffer",
+  ScreenShareIceCandidateEvent: "ScreenShareIceCandidateEvent",
+  ScreenShareSession: "ScreenShareSession",
 } as const;

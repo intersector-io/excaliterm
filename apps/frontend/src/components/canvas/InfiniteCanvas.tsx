@@ -22,6 +22,8 @@ import { useServices } from "@/hooks/use-services";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { TerminalNode } from "./TerminalNode";
 import { NoteNode } from "./NoteNode";
+import { ScreenshotNode } from "./ScreenshotNode";
+import { ScreenShareNode } from "./ScreenShareNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
 import type { TerminalStatus } from "@excaliterm/shared-types";
@@ -35,6 +37,8 @@ import {
 const nodeTypes: NodeTypes = {
   terminal: TerminalNode,
   note: NoteNode,
+  screenshot: ScreenshotNode,
+  "screen-share": ScreenShareNode,
 };
 
 const defaultViewport = { x: 0, y: 0, zoom: 1 };

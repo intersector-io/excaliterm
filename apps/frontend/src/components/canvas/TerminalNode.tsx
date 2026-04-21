@@ -1,14 +1,17 @@
 import { memo, useCallback, useState } from "react";
 import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
-import { Lock, LockOpen, MoreHorizontal, Trash2, Copy } from "lucide-react";
+import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { TerminalView } from "@/components/terminal/TerminalView";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
+import { useScreenshot } from "@/hooks/use-screenshot";
+import { useScreenShare } from "@/hooks/use-screen-share";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { TagEditor } from "./TagEditor";
+import { MonitorPickerDialog } from "./MonitorPickerDialog";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,9 +24,12 @@ type TerminalNodeType = Node<TerminalNodeData>;
 
 function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeType>) {
   const { deleteTerminal, updateTerminal } = useTerminals();
-  const { deleteNode } = useCanvas();
+  const { deleteNode, addScreenShareNode } = useCanvas();
+  const { monitors, isLoadingMonitors, isCapturing, listMonitors, captureScreenshot } = useScreenshot();
+  const { startScreenShare } = useScreenShare();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [isHovered, setIsHovered] = useState(false);
+  const [monitorPickerOpen, setMonitorPickerOpen] = useState(false);
   const {
     lockInfo,
     activeTypers,
@@ -71,6 +77,56 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
     navigator.clipboard.writeText(data.terminalId).catch(() => {});
     toast.success("Terminal ID copied");
   }, [data.terminalId]);
+
+  const handleOpenMonitorPicker = useCallback(() => {
+    if (!data.serviceId) {
+      toast.error("No host service associated with this terminal");
+      return;
+    }
+    setMonitorPickerOpen(true);
+    listMonitors(data.serviceId).catch(() => {
+      toast.error("Failed to list monitors");
+    });
+  }, [data.serviceId, listMonitors]);
+
+  const handleScreenshot = useCallback(
+    async (monitorIndex: number) => {
+      if (!data.serviceId || !data.serviceInstanceId) return;
+      try {
+        await captureScreenshot(data.serviceId, data.serviceInstanceId, monitorIndex, id);
+        setMonitorPickerOpen(false);
+        toast.success("Screenshot captured");
+      } catch {
+        toast.error("Failed to capture screenshot");
+      }
+    },
+    [data.serviceId, data.serviceInstanceId, id, captureScreenshot],
+  );
+
+  const handleStream = useCallback(
+    async (monitorIndex: number) => {
+      if (!data.serviceId) return;
+      try {
+        setMonitorPickerOpen(false);
+        toast.info("Starting screen share...");
+        const monitorInfo = monitors[monitorIndex];
+        const session = await startScreenShare(data.serviceId, monitorIndex);
+        addScreenShareNode(
+          session.sessionId,
+          data.serviceId,
+          monitorIndex,
+          monitorInfo?.name ?? `Monitor ${monitorIndex + 1}`,
+          monitorInfo?.width ?? 1920,
+          monitorInfo?.height ?? 1080,
+          id, // source terminal node ID
+        );
+        toast.success("Screen share started");
+      } catch {
+        toast.error("Failed to start screen share");
+      }
+    },
+    [data.serviceId, id, monitors, startScreenShare, addScreenShareNode],
+  );
 
   const statusColor =
     data.status === "active"
@@ -213,6 +269,19 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
                     <Copy className="h-3.5 w-3.5" />
                     <span>Copy terminal ID</span>
                   </DropdownMenuItem>
+                  {isActive && data.serviceId && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleOpenMonitorPicker}>
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>Screenshot</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleOpenMonitorPicker}>
+                        <Monitor className="h-3.5 w-3.5" />
+                        <span>Screen Share</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleClose}
@@ -262,6 +331,16 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
           </div>
         </div>
       </div>
+
+      <MonitorPickerDialog
+        open={monitorPickerOpen}
+        onOpenChange={setMonitorPickerOpen}
+        monitors={monitors}
+        isLoadingMonitors={isLoadingMonitors}
+        onScreenshot={handleScreenshot}
+        onStream={handleStream}
+        isCapturing={isCapturing}
+      />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/lib/api-client";
 import { getTerminalHub } from "@/lib/signalr-client";
@@ -82,6 +82,18 @@ export function useServices() {
     },
   });
 
+  const [isShuttingDown, setIsShuttingDown] = useState(false);
+
+  const shutdownService = useCallback(async (serviceId: string) => {
+    const terminalHub = getTerminalHub();
+    setIsShuttingDown(true);
+    try {
+      await terminalHub.invoke("ShutdownService", serviceId);
+    } finally {
+      setIsShuttingDown(false);
+    }
+  }, []);
+
   const services = servicesQuery.data?.services ?? [];
   const onlineCount = services.filter((s) => s.status === "online").length;
 
@@ -95,5 +107,7 @@ export function useServices() {
     isUpdating: updateMutation.isPending,
     deleteService: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
+    shutdownService,
+    isShuttingDown,
   };
 }

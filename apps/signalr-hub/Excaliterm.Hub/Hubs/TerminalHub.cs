@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
-using TerminalProxy.Hub.Auth;
-using TerminalProxy.Hub.Models;
-using TerminalProxy.Hub.Services;
+using Excaliterm.Hub.Auth;
+using Excaliterm.Hub.Models;
+using Excaliterm.Hub.Services;
 
-namespace TerminalProxy.Hub.Hubs;
+namespace Excaliterm.Hub.Hubs;
 
 public class TerminalHub : BaseHub
 {
@@ -259,6 +259,50 @@ public class TerminalHub : BaseHub
             "TerminalLockChanged",
             new TerminalLockChangedMessage(terminalId, null)
         );
+    }
+
+    // ─── Host shutdown ───────────────────────────────────────────────────────────
+
+    public async Task ShutdownService(string serviceId)
+    {
+        if (IsServiceConnection()) return;
+
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return;
+
+        var service = _serviceRegistry.GetService(serviceId);
+        if (service is null)
+        {
+            await Clients.Caller.SendAsync(
+                "TerminalError",
+                new TerminalErrorMessage("system", "Service not found or offline")
+            );
+            return;
+        }
+
+        if (service.WorkspaceId != workspaceId)
+        {
+            await Clients.Caller.SendAsync(
+                "TerminalError",
+                new TerminalErrorMessage("system", "Access denied")
+            );
+            return;
+        }
+
+        var connectionId = _serviceRegistry.GetTerminalHubConnection(serviceId);
+        if (connectionId is null)
+        {
+            await Clients.Caller.SendAsync(
+                "TerminalError",
+                new TerminalErrorMessage("system", "Service terminal hub connection not found")
+            );
+            return;
+        }
+
+        Logger.LogInformation("Shutdown requested for service {ServiceId} by {ConnectionId}", serviceId, Context.ConnectionId);
+
+        await Clients.Client(connectionId).SendAsync("ShutdownHost");
+        await Clients.Caller.SendAsync("ShutdownInitiated", new ShutdownInitiatedMessage(serviceId));
     }
 
     // ─── Client → Server methods (input routing) ────────────────────────────────

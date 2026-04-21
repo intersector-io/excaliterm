@@ -125,6 +125,8 @@ terminals.post("/", async (c) => {
   const response: CreateTerminalResponse = {
     terminal: {
       id: terminal.id,
+      serviceInstanceId: terminal.serviceInstanceId,
+      serviceId: targetService.serviceId,
       tags: parseTags(terminal.tags),
       status: terminal.status,
       exitCode: terminal.exitCode,
@@ -136,6 +138,7 @@ terminals.post("/", async (c) => {
       terminalSessionId: canvasNode.terminalSessionId,
       nodeType: canvasNode.nodeType,
       noteId: canvasNode.noteId,
+      screenshotId: canvasNode.screenshotId,
       x: canvasNode.x,
       y: canvasNode.y,
       width: canvasNode.width,
@@ -155,18 +158,27 @@ terminals.get("/", async (c) => {
   const db = getDb();
 
   const rows = await db
-    .select()
+    .select({
+      terminal: schema.terminalSession,
+      serviceId: schema.serviceInstance.serviceId,
+    })
     .from(schema.terminalSession)
+    .leftJoin(
+      schema.serviceInstance,
+      eq(schema.terminalSession.serviceInstanceId, schema.serviceInstance.id),
+    )
     .where(eq(schema.terminalSession.workspaceId, workspaceId));
 
   const response: ListTerminalsResponse = {
-    terminals: rows.map((t) => ({
-      id: t.id,
-      tags: parseTags(t.tags),
-      status: t.status,
-      exitCode: t.exitCode,
-      createdAt: t.createdAt.toISOString(),
-      updatedAt: t.updatedAt.toISOString(),
+    terminals: rows.map((r) => ({
+      id: r.terminal.id,
+      serviceInstanceId: r.terminal.serviceInstanceId,
+      serviceId: r.serviceId ?? null,
+      tags: parseTags(r.terminal.tags),
+      status: r.terminal.status,
+      exitCode: r.terminal.exitCode,
+      createdAt: r.terminal.createdAt.toISOString(),
+      updatedAt: r.terminal.updatedAt.toISOString(),
     })),
   };
 

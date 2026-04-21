@@ -1,7 +1,7 @@
 using StackExchange.Redis;
-using TerminalProxy.Hub.Auth;
-using TerminalProxy.Hub.Hubs;
-using TerminalProxy.Hub.Services;
+using Excaliterm.Hub.Auth;
+using Excaliterm.Hub.Hubs;
+using Excaliterm.Hub.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +35,11 @@ builder.Services.AddSingleton<ServiceRegistry>();
 builder.Services.AddSingleton<TerminalCollaborationRegistry>();
 
 // SignalR with MessagePack protocol
-builder.Services.AddSignalR()
+builder.Services.AddSignalR(options =>
+{
+    // Allow large messages for screenshot transfer (up to 10MB)
+    options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+})
     .AddMessagePackProtocol();
 
 // Register RedisSubscriber always (it handles null redis gracefully)
