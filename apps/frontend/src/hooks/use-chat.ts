@@ -10,7 +10,7 @@ const PAGE_SIZE = 50;
 interface SignalRChatMessage {
   id: string;
   userName: string;
-  tenantId: string;
+  workspaceId: string;
   content: string;
   timestamp: number;
 }

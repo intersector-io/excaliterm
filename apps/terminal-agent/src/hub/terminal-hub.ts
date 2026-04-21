@@ -11,7 +11,7 @@ export class TerminalHubConnection {
     this.config = config;
     this.manager = manager;
 
-    const url = `${config.signalrHubUrl.replace(/\/+$/, "")}/hubs/terminal?apiKey=${encodeURIComponent(config.serviceApiKey)}&tenantId=${encodeURIComponent(config.tenantId)}`;
+    const url = `${config.signalrHubUrl.replace(/\/+$/, "")}/hubs/terminal?apiKey=${encodeURIComponent(config.serviceApiKey)}&workspaceId=${encodeURIComponent(config.workspaceId)}`;
 
     this.hub = new signalR.HubConnectionBuilder()
       .withUrl(url)
@@ -36,7 +36,7 @@ export class TerminalHubConnection {
       this.config.serviceApiKey
     );
     console.log(
-      `[TerminalHub] Registered as service ${this.config.serviceId} for tenant ${this.config.tenantId}`
+      `[TerminalHub] Registered as service ${this.config.serviceId} for workspace ${this.config.workspaceId}`
     );
   }
 

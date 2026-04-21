@@ -4,10 +4,7 @@
 
 The current system is workspace-based rather than user-session-based. A browser client opens a workspace, connects to SignalR hubs using that workspace ID, and collaborates with other clients in the same workspace. Terminal processes and file operations are executed by `apps/terminal-agent`, while the backend persists workspace state in SQLite and uses Redis to coordinate with the SignalR hub.
 
-Two naming conventions refer to the same thing:
-
-- `workspaceId` in the REST API and frontend routes
-- `tenantId` in the SignalR hub and terminal agent
+`workspaceId` is used consistently across the REST API, frontend, SignalR hub, and terminal agent.
 
 ## Components
 
@@ -54,7 +51,7 @@ The terminal agent is a Node.js process that owns shell processes through `node-
 
 Key responsibilities:
 
-- Connect to SignalR with `SERVICE_API_KEY`, `SERVICE_ID`, and `TENANT_ID`
+- Connect to SignalR with `SERVICE_API_KEY`, `SERVICE_ID`, and `WORKSPACE_ID`
 - Create, resize, write to, and destroy terminal sessions
 - Stream terminal output back to the hub
 - Read and write files within its configured whitelist
@@ -213,5 +210,4 @@ note 1--0..1 canvas_node
 ## Current Constraints
 
 - Browser access is workspace-link-based today. The old Better Auth flow is not part of the active architecture.
-- The terminal agent and hub still use `tenantId` terminology even though the rest of the app calls the same value `workspaceId`.
 - The file REST route is a stub; live file operations happen over SignalR.

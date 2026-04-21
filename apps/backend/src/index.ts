@@ -28,10 +28,9 @@ subscribe("service:events", async (message) => {
     const event = JSON.parse(message) as {
       event: string;
       serviceInstanceId: string;
-      tenantId: string;
+      workspaceId: string;
     };
-    // SignalR hub publishes tenantId; in our model workspaceId = tenantId
-    const workspaceId = event.tenantId;
+    const workspaceId = event.workspaceId;
     const db = (await import("./db/index.js")).getDb();
     const { schema } = await import("./db/index.js");
     const { eq, and } = await import("drizzle-orm");

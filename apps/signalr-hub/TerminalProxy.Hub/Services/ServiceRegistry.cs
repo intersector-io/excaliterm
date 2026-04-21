@@ -18,9 +18,9 @@ public class ServiceRegistry
         _logger = logger;
     }
 
-    public void Register(string connectionId, string serviceInstanceId, string tenantId, string hubType = "terminal")
+    public void Register(string connectionId, string serviceInstanceId, string workspaceId, string hubType = "terminal")
     {
-        var info = new ServiceInstanceInfo(connectionId, serviceInstanceId, tenantId, DateTime.UtcNow);
+        var info = new ServiceInstanceInfo(connectionId, serviceInstanceId, workspaceId, DateTime.UtcNow);
         _byConnectionId[connectionId] = info;
         _serviceToTerminals.TryAdd(serviceInstanceId, new ConcurrentDictionary<string, byte>());
 
@@ -37,8 +37,8 @@ public class ServiceRegistry
         }
 
         _logger.LogInformation(
-            "Service registered: {ServiceInstanceId} on connection {ConnectionId} for tenant {TenantId} (hub={HubType})",
-            serviceInstanceId, connectionId, tenantId, hubType
+            "Service registered: {ServiceInstanceId} on connection {ConnectionId} for workspace {WorkspaceId} (hub={HubType})",
+            serviceInstanceId, connectionId, workspaceId, hubType
         );
     }
 
@@ -144,10 +144,10 @@ public class ServiceRegistry
         return info;
     }
 
-    public IReadOnlyList<ServiceInstanceInfo> GetServicesByTenant(string tenantId)
+    public IReadOnlyList<ServiceInstanceInfo> GetServicesByWorkspace(string workspaceId)
     {
         return _byServiceInstanceId.Values
-            .Where(s => s.TenantId == tenantId)
+            .Where(s => s.WorkspaceId == workspaceId)
             .ToList()
             .AsReadOnly();
     }

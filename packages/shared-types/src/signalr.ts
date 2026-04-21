@@ -120,7 +120,7 @@ export interface ChatMessageDto {
   id: string;
   userId: string;
   userName: string;
-  tenantId: string;
+  workspaceId: string;
   content: string;
   timestamp: number;
 }

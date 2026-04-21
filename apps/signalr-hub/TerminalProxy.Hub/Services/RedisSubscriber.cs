@@ -115,13 +115,13 @@ public class RedisSubscriber : IHostedService
 
     // ─── Publishing ─────────────────────────────────────────────────────────────
 
-    public async Task PublishServiceEvent(string eventName, string serviceInstanceId, string tenantId)
+    public async Task PublishServiceEvent(string eventName, string serviceInstanceId, string workspaceId)
     {
         if (_redis is null) return;
 
         var db = _redis.GetDatabase();
         var payload = JsonSerializer.Serialize(new RedisServiceEvent(
-            eventName, serviceInstanceId, tenantId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            eventName, serviceInstanceId, workspaceId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         ), JsonOptions);
 
         await db.PublishAsync(RedisChannel.Literal("service:events"), payload);
@@ -166,11 +166,11 @@ public class RedisSubscriber : IHostedService
                 targetServiceId = command.ServiceInstanceId;
             }
 
-            // Fallback: find any service in the tenant
-            if (targetConnectionId is null && !string.IsNullOrWhiteSpace(command.TenantId))
+            // Fallback: find any service in the workspace
+            if (targetConnectionId is null && !string.IsNullOrWhiteSpace(command.WorkspaceId))
             {
-                var tenantServices = _serviceRegistry.GetServicesByTenant(command.TenantId);
-                foreach (var svc in tenantServices)
+                var workspaceServices = _serviceRegistry.GetServicesByWorkspace(command.WorkspaceId);
+                foreach (var svc in workspaceServices)
                 {
                     var connId = _serviceRegistry.GetTerminalHubConnection(svc.ServiceInstanceId);
                     if (connId is not null)
@@ -185,8 +185,8 @@ public class RedisSubscriber : IHostedService
             if (targetConnectionId is null)
             {
                 _logger.LogWarning(
-                    "No TerminalHub connection found for terminal command {Command} (serviceId={ServiceId}, tenantId={TenantId})",
-                    command.Command, command.ServiceInstanceId, command.TenantId
+                    "No TerminalHub connection found for terminal command {Command} (serviceId={ServiceId}, workspaceId={WorkspaceId})",
+                    command.Command, command.ServiceInstanceId, command.WorkspaceId
                 );
                 return;
             }
@@ -251,7 +251,7 @@ public class RedisSubscriber : IHostedService
             var update = JsonSerializer.Deserialize<RedisCanvasUpdate>(message, JsonOptions);
             if (update is null) return;
 
-            var group = $"tenant:{update.TenantId}";
+            var group = $"workspace:{update.WorkspaceId}";
 
             switch (update.Action)
             {
@@ -299,7 +299,7 @@ public class RedisSubscriber : IHostedService
             var chatMsg = JsonSerializer.Deserialize<RedisChatMessage>(message, JsonOptions);
             if (chatMsg is null) return;
 
-            var group = $"tenant:{chatMsg.TenantId}";
+            var group = $"workspace:{chatMsg.WorkspaceId}";
             await _chatHub.Clients.Group(group).SendAsync("ReceiveMessage", chatMsg.Message);
         }
         catch (Exception ex)

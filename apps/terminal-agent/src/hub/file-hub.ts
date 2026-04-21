@@ -35,7 +35,7 @@ export class FileHubConnection {
     this.config = config;
     this.fileHandler = fileHandler;
 
-    const url = `${config.signalrHubUrl.replace(/\/+$/, "")}/hubs/file?apiKey=${encodeURIComponent(config.serviceApiKey)}&tenantId=${encodeURIComponent(config.tenantId)}`;
+    const url = `${config.signalrHubUrl.replace(/\/+$/, "")}/hubs/file?apiKey=${encodeURIComponent(config.serviceApiKey)}&workspaceId=${encodeURIComponent(config.workspaceId)}`;
 
     this.hub = new signalR.HubConnectionBuilder()
       .withUrl(url)

@@ -28,11 +28,9 @@ The hub validates `workspaceId` by calling the backend and then adds the connect
 The terminal agent connects with query parameters:
 
 - `apiKey`
-- `tenantId`
+- `workspaceId`
 
 After the SignalR connection is established, the agent calls `RegisterService(serviceId, apiKey)` on the terminal and file hubs.
-
-`tenantId` is the same logical value as `workspaceId`.
 
 ## Terminal Hub
 
@@ -127,7 +125,7 @@ When Redis is disabled in the hub, this flow breaks even if the browser can stil
 
 | Event | Payload |
 |-------|---------|
-| `ReceiveMessage` | `{ id, userId, userName, tenantId, content, timestamp }` |
+| `ReceiveMessage` | `{ id, userId, userName, workspaceId, content, timestamp }` |
 
 Chat history is still fetched from the backend through REST. The hub only handles live delivery.
 

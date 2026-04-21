@@ -56,7 +56,7 @@ export function RegisterServiceDialog({
       `SIGNALR_HUB_URL=${window.location.origin}`,
       "SERVICE_API_KEY=<same value configured on the SignalR hub>",
       `SERVICE_ID=${createdService.serviceId}`,
-      `TENANT_ID=${workspaceId}`,
+      `WORKSPACE_ID=${workspaceId}`,
     ].join("\n");
   }
 

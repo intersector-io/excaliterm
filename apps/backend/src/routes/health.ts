@@ -8,7 +8,7 @@ const health = new Hono();
 health.get("/", async (c) => {
   const db = getDb();
 
-  // Count online services across all tenants (public endpoint)
+  // Count online services across all workspaces (public endpoint)
   const onlineServices = await db
     .select()
     .from(schema.serviceInstance)

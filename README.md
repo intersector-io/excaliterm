@@ -77,12 +77,12 @@ Then:
 1. Open `http://localhost:5173`.
 2. The app creates or restores a workspace and redirects to `/w/<workspaceId>`.
 3. Copy that workspace ID from the URL.
-4. Start the terminal agent with `TENANT_ID=<workspaceId>`.
+4. Start the terminal agent with `WORKSPACE_ID=<workspaceId>`.
 
 PowerShell example:
 
 ```powershell
-$env:TENANT_ID = "<workspaceId>"
+$env:WORKSPACE_ID = "<workspaceId>"
 pnpm --filter @terminal-proxy/terminal-agent dev
 ```
 
@@ -94,7 +94,7 @@ Once your env is already configured, `pnpm dev` can be used to launch the JavaSc
 docker compose up --build
 ```
 
-This starts `redis`, `backend`, `signalr-hub`, and `frontend`. The terminal agent still runs outside Docker and connects to the hub with the same `SERVICE_API_KEY` and a `TENANT_ID` matching the target workspace.
+This starts `redis`, `backend`, `signalr-hub`, and `frontend`. The terminal agent still runs outside Docker and connects to the hub with the same `SERVICE_API_KEY` and a `WORKSPACE_ID` matching the target workspace.
 
 ### Tests
 

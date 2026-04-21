@@ -198,7 +198,6 @@ describe("Terminal Sessions", () => {
           terminalId: "test-uuid-1",
           serviceInstanceId: "svc-public-1",
           workspaceId: "ws-1",
-          tenantId: "ws-1",
           cols: 80,
           rows: 24,
         }),
@@ -329,7 +328,6 @@ describe("Terminal Sessions", () => {
           terminalId: "t1",
           serviceInstanceId: "svc-public-1",
           workspaceId: "ws-1",
-          tenantId: "ws-1",
         }),
       );
     });

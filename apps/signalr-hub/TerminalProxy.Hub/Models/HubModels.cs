@@ -57,7 +57,7 @@ public record ChatMessageDto(
     string Id,
     string UserId,
     string UserName,
-    string TenantId,
+    string WorkspaceId,
     string Content,
     long Timestamp
 );
@@ -88,14 +88,14 @@ public record FileErrorMessage(string ServiceId, string Path, string Error);
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
-public record ValidatedSession(string UserId, string TenantId, string UserName, string? Email);
+public record ValidatedSession(string UserId, string WorkspaceId, string UserName, string? Email);
 
 // ─── Service Registry ────────────────────────────────────────────────────────
 
 public record ServiceInstanceInfo(
     string ConnectionId,
     string ServiceInstanceId,
-    string TenantId,
+    string WorkspaceId,
     DateTime RegisteredAt
 );
 
@@ -110,14 +110,14 @@ public record RedisTerminalCommand(
     string Command,
     string TerminalId,
     string? ServiceInstanceId,
-    string? TenantId,
+    string? WorkspaceId,
     int? Cols,
     int? Rows
 );
 
 public record RedisCanvasUpdate(
     string Action,
-    string TenantId,
+    string WorkspaceId,
     string UserId,
     CanvasNodeDto? Node,
     string? NodeId,
@@ -128,14 +128,14 @@ public record RedisCanvasUpdate(
 );
 
 public record RedisChatMessage(
-    string TenantId,
+    string WorkspaceId,
     ChatMessageDto Message
 );
 
 public record RedisServiceEvent(
     string Event,
     string ServiceInstanceId,
-    string TenantId,
+    string WorkspaceId,
     long Timestamp
 );
 

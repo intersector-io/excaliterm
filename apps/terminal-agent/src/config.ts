@@ -4,7 +4,7 @@ export interface Config {
   signalrHubUrl: string;
   serviceApiKey: string;
   serviceId: string;
-  tenantId: string;
+  workspaceId: string;
   whitelistedPaths: string[];
   shell: string;
   shellArgs: string[];
@@ -51,8 +51,8 @@ export function loadConfig(): Config {
     signalrHubUrl: process.env.SIGNALR_HUB_URL ?? "http://localhost:5000",
     serviceApiKey: apiKey,
     serviceId: process.env.SERVICE_ID ?? generateServiceId(),
-    tenantId:
-      process.env.TENANT_ID ?? "00000000-0000-0000-0000-000000000000",
+    workspaceId:
+      process.env.WORKSPACE_ID ?? "00000000-0000-0000-0000-000000000000",
     whitelistedPaths,
     shell: shellOverride && shellOverride.length > 0 ? shellOverride : detectedShell.shell,
     shellArgs: shellOverride && shellOverride.length > 0 ? [] : detectedShell.shellArgs,

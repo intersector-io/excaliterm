@@ -13,21 +13,21 @@ public class ChatHub : BaseHub
 
     public async Task SendMessage(string content)
     {
-        var tenantId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         var userId = GetUserId();
         var userName = GetUserName();
-        if (tenantId is null || userId is null) return;
+        if (workspaceId is null || userId is null) return;
 
         var message = new ChatMessageDto(
             Id: Guid.NewGuid().ToString(),
             UserId: userId,
             UserName: userName ?? "Unknown",
-            TenantId: tenantId,
+            WorkspaceId: workspaceId,
             Content: content,
             Timestamp: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         );
 
-        Logger.LogDebug("ChatMessage from {UserId} in tenant {TenantId}", userId, tenantId);
-        await Clients.Group(TenantGroup(tenantId)).SendAsync("ReceiveMessage", message);
+        Logger.LogDebug("ChatMessage from {UserId} in workspace {WorkspaceId}", userId, workspaceId);
+        await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync("ReceiveMessage", message);
     }
 }

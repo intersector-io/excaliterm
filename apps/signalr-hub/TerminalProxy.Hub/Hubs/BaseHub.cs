@@ -16,11 +16,11 @@ public abstract class BaseHub : Microsoft.AspNetCore.SignalR.Hub
 
     protected string? GetUserId() => Context.Items["UserId"] as string;
 
-    protected string? GetTenantId() => Context.Items["TenantId"] as string;
+    protected string? GetWorkspaceId() => Context.Items["WorkspaceId"] as string;
 
     protected string? GetUserName() => Context.Items["UserName"] as string;
 
-    protected string TenantGroup(string tenantId) => $"tenant:{tenantId}";
+    protected string WorkspaceGroup(string workspaceId) => $"workspace:{workspaceId}";
 
     protected bool IsServiceConnection() => Context.Items.ContainsKey("IsService");
 
@@ -63,10 +63,10 @@ public abstract class BaseHub : Microsoft.AspNetCore.SignalR.Hub
         }
 
         Context.Items["UserId"] = clientId;
-        Context.Items["TenantId"] = workspaceId;
+        Context.Items["WorkspaceId"] = workspaceId;
         Context.Items["UserName"] = displayName;
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, TenantGroup(workspaceId!));
+        await Groups.AddToGroupAsync(Context.ConnectionId, WorkspaceGroup(workspaceId!));
         Logger.LogInformation(
             "Anonymous client connected: {ConnectionId} user={UserId} workspace={WorkspaceId}",
             Context.ConnectionId, clientId, workspaceId
@@ -77,10 +77,10 @@ public abstract class BaseHub : Microsoft.AspNetCore.SignalR.Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var tenantId = GetTenantId();
-        if (tenantId is not null)
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is not null)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, TenantGroup(tenantId));
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, WorkspaceGroup(workspaceId));
         }
 
         Logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);

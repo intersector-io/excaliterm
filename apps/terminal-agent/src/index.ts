@@ -19,7 +19,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
 
   console.log(`[terminal-agent] Service ID: ${config.serviceId}`);
-  console.log(`[terminal-agent] Tenant ID: ${config.tenantId}`);
+  console.log(`[terminal-agent] Workspace ID: ${config.workspaceId}`);
   console.log(`[terminal-agent] Hub URL: ${config.signalrHubUrl}`);
   console.log(
     `[terminal-agent] Shell: ${[config.shell, ...config.shellArgs].join(" ")}`

@@ -37,14 +37,14 @@ The root `.env` file is consumed by the backend and terminal agent. The SignalR 
 | `SIGNALR_HUB_URL` | Yes | Base URL for the SignalR hub |
 | `SERVICE_API_KEY` | Yes | Shared secret accepted by the SignalR hub |
 | `SERVICE_ID` | Recommended | Stable identifier for this agent instance |
-| `TENANT_ID` | Required for useful terminal work | Workspace ID the agent should join |
+| `WORKSPACE_ID` | Required for useful terminal work | Workspace ID the agent should join |
 | `WHITELISTED_PATHS` | Optional | Comma-separated filesystem roots allowed by the agent |
 | `SHELL_OVERRIDE` | Optional | Shell executable to launch instead of the default |
 
 Important:
 
-- `TENANT_ID` should be the same value as the workspace ID in the browser URL.
-- The backend uses `workspaceId` while the hub and agent use `tenantId`; they are the same logical ID.
+- `WORKSPACE_ID` should be the same value as the workspace ID in the browser URL.
+- `workspaceId` is used consistently across backend, hub, and agent.
 - On Windows, the default shell is `powershell.exe -NoLogo -NoProfile` so the web terminal does not inherit local prompt themes.
 
 ### SignalR hub settings
@@ -119,14 +119,14 @@ Copy that workspace ID from the URL.
 PowerShell:
 
 ```powershell
-$env:TENANT_ID = "<workspaceId>"
+$env:WORKSPACE_ID = "<workspaceId>"
 pnpm --filter @terminal-proxy/terminal-agent dev
 ```
 
 Bash:
 
 ```bash
-TENANT_ID=<workspaceId> pnpm --filter @terminal-proxy/terminal-agent dev
+WORKSPACE_ID=<workspaceId> pnpm --filter @terminal-proxy/terminal-agent dev
 ```
 
 At this point:
@@ -145,7 +145,7 @@ At this point:
 
 The .NET SignalR hub is not part of the pnpm workspace and must still be started separately.
 
-On a fresh setup, running each component individually is easier because the terminal agent needs a real `TENANT_ID` and the hub must have Redis enabled before terminal creation works.
+On a fresh setup, running each component individually is easier because the terminal agent needs a real `WORKSPACE_ID` and the hub must have Redis enabled before terminal creation works.
 
 ## Docker Compose
 
@@ -164,7 +164,7 @@ The terminal agent still runs separately on a host machine or VM. Configure it w
 
 - `SIGNALR_HUB_URL` pointing at the deployed hub
 - `SERVICE_API_KEY` matching the hub configuration
-- `TENANT_ID` matching the target workspace
+- `WORKSPACE_ID` matching the target workspace
 
 ## Verification Checklist
 

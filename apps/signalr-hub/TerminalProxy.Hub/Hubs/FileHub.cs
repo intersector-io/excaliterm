@@ -35,13 +35,13 @@ public class FileHub : BaseHub
         }
 
         var httpContext = Context.GetHttpContext();
-        var tenantId = httpContext?.Request.Query["tenantId"].ToString() ?? "default";
+        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
 
         Context.Items["IsService"] = true;
         Context.Items["ServiceId"] = serviceId;
-        Context.Items["TenantId"] = tenantId;
+        Context.Items["WorkspaceId"] = workspaceId;
 
-        _serviceRegistry.Register(Context.ConnectionId, serviceId, tenantId, "file");
+        _serviceRegistry.Register(Context.ConnectionId, serviceId, workspaceId, "file");
 
         Logger.LogInformation("File Hub: service {ServiceId} registered on {ConnectionId}", serviceId, Context.ConnectionId);
         await Clients.Caller.SendAsync("ServiceRegistered", serviceId);
@@ -49,8 +49,8 @@ public class FileHub : BaseHub
 
     public async Task ListDirectory(string serviceId, string path)
     {
-        var tenantId = GetTenantId();
-        if (tenantId is null) return;
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return;
 
         if (!ValidatePath(path))
         {
@@ -65,12 +65,12 @@ public class FileHub : BaseHub
             return;
         }
 
-        // Verify the service belongs to the same tenant
-        if (service.TenantId != tenantId)
+        // Verify the service belongs to the same workspace
+        if (service.WorkspaceId != workspaceId)
         {
             Logger.LogWarning(
-                "Tenant mismatch: user tenant {UserTenant} tried to access service in tenant {ServiceTenant}",
-                tenantId, service.TenantId
+                "Workspace mismatch: user workspace {UserWorkspace} tried to access service in workspace {ServiceWorkspace}",
+                workspaceId, service.WorkspaceId
             );
             await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Access denied"));
             return;
@@ -86,8 +86,8 @@ public class FileHub : BaseHub
 
     public async Task ReadFile(string serviceId, string path)
     {
-        var tenantId = GetTenantId();
-        if (tenantId is null) return;
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return;
 
         if (!ValidatePath(path))
         {
@@ -102,7 +102,7 @@ public class FileHub : BaseHub
             return;
         }
 
-        if (service.TenantId != tenantId)
+        if (service.WorkspaceId != workspaceId)
         {
             await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Access denied"));
             return;
@@ -116,8 +116,8 @@ public class FileHub : BaseHub
 
     public async Task WriteFile(string serviceId, string path, string content)
     {
-        var tenantId = GetTenantId();
-        if (tenantId is null) return;
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return;
 
         if (!ValidatePath(path))
         {
@@ -132,7 +132,7 @@ public class FileHub : BaseHub
             return;
         }
 
-        if (service.TenantId != tenantId)
+        if (service.WorkspaceId != workspaceId)
         {
             await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Access denied"));
             return;

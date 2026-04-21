@@ -54,11 +54,11 @@ If you run the hub outside Docker, provide equivalent settings through environme
 | `SIGNALR_HUB_URL` | `https://your-domain.example` |
 | `SERVICE_API_KEY` | shared-secret-used-by-hub |
 | `SERVICE_ID` | `host-a` |
-| `TENANT_ID` | workspace-id-from-url |
+| `WORKSPACE_ID` | workspace-id-from-url |
 | `WHITELISTED_PATHS` | `/app,/home,/var/log` |
 | `SHELL_OVERRIDE` | `/bin/bash` or `powershell.exe` |
 
-`TENANT_ID` must match the workspace the agent should serve.
+`WORKSPACE_ID` must match the workspace the agent should serve.
 
 ## Docker Compose
 

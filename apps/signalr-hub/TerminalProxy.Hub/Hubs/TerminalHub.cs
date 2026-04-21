@@ -55,7 +55,7 @@ public class TerminalHub : BaseHub
         if (IsServiceConnection())
             return;
 
-        var workspaceId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         var displayName = GetUserName();
         if (workspaceId is null || clientId is null || displayName is null)
@@ -73,7 +73,7 @@ public class TerminalHub : BaseHub
 
         if (wasNewCollaborator)
         {
-            await Clients.OthersInGroup(TenantGroup(workspaceId)).SendAsync(
+            await Clients.OthersInGroup(WorkspaceGroup(workspaceId)).SendAsync(
                 "CollaboratorJoined",
                 new CollaboratorJoinedMessage(collaborator)
             );
@@ -87,28 +87,28 @@ public class TerminalHub : BaseHub
         if (disconnectInfo is not null)
         {
             Logger.LogInformation(
-                "Service disconnected: {ServiceInstanceId} tenant={TenantId}",
-                disconnectInfo.Service.ServiceInstanceId, disconnectInfo.Service.TenantId
+                "Service disconnected: {ServiceInstanceId} workspace={WorkspaceId}",
+                disconnectInfo.Service.ServiceInstanceId, disconnectInfo.Service.WorkspaceId
             );
 
             foreach (var terminalId in disconnectInfo.TerminalIds)
             {
-                await Clients.Group(TenantGroup(disconnectInfo.Service.TenantId)).SendAsync(
+                await Clients.Group(WorkspaceGroup(disconnectInfo.Service.WorkspaceId)).SendAsync(
                     "TerminalDisconnected",
                     new TerminalDisconnectedMessage(terminalId)
                 );
 
                 if (_collaborationRegistry.ReleaseLockForTerminal(terminalId) is not null)
                 {
-                    await Clients.Group(TenantGroup(disconnectInfo.Service.TenantId)).SendAsync(
+                    await Clients.Group(WorkspaceGroup(disconnectInfo.Service.WorkspaceId)).SendAsync(
                         "TerminalLockChanged",
                         new TerminalLockChangedMessage(terminalId, null)
                     );
                 }
             }
 
-            // Notify the tenant group that the service went offline
-            await Clients.Group(TenantGroup(disconnectInfo.Service.TenantId)).SendAsync(
+            // Notify the workspace group that the service went offline
+            await Clients.Group(WorkspaceGroup(disconnectInfo.Service.WorkspaceId)).SendAsync(
                 "ServiceOffline", disconnectInfo.Service.ServiceInstanceId
             );
 
@@ -116,7 +116,7 @@ public class TerminalHub : BaseHub
             await _redisSubscriber.PublishServiceEvent(
                 "offline",
                 disconnectInfo.Service.ServiceInstanceId,
-                disconnectInfo.Service.TenantId
+                disconnectInfo.Service.WorkspaceId
             );
         }
 
@@ -127,13 +127,13 @@ public class TerminalHub : BaseHub
             {
                 foreach (var releasedLock in collaboratorDisconnect.ReleasedLocks)
                 {
-                    await Clients.Group(TenantGroup(collaboratorDisconnect.WorkspaceId)).SendAsync(
+                    await Clients.Group(WorkspaceGroup(collaboratorDisconnect.WorkspaceId)).SendAsync(
                         "TerminalLockChanged",
                         new TerminalLockChangedMessage(releasedLock.TerminalId, null)
                     );
                 }
 
-                await Clients.Group(TenantGroup(collaboratorDisconnect.WorkspaceId)).SendAsync(
+                await Clients.Group(WorkspaceGroup(collaboratorDisconnect.WorkspaceId)).SendAsync(
                     "CollaboratorLeft",
                     new CollaboratorLeftMessage(collaboratorDisconnect.ClientId)
                 );
@@ -161,39 +161,39 @@ public class TerminalHub : BaseHub
             return;
         }
 
-        // Extract tenantId from the SignalR query string
+        // Extract workspaceId from the SignalR query string
         var httpContext = Context.GetHttpContext();
-        var tenantId = httpContext?.Request.Query["tenantId"].ToString() ?? "default";
+        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
 
         Context.Items["IsService"] = true;
         Context.Items["ServiceId"] = serviceId;
-        Context.Items["TenantId"] = tenantId;
+        Context.Items["WorkspaceId"] = workspaceId;
 
-        _serviceRegistry.Register(Context.ConnectionId, serviceId, tenantId, "terminal");
+        _serviceRegistry.Register(Context.ConnectionId, serviceId, workspaceId, "terminal");
 
-        // Add the service to the tenant group so it receives tenant broadcasts
-        await Groups.AddToGroupAsync(Context.ConnectionId, TenantGroup(tenantId));
+        // Add the service to the workspace group so it receives workspace broadcasts
+        await Groups.AddToGroupAsync(Context.ConnectionId, WorkspaceGroup(workspaceId));
 
         Logger.LogInformation(
-            "Service registered: {ServiceId} on connection {ConnectionId} for tenant {TenantId}",
-            serviceId, Context.ConnectionId, tenantId
+            "Service registered: {ServiceId} on connection {ConnectionId} for workspace {WorkspaceId}",
+            serviceId, Context.ConnectionId, workspaceId
         );
 
         // Acknowledge registration
         await Clients.Caller.SendAsync("ServiceRegistered", serviceId);
 
-        // Notify the tenant group that the service is online
-        await Clients.Group(TenantGroup(tenantId)).SendAsync("ServiceOnline", serviceId);
+        // Notify the workspace group that the service is online
+        await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync("ServiceOnline", serviceId);
 
         // Publish to Redis so backend can update DB status
-        await _redisSubscriber.PublishServiceEvent("online", serviceId, tenantId);
+        await _redisSubscriber.PublishServiceEvent("online", serviceId, workspaceId);
     }
 
     // ─── Browser client methods ─────────────────────────────────────────────────
 
     public async Task RequestCollaborationState()
     {
-        var workspaceId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         if (workspaceId is null) return;
 
         await Clients.Caller.SendAsync(
@@ -204,7 +204,7 @@ public class TerminalHub : BaseHub
 
     public async Task AcquireTerminalLock(string terminalId)
     {
-        var workspaceId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         var displayName = GetUserName();
         if (workspaceId is null || clientId is null || displayName is null) return;
@@ -229,7 +229,7 @@ public class TerminalHub : BaseHub
             return;
         }
 
-        await Clients.Group(TenantGroup(workspaceId)).SendAsync(
+        await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync(
             "TerminalLockChanged",
             new TerminalLockChangedMessage(terminalId, lockInfo)
         );
@@ -237,7 +237,7 @@ public class TerminalHub : BaseHub
 
     public async Task ReleaseTerminalLock(string terminalId)
     {
-        var workspaceId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         if (workspaceId is null || clientId is null) return;
 
@@ -255,7 +255,7 @@ public class TerminalHub : BaseHub
         }
 
         _collaborationRegistry.ReleaseLock(terminalId, clientId, force: true);
-        await Clients.Group(TenantGroup(workspaceId)).SendAsync(
+        await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync(
             "TerminalLockChanged",
             new TerminalLockChangedMessage(terminalId, null)
         );
@@ -265,10 +265,10 @@ public class TerminalHub : BaseHub
 
     public async Task TerminalInput(string terminalId, string data)
     {
-        var tenantId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         var displayName = GetUserName();
-        if (tenantId is null || clientId is null || displayName is null) return;
+        if (workspaceId is null || clientId is null || displayName is null) return;
 
         var existingLock = _collaborationRegistry.GetLock(terminalId);
         if (existingLock is not null && existingLock.ClientId != clientId)
@@ -297,7 +297,7 @@ public class TerminalHub : BaseHub
 
         if (_collaborationRegistry.ShouldBroadcastTyping(terminalId, clientId))
         {
-            await Clients.OthersInGroup(TenantGroup(tenantId)).SendAsync(
+            await Clients.OthersInGroup(WorkspaceGroup(workspaceId)).SendAsync(
                 "TerminalTyping",
                 new TerminalTypingMessage(
                     terminalId,
@@ -314,9 +314,9 @@ public class TerminalHub : BaseHub
 
     public async Task TerminalResize(string terminalId, int cols, int rows)
     {
-        var tenantId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
-        if (tenantId is null || clientId is null) return;
+        if (workspaceId is null || clientId is null) return;
 
         var existingLock = _collaborationRegistry.GetLock(terminalId);
         if (existingLock is not null && existingLock.ClientId != clientId)
@@ -352,11 +352,11 @@ public class TerminalHub : BaseHub
     {
         if (!IsServiceConnection()) return;
 
-        var tenantId = GetTenantId();
-        if (tenantId is null) return;
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return;
 
-        // Broadcast output to all clients in the tenant group
-        await Clients.Group(TenantGroup(tenantId)).SendAsync(
+        // Broadcast output to all clients in the workspace group
+        await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync(
             "TerminalOutput",
             new TerminalOutputMessage(terminalId, data)
         );
@@ -412,17 +412,17 @@ public class TerminalHub : BaseHub
     {
         if (!IsServiceConnection()) return;
 
-        var tenantId = GetTenantId();
+        var workspaceId = GetWorkspaceId();
         var serviceId = Context.Items["ServiceId"] as string;
-        if (tenantId is null || serviceId is null) return;
+        if (workspaceId is null || serviceId is null) return;
 
         // Register the terminal in the service registry
         _serviceRegistry.RegisterTerminal(serviceId, terminalId);
 
         Logger.LogInformation("Terminal created: {TerminalId} on service {ServiceId}", terminalId, serviceId);
 
-        // Broadcast to all browser clients in the tenant group
-        await Clients.OthersInGroup(TenantGroup(tenantId)).SendAsync(
+        // Broadcast to all browser clients in the workspace group
+        await Clients.OthersInGroup(WorkspaceGroup(workspaceId)).SendAsync(
             "TerminalCreated",
             new TerminalCreatedMessage(terminalId)
         );
@@ -432,22 +432,22 @@ public class TerminalHub : BaseHub
     {
         if (!IsServiceConnection()) return;
 
-        var tenantId = GetTenantId();
-        if (tenantId is null) return;
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return;
 
         // Unregister the terminal
         _serviceRegistry.UnregisterTerminal(terminalId);
 
         Logger.LogInformation("Terminal exited: {TerminalId} with code {ExitCode}", terminalId, exitCode);
 
-        await Clients.OthersInGroup(TenantGroup(tenantId)).SendAsync(
+        await Clients.OthersInGroup(WorkspaceGroup(workspaceId)).SendAsync(
             "TerminalExited",
             new TerminalExitedMessage(terminalId, exitCode)
         );
 
         if (_collaborationRegistry.ReleaseLockForTerminal(terminalId) is not null)
         {
-            await Clients.Group(TenantGroup(tenantId)).SendAsync(
+            await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync(
                 "TerminalLockChanged",
                 new TerminalLockChangedMessage(terminalId, null)
             );
@@ -472,12 +472,12 @@ public class TerminalHub : BaseHub
     {
         if (!IsServiceConnection()) return;
 
-        var tenantId = GetTenantId();
-        if (tenantId is null) return;
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return;
 
         Logger.LogWarning("Terminal error: {TerminalId} - {Error}", terminalId, error);
 
-        await Clients.OthersInGroup(TenantGroup(tenantId)).SendAsync(
+        await Clients.OthersInGroup(WorkspaceGroup(workspaceId)).SendAsync(
             "TerminalError",
             new TerminalErrorMessage(terminalId, error)
         );

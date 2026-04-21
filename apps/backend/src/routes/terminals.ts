@@ -78,7 +78,6 @@ terminals.post("/", async (c) => {
     terminalId,
     serviceInstanceId: targetService.serviceId,
     workspaceId,
-    tenantId: workspaceId,
     cols,
     rows,
   }).catch(
@@ -181,7 +180,6 @@ terminals.delete("/:id", async (c) => {
       terminalId,
       serviceInstanceId: targetServiceId,
       workspaceId,
-      tenantId: workspaceId,
     }).catch(
       (err) => console.error("[redis] Failed to publish terminal:destroy:", err.message),
     );

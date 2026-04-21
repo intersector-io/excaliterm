@@ -17,7 +17,7 @@ The terminal agent is a Node.js process that:
 - Node.js 20+
 - access to the SignalR hub URL
 - a valid shared `SERVICE_API_KEY`
-- a `TENANT_ID` matching the target workspace
+- a `WORKSPACE_ID` matching the target workspace
 
 Platform notes:
 
@@ -33,7 +33,7 @@ The agent loads environment variables from the current process and then falls ba
 | `SIGNALR_HUB_URL` | Yes | Base URL of the hub, default `http://localhost:5000` |
 | `SERVICE_API_KEY` | Yes | Shared secret accepted by the hub |
 | `SERVICE_ID` | Recommended | Stable identifier for this service instance |
-| `TENANT_ID` | Yes | Workspace to join |
+| `WORKSPACE_ID` | Yes | Workspace to join |
 | `WHITELISTED_PATHS` | Optional | Comma-separated allowed roots for file access |
 | `SHELL_OVERRIDE` | Optional | Explicit shell executable |
 
@@ -43,15 +43,15 @@ Example:
 SIGNALR_HUB_URL=http://localhost:5000
 SERVICE_API_KEY=change-me
 SERVICE_ID=my-agent-01
-TENANT_ID=Ab12Cd34Ef56
+WORKSPACE_ID=Ab12Cd34Ef56
 WHITELISTED_PATHS=/app,/home,/var/log
 SHELL_OVERRIDE=
 ```
 
 Important:
 
-- `TENANT_ID` should match the workspace ID in the frontend URL.
-- The hub and agent use `tenantId`; the backend and frontend mostly call the same value `workspaceId`.
+- `WORKSPACE_ID` should match the workspace ID in the frontend URL.
+- The hub and agent use `workspaceId`; the backend and frontend mostly call the same value `workspaceId`.
 
 ## Running in Development
 
@@ -62,14 +62,14 @@ pnpm --filter @terminal-proxy/terminal-agent dev
 PowerShell example with an explicit workspace:
 
 ```powershell
-$env:TENANT_ID = "<workspaceId>"
+$env:WORKSPACE_ID = "<workspaceId>"
 pnpm --filter @terminal-proxy/terminal-agent dev
 ```
 
 On startup, the agent logs:
 
 - service ID
-- tenant ID
+- workspace ID
 - hub URL
 - chosen shell
 - effective whitelist
@@ -102,7 +102,7 @@ Use an external process manager for long-running deployments, for example:
 The agent connects to:
 
 ```text
-<SIGNALR_HUB_URL>/hubs/terminal?apiKey=<SERVICE_API_KEY>&tenantId=<TENANT_ID>
+<SIGNALR_HUB_URL>/hubs/terminal?apiKey=<SERVICE_API_KEY>&workspaceId=<WORKSPACE_ID>
 ```
 
 Then it calls:
@@ -130,7 +130,7 @@ And publishes:
 The agent also connects to:
 
 ```text
-<SIGNALR_HUB_URL>/hubs/file?apiKey=<SERVICE_API_KEY>&tenantId=<TENANT_ID>
+<SIGNALR_HUB_URL>/hubs/file?apiKey=<SERVICE_API_KEY>&workspaceId=<WORKSPACE_ID>
 ```
 
 It listens for:
@@ -172,7 +172,7 @@ Check:
 - the backend can reach Redis
 - the hub has Redis enabled
 - the workspace has an online service
-- `TENANT_ID` matches the workspace in the browser
+- `WORKSPACE_ID` matches the workspace in the browser
 
 ### Agent connects but file operations fail
 
