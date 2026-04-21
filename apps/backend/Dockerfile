@@ -1,8 +1,7 @@
-# Stage 1: Build
-FROM node:22-alpine AS builder
+# Stage 1: Build (Debian-based for glibc-compatible native addons)
+FROM node:22-slim AS builder
 
-# Install build tools for native addons (better-sqlite3)
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -23,8 +22,8 @@ RUN pnpm install --frozen-lockfile || pnpm install
 RUN pnpm --filter @excaliterm/shared-types build
 RUN pnpm --filter @excaliterm/backend build
 
-# Stage 2: Production
-FROM node:22-alpine
+# Stage 2: Production (must match builder's libc for native addons)
+FROM node:22-slim
 
 WORKDIR /app
 
