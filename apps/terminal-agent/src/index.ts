@@ -21,13 +21,15 @@ async function main(): Promise<void> {
   console.log(`[terminal-agent] Service ID: ${config.serviceId}`);
   console.log(`[terminal-agent] Tenant ID: ${config.tenantId}`);
   console.log(`[terminal-agent] Hub URL: ${config.signalrHubUrl}`);
-  console.log(`[terminal-agent] Shell: ${config.shell}`);
+  console.log(
+    `[terminal-agent] Shell: ${[config.shell, ...config.shellArgs].join(" ")}`
+  );
   console.log(
     `[terminal-agent] Whitelisted paths: ${config.whitelistedPaths.length > 0 ? config.whitelistedPaths.join(", ") : "(none - all paths allowed)"}`
   );
 
   // Create terminal manager
-  const manager = new TerminalManager(config.shell);
+  const manager = new TerminalManager(config.shell, config.shellArgs);
 
   // Create filesystem handler with path validator
   const pathValidator = new PathValidator(config.whitelistedPaths);

@@ -11,6 +11,9 @@ RUN dotnet publish TerminalProxy.Hub/TerminalProxy.Hub.csproj -c Release -o /app
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/publish .
 

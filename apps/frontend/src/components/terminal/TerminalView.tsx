@@ -30,31 +30,32 @@ export function TerminalView({ terminalId, status }: TerminalViewProps) {
     const terminal = new Terminal({
       cursorBlink: true,
       cursorStyle: "block",
-      fontSize: 13,
+      fontSize: 14,
+      fontWeight: 500,
       fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace",
-      lineHeight: 1.2,
+      lineHeight: 1.28,
       theme: {
-        background: "#12122a",
-        foreground: "#e4e4e7",
-        cursor: "#e4e4e7",
-        selectionBackground: "#3f3f46",
-        selectionForeground: "#e4e4e7",
-        black: "#18181b",
-        red: "#ef4444",
-        green: "#22c55e",
-        yellow: "#eab308",
-        blue: "#3b82f6",
-        magenta: "#a855f7",
-        cyan: "#06b6d4",
-        white: "#e4e4e7",
-        brightBlack: "#52525b",
-        brightRed: "#f87171",
-        brightGreen: "#4ade80",
-        brightYellow: "#facc15",
-        brightBlue: "#60a5fa",
-        brightMagenta: "#c084fc",
-        brightCyan: "#22d3ee",
-        brightWhite: "#fafafa",
+        background: "#0c1020",
+        foreground: "#e8ebf2",
+        cursor: "#f8fafc",
+        selectionBackground: "#39405a",
+        selectionForeground: "#f8fafc",
+        black: "#15192b",
+        red: "#f87171",
+        green: "#4ade80",
+        yellow: "#facc15",
+        blue: "#60a5fa",
+        magenta: "#f9a8d4",
+        cyan: "#67e8f9",
+        white: "#e8ebf2",
+        brightBlack: "#646b83",
+        brightRed: "#fca5a5",
+        brightGreen: "#86efac",
+        brightYellow: "#fde047",
+        brightBlue: "#93c5fd",
+        brightMagenta: "#fbcfe8",
+        brightCyan: "#a5f3fc",
+        brightWhite: "#ffffff",
       },
       allowProposedApi: true,
       scrollback: 5000,
@@ -72,6 +73,19 @@ export function TerminalView({ terminalId, status }: TerminalViewProps) {
         // Container might not be visible yet
       }
     });
+
+    if (document.fonts?.ready) {
+      void document.fonts.ready.then(() => {
+        requestAnimationFrame(() => {
+          try {
+            fitAddon.fit();
+            terminal.refresh(0, terminal.rows - 1);
+          } catch {
+            // Ignore font-load fit errors
+          }
+        });
+      });
+    }
 
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
@@ -199,8 +213,8 @@ export function TerminalView({ terminalId, status }: TerminalViewProps) {
   return (
     <div
       ref={containerRef}
-      className="h-full w-full"
-      style={{ padding: "4px" }}
+      className="h-full w-full rounded-[18px] border border-white/[0.04] bg-[#0c1020] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      style={{ padding: "14px 14px 12px" }}
     />
   );
 }

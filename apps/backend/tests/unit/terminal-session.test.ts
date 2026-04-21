@@ -1,25 +1,20 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { eq } from "drizzle-orm";
 import * as schema from "../../src/db/schema.js";
 
-// ─── Mocks ────────────────────────────────────────────────────────────────
-
-// Mock uuid to return predictable IDs
 let uuidCounter = 0;
 vi.mock("uuid", () => ({
   v4: () => `test-uuid-${++uuidCounter}`,
 }));
 
-// Mock Redis publish
 const mockPublish = vi.fn().mockResolvedValue(undefined);
 vi.mock("../../src/lib/redis.js", () => ({
   publish: (...args: unknown[]) => mockPublish(...args),
 }));
 
-// Mock the db module — we'll override getDb per test
 const mockGetDb = vi.fn();
 vi.mock("../../src/db/index.js", () => ({
   getDb: () => mockGetDb(),
@@ -28,122 +23,106 @@ vi.mock("../../src/db/index.js", () => ({
 
 import { terminals } from "../../src/routes/terminals.js";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
-
 function createTestDb() {
   const sqlite = new Database(":memory:");
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
   sqlite.exec(`
-    CREATE TABLE "user" (
+    CREATE TABLE "workspace" (
       "id" text PRIMARY KEY NOT NULL,
-      "name" text NOT NULL,
-      "email" text NOT NULL UNIQUE,
-      "emailVerified" integer NOT NULL DEFAULT 0,
-      "image" text,
+      "name" text NOT NULL DEFAULT 'Untitled workspace',
       "createdAt" integer NOT NULL,
-      "updatedAt" integer NOT NULL
-    );
-    CREATE TABLE "tenant" (
-      "id" text PRIMARY KEY NOT NULL,
-      "name" text NOT NULL,
-      "slug" text NOT NULL UNIQUE,
-      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
-      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+      "lastAccessedAt" integer NOT NULL
     );
     CREATE TABLE "service_instance" (
       "id" text PRIMARY KEY NOT NULL,
-      "tenantId" text NOT NULL REFERENCES "tenant"("id") ON DELETE CASCADE,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
       "serviceId" text NOT NULL UNIQUE,
       "name" text NOT NULL,
       "apiKey" text NOT NULL,
       "whitelistedPaths" text,
       "lastSeen" integer,
       "status" text DEFAULT 'offline',
-      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
-      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+      "createdAt" integer NOT NULL,
+      "updatedAt" integer NOT NULL
+    );
+    CREATE TABLE "note" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "content" text DEFAULT '',
+      "createdAt" integer NOT NULL,
+      "updatedAt" integer NOT NULL
     );
     CREATE TABLE "terminal_session" (
       "id" text PRIMARY KEY NOT NULL,
-      "tenantId" text NOT NULL REFERENCES "tenant"("id") ON DELETE CASCADE,
-      "userId" text NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
       "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
       "status" text NOT NULL DEFAULT 'active',
       "exitCode" integer,
-      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
-      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+      "createdAt" integer NOT NULL,
+      "updatedAt" integer NOT NULL
     );
     CREATE TABLE "canvas_node" (
       "id" text PRIMARY KEY NOT NULL,
-      "tenantId" text NOT NULL REFERENCES "tenant"("id") ON DELETE CASCADE,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
       "terminalSessionId" text REFERENCES "terminal_session"("id") ON DELETE SET NULL,
-      "userId" text NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
       "nodeType" text NOT NULL DEFAULT 'terminal',
-      "noteId" text,
+      "noteId" text REFERENCES "note"("id") ON DELETE SET NULL,
       "x" real NOT NULL DEFAULT 100,
       "y" real NOT NULL DEFAULT 100,
       "width" real NOT NULL DEFAULT 600,
       "height" real NOT NULL DEFAULT 400,
       "zIndex" integer NOT NULL DEFAULT 0,
-      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
-      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+      "createdAt" integer NOT NULL,
+      "updatedAt" integer NOT NULL
     );
   `);
+
   return drizzle(sqlite, { schema });
 }
 
-const TEST_TENANT_ID = "tenant-1";
-
-function createApp(userId: string) {
+function createApp(workspaceId = "ws-1") {
   const app = new Hono();
-  // Simulate auth middleware by setting userId and tenantId
   app.use("*", async (c, next) => {
-    c.set("userId", userId);
-    c.set("tenantId", TEST_TENANT_ID);
+    c.set("workspaceId", workspaceId);
     await next();
   });
   app.route("/api/terminals", terminals);
   return app;
 }
 
-function seedTenant(db: ReturnType<typeof createTestDb>) {
+function seedWorkspace(
+  db: ReturnType<typeof createTestDb>,
+  workspaceId = "ws-1",
+) {
   const now = new Date();
-  db.insert(schema.tenant).values({
-    id: TEST_TENANT_ID,
-    name: "Test Tenant",
-    slug: "test-tenant",
+  db.insert(schema.workspace).values({
+    id: workspaceId,
+    name: `Workspace ${workspaceId}`,
     createdAt: now,
-    updatedAt: now,
+    lastAccessedAt: now,
   }).run();
 }
 
-function seedUser(db: ReturnType<typeof createTestDb>, userId: string) {
-  const now = new Date();
-  db.insert(schema.user).values({
-    id: userId,
-    name: "Test User",
-    email: `${userId}@test.com`,
-    emailVerified: false,
-    createdAt: now,
-    updatedAt: now,
-  }).run();
-}
-
-function seedOnlineService(db: ReturnType<typeof createTestDb>) {
+function seedOnlineService(
+  db: ReturnType<typeof createTestDb>,
+  workspaceId = "ws-1",
+  serviceRowId = "svc-row-1",
+  serviceId = "svc-public-1",
+) {
   const now = new Date();
   db.insert(schema.serviceInstance).values({
-    id: "svc-1",
-    tenantId: TEST_TENANT_ID,
-    serviceId: "svc-id-1",
-    name: "Test Service",
+    id: serviceRowId,
+    workspaceId,
+    serviceId,
+    name: `Service ${serviceId}`,
     apiKey: "test-key",
     status: "online",
+    lastSeen: now,
     createdAt: now,
     updatedAt: now,
   }).run();
 }
-
-// ─── Tests ────────────────────────────────────────────────────────────────
 
 describe("Terminal Sessions", () => {
   let db: ReturnType<typeof createTestDb>;
@@ -151,21 +130,17 @@ describe("Terminal Sessions", () => {
   beforeEach(() => {
     uuidCounter = 0;
     db = createTestDb();
+    mockGetDb.mockReset();
     mockGetDb.mockReturnValue(db);
-    mockPublish.mockClear();
-    seedTenant(db);
+    mockPublish.mockReset();
+    mockPublish.mockResolvedValue(undefined);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  describe("POST /api/terminals - Create a terminal session", () => {
-    it("should create a terminal session and canvas node in the DB", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
-      seedOnlineService(db);
-      const app = createApp(userId);
+  describe("POST /api/terminals", () => {
+    it("creates a terminal session and canvas node in the DB", async () => {
+      seedWorkspace(db);
+      seedOnlineService(db, "ws-1", "svc-row-1", "svc-public-1");
+      const app = createApp();
 
       const res = await app.request("/api/terminals", {
         method: "POST",
@@ -176,42 +151,39 @@ describe("Terminal Sessions", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
 
-      // Verify terminal was created
       expect(body.terminal).toBeDefined();
       expect(body.terminal.id).toBe("test-uuid-1");
-      expect(body.terminal.userId).toBe(userId);
       expect(body.terminal.status).toBe("active");
 
-      // Verify canvas node was created
       expect(body.canvasNode).toBeDefined();
       expect(body.canvasNode.id).toBe("test-uuid-2");
       expect(body.canvasNode.terminalSessionId).toBe("test-uuid-1");
       expect(body.canvasNode.x).toBe(200);
       expect(body.canvasNode.y).toBe(300);
-      expect(body.canvasNode.width).toBe(600);
-      expect(body.canvasNode.height).toBe(400);
+      expect(body.canvasNode.width).toBe(760);
+      expect(body.canvasNode.height).toBe(480);
 
-      // Verify DB records exist
       const [dbTerminal] = await db
         .select()
         .from(schema.terminalSession)
         .where(eq(schema.terminalSession.id, "test-uuid-1"));
       expect(dbTerminal).toBeDefined();
-      expect(dbTerminal.userId).toBe(userId);
+      expect(dbTerminal.workspaceId).toBe("ws-1");
+      expect(dbTerminal.serviceInstanceId).toBe("svc-row-1");
 
       const [dbNode] = await db
         .select()
         .from(schema.canvasNode)
         .where(eq(schema.canvasNode.id, "test-uuid-2"));
       expect(dbNode).toBeDefined();
+      expect(dbNode.workspaceId).toBe("ws-1");
       expect(dbNode.terminalSessionId).toBe("test-uuid-1");
     });
 
-    it("should publish a create command via Redis", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
-      seedOnlineService(db);
-      const app = createApp(userId);
+    it("publishes a create command via Redis", async () => {
+      seedWorkspace(db);
+      seedOnlineService(db, "ws-1", "svc-row-1", "svc-public-1");
+      const app = createApp();
 
       await app.request("/api/terminals", {
         method: "POST",
@@ -220,21 +192,23 @@ describe("Terminal Sessions", () => {
       });
 
       expect(mockPublish).toHaveBeenCalledWith(
-        "terminal:create",
+        "terminal:commands",
         expect.objectContaining({
+          command: "terminal:create",
           terminalId: "test-uuid-1",
-          tenantId: TEST_TENANT_ID,
+          serviceInstanceId: "svc-public-1",
+          workspaceId: "ws-1",
+          tenantId: "ws-1",
           cols: 80,
           rows: 24,
         }),
       );
     });
 
-    it("should use default cols/rows/x/y when not provided", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
+    it("uses the focused terminal defaults when not provided", async () => {
+      seedWorkspace(db);
       seedOnlineService(db);
-      const app = createApp(userId);
+      const app = createApp();
 
       const res = await app.request("/api/terminals", {
         method: "POST",
@@ -244,20 +218,18 @@ describe("Terminal Sessions", () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.canvasNode.x).toBe(100);
-      expect(body.canvasNode.y).toBe(100);
+      expect(body.canvasNode.x).toBe(72);
+      expect(body.canvasNode.y).toBe(76);
 
       expect(mockPublish).toHaveBeenCalledWith(
-        "terminal:create",
-        expect.objectContaining({ cols: 80, rows: 24 }),
+        "terminal:commands",
+        expect.objectContaining({ cols: 96, rows: 28 }),
       );
     });
 
-    it("should return 503 when no online service is available", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
-      // No online service seeded
-      const app = createApp(userId);
+    it("returns 503 when no online service is available", async () => {
+      seedWorkspace(db);
+      const app = createApp();
 
       const res = await app.request("/api/terminals", {
         method: "POST",
@@ -269,33 +241,50 @@ describe("Terminal Sessions", () => {
     });
   });
 
-  describe("GET /api/terminals - List terminals", () => {
-    it("should return tenant terminals", async () => {
-      const userId1 = "user-1";
-      const userId2 = "user-2";
-      seedUser(db, userId1);
-      seedUser(db, userId2);
-      const now = new Date();
+  describe("GET /api/terminals", () => {
+    it("returns only the current workspace terminals", async () => {
+      seedWorkspace(db, "ws-1");
+      seedWorkspace(db, "ws-2");
 
-      // Insert terminals for both users in the same tenant
+      const now = new Date();
       await db.insert(schema.terminalSession).values([
-        { id: "t1", tenantId: TEST_TENANT_ID, userId: userId1, status: "active", createdAt: now, updatedAt: now },
-        { id: "t2", tenantId: TEST_TENANT_ID, userId: userId1, status: "exited", createdAt: now, updatedAt: now },
-        { id: "t3", tenantId: TEST_TENANT_ID, userId: userId2, status: "active", createdAt: now, updatedAt: now },
+        {
+          id: "t1",
+          workspaceId: "ws-1",
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "t2",
+          workspaceId: "ws-1",
+          status: "exited",
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: "t3",
+          workspaceId: "ws-2",
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+        },
       ]);
 
-      const app = createApp(userId1);
+      const app = createApp("ws-1");
       const res = await app.request("/api/terminals", { method: "GET" });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.terminals.length).toBeGreaterThanOrEqual(1);
+      expect(body.terminals).toHaveLength(2);
+      expect(body.terminals.map((t: { id: string }) => t.id)).toEqual(
+        expect.arrayContaining(["t1", "t2"]),
+      );
     });
 
-    it("should return an empty list when tenant has no terminals", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
-      const app = createApp(userId);
+    it("returns an empty list when the workspace has no terminals", async () => {
+      seedWorkspace(db);
+      const app = createApp();
 
       const res = await app.request("/api/terminals", { method: "GET" });
 
@@ -305,90 +294,89 @@ describe("Terminal Sessions", () => {
     });
   });
 
-  describe("DELETE /api/terminals/:id - Delete a terminal", () => {
-    it("should mark the terminal as exited and publish destroy via Redis", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
-      seedOnlineService(db);
+  describe("DELETE /api/terminals/:id", () => {
+    it("marks the terminal as exited and publishes destroy via Redis", async () => {
+      seedWorkspace(db);
+      seedOnlineService(db, "ws-1", "svc-row-1", "svc-public-1");
       const now = new Date();
 
       await db.insert(schema.terminalSession).values({
         id: "t1",
-        tenantId: TEST_TENANT_ID,
-        userId,
+        workspaceId: "ws-1",
+        serviceInstanceId: "svc-row-1",
         status: "active",
         createdAt: now,
         updatedAt: now,
       });
 
-      const app = createApp(userId);
+      const app = createApp();
       const res = await app.request("/api/terminals/t1", { method: "DELETE" });
 
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
 
-      // Verify DB status updated
       const [updated] = await db
         .select()
         .from(schema.terminalSession)
         .where(eq(schema.terminalSession.id, "t1"));
       expect(updated.status).toBe("exited");
 
-      // Verify destroy was published via Redis
       expect(mockPublish).toHaveBeenCalledWith(
-        "terminal:destroy",
-        expect.objectContaining({ terminalId: "t1" }),
+        "terminal:commands",
+        expect.objectContaining({
+          command: "terminal:destroy",
+          terminalId: "t1",
+          serviceInstanceId: "svc-public-1",
+          workspaceId: "ws-1",
+          tenantId: "ws-1",
+        }),
       );
     });
 
-    it("should return 404 when terminal does not exist", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
-      const app = createApp(userId);
+    it("returns 404 when terminal does not exist", async () => {
+      seedWorkspace(db);
+      const app = createApp();
 
-      const res = await app.request("/api/terminals/nonexistent", { method: "DELETE" });
+      const res = await app.request("/api/terminals/nonexistent", {
+        method: "DELETE",
+      });
 
       expect(res.status).toBe(404);
     });
 
-    it("should return 404 when trying to delete another user's terminal", async () => {
-      const userId1 = "user-1";
-      const userId2 = "user-2";
-      seedUser(db, userId1);
-      seedUser(db, userId2);
+    it("returns 404 when deleting another workspace's terminal", async () => {
+      seedWorkspace(db, "ws-1");
+      seedWorkspace(db, "ws-2");
       const now = new Date();
 
       await db.insert(schema.terminalSession).values({
         id: "t1",
-        tenantId: TEST_TENANT_ID,
-        userId: userId2,
+        workspaceId: "ws-2",
         status: "active",
         createdAt: now,
         updatedAt: now,
       });
 
-      const app = createApp(userId1);
+      const app = createApp("ws-1");
       const res = await app.request("/api/terminals/t1", { method: "DELETE" });
 
       expect(res.status).toBe(404);
     });
 
-    it("should not publish destroy if terminal is already exited", async () => {
-      const userId = "user-1";
-      seedUser(db, userId);
+    it("does not publish destroy if terminal is already exited", async () => {
+      seedWorkspace(db);
       const now = new Date();
 
       await db.insert(schema.terminalSession).values({
         id: "t1",
-        tenantId: TEST_TENANT_ID,
-        userId,
+        workspaceId: "ws-1",
         status: "exited",
         createdAt: now,
         updatedAt: now,
       });
 
-      const app = createApp(userId);
+      const app = createApp();
       await app.request("/api/terminals/t1", { method: "DELETE" });
 
       expect(mockPublish).not.toHaveBeenCalled();

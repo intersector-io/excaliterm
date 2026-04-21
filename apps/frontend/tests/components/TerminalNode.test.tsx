@@ -102,6 +102,7 @@ describe("TerminalNode", () => {
     renderTerminalNode({ status: "active", terminalId: "abc12345-xxxx" });
 
     expect(screen.getByText("abc12345")).toBeInTheDocument();
+    expect(screen.getByText("Live terminal")).toBeInTheDocument();
     expect(screen.getByTestId("terminal-view").dataset.status).toBe("active");
     expect(screen.queryByText("disconnected")).not.toBeInTheDocument();
   });
@@ -109,9 +110,9 @@ describe("TerminalNode", () => {
   it("renders disconnected terminals as inactive", () => {
     const { container } = renderTerminalNode({ status: "disconnected" });
 
-    expect(screen.getByText("disconnected")).toBeInTheDocument();
+    expect(screen.getAllByText("Host offline").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("terminal-view").dataset.status).toBe("disconnected");
-    expect(container.querySelector(".opacity-60")).not.toBeNull();
+    expect(container.querySelector(".opacity-70")).not.toBeNull();
   });
 
   it("close button destroys active terminals before removing the node", async () => {
@@ -139,6 +140,6 @@ describe("TerminalNode", () => {
   it("shows the error badge for error terminals", () => {
     renderTerminalNode({ status: "error" });
 
-    expect(screen.getAllByText("error").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Needs attention").length).toBeGreaterThanOrEqual(1);
   });
 });

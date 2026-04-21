@@ -1,8 +1,11 @@
 services:
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
 
   backend:
@@ -14,13 +17,20 @@ services:
     volumes:
       - backend-data:/app/data
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
       - NODE_ENV=production
       - DATABASE_URL=/app/data/terminal-proxy.db
       - REDIS_URL=redis://redis:6379
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/api/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
   signalr-hub:
@@ -30,8 +40,10 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - redis
-      - backend
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -40,6 +52,12 @@ services:
       - Backend__Url=http://backend:3001
       - Frontend__Url=http://frontend:80
       - ASPNETCORE_URLS=http://+:5000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     restart: unless-stopped
 
   frontend:
@@ -49,8 +67,16 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - backend
-      - signalr-hub
+      backend:
+        condition: service_healthy
+      signalr-hub:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
 volumes:

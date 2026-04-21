@@ -45,6 +45,7 @@ Important:
 
 - `TENANT_ID` should be the same value as the workspace ID in the browser URL.
 - The backend uses `workspaceId` while the hub and agent use `tenantId`; they are the same logical ID.
+- On Windows, the default shell is `powershell.exe -NoLogo -NoProfile` so the web terminal does not inherit local prompt themes.
 
 ### SignalR hub settings
 

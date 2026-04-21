@@ -7,14 +7,21 @@ export interface Config {
   tenantId: string;
   whitelistedPaths: string[];
   shell: string;
+  shellArgs: string[];
 }
 
-function detectShell(): string {
+function detectShell(): { shell: string; shellArgs: string[] } {
   if (process.platform === "win32") {
-    // Prefer pwsh (PowerShell Core) if available, fallback to powershell.exe
-    return "powershell.exe";
+    // Use a clean PowerShell session so web terminals do not inherit decorative prompts.
+    return {
+      shell: "powershell.exe",
+      shellArgs: ["-NoLogo", "-NoProfile"],
+    };
   }
-  return process.env.SHELL || "/bin/bash";
+  return {
+    shell: process.env.SHELL || "/bin/bash",
+    shellArgs: [],
+  };
 }
 
 function generateServiceId(): string {
@@ -37,6 +44,9 @@ export function loadConfig(): Config {
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
 
+  const shellOverride = process.env.SHELL_OVERRIDE?.trim();
+  const detectedShell = detectShell();
+
   return {
     signalrHubUrl: process.env.SIGNALR_HUB_URL ?? "http://localhost:5000",
     serviceApiKey: apiKey,
@@ -44,6 +54,7 @@ export function loadConfig(): Config {
     tenantId:
       process.env.TENANT_ID ?? "00000000-0000-0000-0000-000000000000",
     whitelistedPaths,
-    shell: process.env.SHELL_OVERRIDE ?? detectShell(),
+    shell: shellOverride && shellOverride.length > 0 ? shellOverride : detectedShell.shell,
+    shellArgs: shellOverride && shellOverride.length > 0 ? [] : detectedShell.shellArgs,
   };
 }

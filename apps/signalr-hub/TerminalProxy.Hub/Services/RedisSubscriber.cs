@@ -8,6 +8,7 @@ namespace TerminalProxy.Hub.Services;
 
 public class RedisSubscriber : IHostedService
 {
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(2);
     private readonly IConfiguration _config;
     private readonly ILogger<RedisSubscriber> _logger;
     private readonly IHubContext<TerminalHub> _terminalHub;
@@ -51,34 +52,48 @@ public class RedisSubscriber : IHostedService
             ?? Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING")
             ?? "localhost:6379";
 
-        try
+        while (!cancellationToken.IsCancellationRequested)
         {
-            _redis = await ConnectionMultiplexer.ConnectAsync(connectionString);
-            _subscriber = _redis.GetSubscriber();
+            try
+            {
+                _redis = await ConnectionMultiplexer.ConnectAsync(BuildRedisOptions(connectionString));
+                _subscriber = _redis.GetSubscriber();
 
-            // Subscribe to terminal commands from the Node.js backend
-            await _subscriber.SubscribeAsync(
-                RedisChannel.Literal("terminal:commands"),
-                async (channel, message) => await HandleTerminalCommand(message!)
-            );
+                // Subscribe to terminal commands from the Node.js backend
+                await _subscriber.SubscribeAsync(
+                    RedisChannel.Literal("terminal:commands"),
+                    async (channel, message) => await HandleTerminalCommand(message!)
+                );
 
-            // Subscribe to canvas updates from REST API
-            await _subscriber.SubscribeAsync(
-                RedisChannel.Literal("canvas:updates"),
-                async (channel, message) => await HandleCanvasUpdate(message!)
-            );
+                // Subscribe to canvas updates from REST API
+                await _subscriber.SubscribeAsync(
+                    RedisChannel.Literal("canvas:updates"),
+                    async (channel, message) => await HandleCanvasUpdate(message!)
+                );
 
-            // Subscribe to chat messages
-            await _subscriber.SubscribeAsync(
-                RedisChannel.Literal("chat:messages"),
-                async (channel, message) => await HandleChatMessage(message!)
-            );
+                // Subscribe to chat messages
+                await _subscriber.SubscribeAsync(
+                    RedisChannel.Literal("chat:messages"),
+                    async (channel, message) => await HandleChatMessage(message!)
+                );
 
-            _logger.LogInformation("Redis subscriber started on {ConnectionString}", connectionString);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to connect to Redis at {ConnectionString}", connectionString);
+                _logger.LogInformation("Redis subscriber started on {ConnectionString}", connectionString);
+                return;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Failed to connect to Redis at {ConnectionString}. Retrying in {DelaySeconds}s",
+                    connectionString,
+                    RetryDelay.TotalSeconds
+                );
+                await Task.Delay(RetryDelay, cancellationToken);
+            }
         }
     }
 
@@ -111,6 +126,15 @@ public class RedisSubscriber : IHostedService
 
         await db.PublishAsync(RedisChannel.Literal("service:events"), payload);
         _logger.LogDebug("Published service event: {Event} for {ServiceId}", eventName, serviceInstanceId);
+    }
+
+    private static ConfigurationOptions BuildRedisOptions(string connectionString)
+    {
+        var options = ConfigurationOptions.Parse(connectionString, true);
+        options.AbortOnConnectFail = false;
+        options.ConnectRetry = 5;
+        options.ReconnectRetryPolicy = new ExponentialRetry(5_000);
+        return options;
     }
 
     // ─── Terminal commands ──────────────────────────────────────────────────────

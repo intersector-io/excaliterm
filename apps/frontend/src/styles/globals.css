@@ -55,25 +55,29 @@ body {
 }
 
 .react-flow__minimap {
-  background-color: oklch(0.205 0.015 285.82) !important;
-  border: 1px solid var(--color-border) !important;
-  border-radius: var(--radius-lg) !important;
+  background-color: color-mix(in oklab, var(--color-surface-raised) 88%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--color-border) 85%, transparent) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: blur(16px);
 }
 
 .react-flow__controls {
-  border: 1px solid var(--color-border) !important;
-  border-radius: var(--radius-lg) !important;
+  border: 1px solid color-mix(in oklab, var(--color-border) 85%, transparent) !important;
+  border-radius: 1rem !important;
   overflow: hidden;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(16px);
 }
 
 .react-flow__controls-button {
-  background-color: oklch(0.205 0.015 285.82) !important;
-  border-bottom-color: var(--color-border) !important;
+  background-color: color-mix(in oklab, var(--color-surface-raised) 88%, transparent) !important;
+  border-bottom-color: color-mix(in oklab, var(--color-border) 85%, transparent) !important;
   fill: var(--color-foreground) !important;
 }
 
 .react-flow__controls-button:hover {
-  background-color: oklch(0.274 0.006 285.82) !important;
+  background-color: color-mix(in oklab, var(--color-surface-raised) 92%, white 6%) !important;
 }
 
 /* ─── Chat Markdown Styles ─────────────────────────────────────────────────── */

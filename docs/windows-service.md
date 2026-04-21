@@ -21,7 +21,7 @@ The terminal agent is a Node.js process that:
 
 Platform notes:
 
-- On Windows, the default shell is `powershell.exe`
+- On Windows, the default shell is `powershell.exe -NoLogo -NoProfile`
 - On non-Windows systems, the default shell is the current `SHELL` or `/bin/bash`
 
 ## Configuration

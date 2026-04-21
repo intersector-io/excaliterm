@@ -8,7 +8,13 @@ export class TerminalProcess {
   private dataCallback?: (data: string) => void;
   private exitCallback?: (exitCode: number) => void;
 
-  constructor(id: string, cols: number, rows: number, shell: string) {
+  constructor(
+    id: string,
+    cols: number,
+    rows: number,
+    shell: string,
+    shellArgs: string[],
+  ) {
     this.id = id;
 
     const env: Record<string, string> = { ...process.env } as Record<
@@ -21,7 +27,7 @@ export class TerminalProcess {
       env.TERM = "xterm-256color";
     }
 
-    this.ptyProcess = pty.spawn(shell, [], {
+    this.ptyProcess = pty.spawn(shell, shellArgs, {
       name: "xterm-256color",
       cols,
       rows,

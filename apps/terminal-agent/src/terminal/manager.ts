@@ -3,14 +3,16 @@ import { TerminalProcess } from "./process.js";
 export class TerminalManager {
   private readonly terminals = new Map<string, TerminalProcess>();
   private readonly shell: string;
+  private readonly shellArgs: string[];
 
   onCreated?: (id: string) => void;
   onOutput?: (id: string, data: string) => void;
   onExited?: (id: string, exitCode: number) => void;
   onError?: (id: string, error: string) => void;
 
-  constructor(shell: string) {
+  constructor(shell: string, shellArgs: string[]) {
     this.shell = shell;
+    this.shellArgs = shellArgs;
   }
 
   createTerminal(id: string, cols: number, rows: number): TerminalProcess {
@@ -23,7 +25,7 @@ export class TerminalManager {
     console.log(`[TerminalManager] Creating terminal ${id} (${cols}x${rows})`);
 
     try {
-      const terminal = new TerminalProcess(id, cols, rows, this.shell);
+      const terminal = new TerminalProcess(id, cols, rows, this.shell, this.shellArgs);
 
       terminal.onData((data: string) => {
         this.onOutput?.(id, data);

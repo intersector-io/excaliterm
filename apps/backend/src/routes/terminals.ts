@@ -18,10 +18,10 @@ terminals.post("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const body = (await c.req.json<CreateTerminalRequest>().catch(() => ({}))) as Partial<CreateTerminalRequest>;
 
-  const cols = body.cols ?? 80;
-  const rows = body.rows ?? 24;
-  const x = body.x ?? 100;
-  const y = body.y ?? 100;
+  const cols = body.cols ?? 96;
+  const rows = body.rows ?? 28;
+  const x = body.x ?? 72;
+  const y = body.y ?? 76;
 
   const db = getDb();
 
@@ -66,8 +66,8 @@ terminals.post("/", async (c) => {
     nodeType: "terminal",
     x,
     y,
-    width: 600,
-    height: 400,
+    width: 760,
+    height: 480,
     zIndex: 0,
     createdAt: now,
     updatedAt: now,

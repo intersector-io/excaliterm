@@ -18,6 +18,15 @@ var redisConnectionString = builder.Configuration["Redis:ConnectionString"]
 var redisEnabled = builder.Configuration.GetValue<bool>("Redis:Enabled")
     || Environment.GetEnvironmentVariable("REDIS_ENABLED") == "true";
 
+ConfigurationOptions BuildRedisOptions(string connectionString)
+{
+    var options = ConfigurationOptions.Parse(connectionString, true);
+    options.AbortOnConnectFail = false;
+    options.ConnectRetry = 5;
+    options.ReconnectRetryPolicy = new ExponentialRetry(5_000);
+    return options;
+}
+
 // ─── Services ────────────────────────────────────────────────────────────────
 
 builder.Services.AddHttpClient();
@@ -39,7 +48,7 @@ if (redisEnabled)
     builder.Services.AddHostedService<RedisSubscriber>(sp => sp.GetRequiredService<RedisSubscriber>());
 
     // Redis for terminal output buffering
-    var redis = ConnectionMultiplexer.Connect(redisConnectionString);
+    var redis = ConnectionMultiplexer.Connect(BuildRedisOptions(redisConnectionString));
     builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 }
 
