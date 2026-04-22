@@ -13,7 +13,7 @@ interface TerminalViewProps {
   status: TerminalStatus;
 }
 
-export function TerminalView({ terminalId, status }: TerminalViewProps) {
+export function TerminalView({ terminalId, status }: Readonly<TerminalViewProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -74,7 +74,7 @@ export function TerminalView({ terminalId, status }: TerminalViewProps) {
       }
     });
 
-    if (document.fonts?.ready) {
+    if (document.fonts) {
       void document.fonts.ready.then(() => {
         requestAnimationFrame(() => {
           try {
@@ -191,12 +191,12 @@ export function TerminalView({ terminalId, status }: TerminalViewProps) {
 
     const interactive = status === "active" && !lockedByOther;
 
-    if (!interactive) {
-      terminal.options.cursorBlink = false;
-      terminal.options.disableStdin = true;
-    } else {
+    if (interactive) {
       terminal.options.cursorBlink = true;
       terminal.options.disableStdin = false;
+    } else {
+      terminal.options.cursorBlink = false;
+      terminal.options.disableStdin = true;
     }
 
     if (lockedByOther && previousLockOwnerRef.current !== lockInfo?.clientId) {

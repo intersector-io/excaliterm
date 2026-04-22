@@ -20,7 +20,7 @@ interface TabItem {
   badge?: number;
 }
 
-export function BottomNav({ activeView, onViewChange, unreadChat, onToggleChat, chatOpen }: BottomNavProps) {
+export function BottomNav({ activeView, onViewChange, unreadChat, onToggleChat, chatOpen }: Readonly<BottomNavProps>) {
   const tabs: TabItem[] = [
     { id: "canvas", icon: LayoutDashboard, label: "Canvas" },
     { id: "chat", icon: MessageSquare, label: "Chat", badge: unreadChat },

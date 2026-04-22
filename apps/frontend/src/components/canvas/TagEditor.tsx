@@ -13,7 +13,7 @@ const TAG_COLORS = [
 export function getTagColor(tag: string): string {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    hash = (tag.codePointAt(i) ?? 0) + ((hash << 5) - hash);
   }
   const idx = Math.abs(hash) % TAG_COLORS.length;
   return TAG_COLORS[idx] as string;
@@ -25,7 +25,7 @@ interface TagEditorProps {
   compact?: boolean;
 }
 
-export function TagEditor({ tags, onTagsChange, compact }: TagEditorProps) {
+export function TagEditor({ tags, onTagsChange, compact }: Readonly<TagEditorProps>) {
   const [isAdding, setIsAdding] = useState(false);
   const [input, setInput] = useState("");
 
@@ -109,7 +109,7 @@ interface TagChipsProps {
   onSelectTag?: (tag: string | null) => void;
 }
 
-export function TagChips({ tags, selectedTag, onSelectTag }: TagChipsProps) {
+export function TagChips({ tags, selectedTag, onSelectTag }: Readonly<TagChipsProps>) {
   if (tags.length === 0) return null;
 
   return (

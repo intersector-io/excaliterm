@@ -19,7 +19,7 @@ interface ServiceSelectorProps {
   onSelect: (serviceId: string) => void;
 }
 
-export function ServiceSelector({ selectedServiceId, onSelect }: ServiceSelectorProps) {
+export function ServiceSelector({ selectedServiceId, onSelect }: Readonly<ServiceSelectorProps>) {
   const { services, isLoading } = useServices();
 
   const selected = services.find((s) => s.id === selectedServiceId);

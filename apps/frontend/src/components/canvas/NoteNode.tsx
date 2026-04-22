@@ -1,6 +1,5 @@
 import { memo, useCallback, useState, useRef, useEffect } from "react";
-import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useNotes } from "@/hooks/use-notes";
@@ -116,7 +115,7 @@ function NoteNodeComponent({ data, selected }: NodeProps<NoteNodeType>) {
 
         {/* Note content */}
         <div className="nodrag nopan nowheel flex-1 overflow-auto p-4">
-          {isEditing ? (
+          {isEditing && (
             <textarea
               ref={textareaRef}
               value={content}
@@ -125,20 +124,28 @@ function NoteNodeComponent({ data, selected }: NodeProps<NoteNodeType>) {
               className="h-full w-full resize-none bg-transparent text-body-sm text-foreground font-sans outline-none placeholder:text-muted-foreground/40 leading-relaxed"
               placeholder="Write something... (Markdown supported)"
             />
-          ) : hasContent ? (
+          )}
+          {!isEditing && hasContent && (
             <div
+              role="button"
+              tabIndex={0}
               className="chat-markdown text-body-sm text-foreground/90 leading-relaxed cursor-text"
               onDoubleClick={handleEdit}
+              onKeyDown={(e) => { if (e.key === "Enter") handleEdit(); }}
             >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {content}
               </ReactMarkdown>
             </div>
-          ) : (
+          )}
+          {!isEditing && !hasContent && (
             <div
+              role="button"
+              tabIndex={0}
               className="flex h-full items-center justify-center cursor-text"
               onDoubleClick={handleEdit}
               onClick={handleEdit}
+              onKeyDown={(e) => { if (e.key === "Enter") handleEdit(); }}
             >
               <div className="flex flex-col items-center gap-2 text-center">
                 <StickyNote className="h-5 w-5 text-accent-amber/30" />

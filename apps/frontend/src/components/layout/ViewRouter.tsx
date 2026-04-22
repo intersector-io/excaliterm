@@ -73,7 +73,7 @@ function CanvasView() {
   );
 }
 
-export function ViewRouter({ activeView }: ViewRouterProps) {
+export function ViewRouter({ activeView }: Readonly<ViewRouterProps>) {
   switch (activeView) {
     case "canvas":
       return <CanvasView />;

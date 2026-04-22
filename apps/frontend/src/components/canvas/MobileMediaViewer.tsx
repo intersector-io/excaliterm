@@ -34,7 +34,7 @@ interface MobileMediaSectionProps {
   screenshots: Screenshot[];
 }
 
-export function MobileMediaSection({ screenshots }: MobileMediaSectionProps) {
+export function MobileMediaSection({ screenshots }: Readonly<MobileMediaSectionProps>) {
   const streamSessions = useScreenShareStore((s) => s.sessions);
   const [fullscreenItem, setFullscreenItem] = useState<MediaItem | null>(null);
 
@@ -71,8 +71,6 @@ export function MobileMediaSection({ screenshots }: MobileMediaSectionProps) {
     });
   });
 
-  if (mediaItems.length === 0) return null;
-
   const currentIndex = fullscreenItem
     ? mediaItems.findIndex((m) => m.id === fullscreenItem.id)
     : -1;
@@ -86,6 +84,8 @@ export function MobileMediaSection({ screenshots }: MobileMediaSectionProps) {
     if (currentIndex >= mediaItems.length - 1) return;
     setFullscreenItem(mediaItems[currentIndex + 1] ?? null);
   }, [currentIndex, mediaItems]);
+
+  if (mediaItems.length === 0) return null;
 
   return (
     <>
@@ -126,10 +126,10 @@ export function MobileMediaSection({ screenshots }: MobileMediaSectionProps) {
 function MediaCard({
   item,
   onTap,
-}: {
+}: Readonly<{
   item: MediaItem;
   onTap: () => void;
-}) {
+}>) {
   const isStream = item.type === "stream";
   const hasImage = !!item.imageData;
 

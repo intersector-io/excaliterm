@@ -5,7 +5,7 @@ import type { TerminalManager } from "../terminal/manager.js";
 import { extractErrorMessage } from "../utils.js";
 
 export class TerminalHubConnection {
-  private hub: signalR.HubConnection;
+  private readonly hub: signalR.HubConnection;
   private readonly config: Config;
   private readonly manager: TerminalManager;
 

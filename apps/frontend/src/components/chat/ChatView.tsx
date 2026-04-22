@@ -7,7 +7,7 @@ interface ChatViewProps {
   isActive: boolean;
 }
 
-export function ChatView({ isActive }: ChatViewProps) {
+export function ChatView({ isActive }: Readonly<ChatViewProps>) {
   const { messages, sendMessage, loadOlder, loadingOlder, hasMore, isLoading } =
     useChat(isActive);
 

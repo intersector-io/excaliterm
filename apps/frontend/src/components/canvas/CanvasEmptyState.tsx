@@ -9,6 +9,111 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
 import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
 
+function NoHostActions({
+  isMobile,
+  isCreatingNote,
+  onConnect,
+  onCreateNote,
+}: Readonly<{
+  isMobile: boolean;
+  isCreatingNote: boolean;
+  onConnect: () => void;
+  onCreateNote: () => void;
+}>) {
+  return (
+    <div className="flex w-full flex-col items-center gap-3">
+      <Button
+        onClick={onConnect}
+        className={`gap-2 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan transition-colors hover:bg-accent-cyan/16 ${
+          isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
+        }`}
+      >
+        <Server className="h-4 w-4" />
+        Connect a host
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Button>
+
+      <button
+        onClick={onCreateNote}
+        disabled={isCreatingNote}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+      >
+        <StickyNote className="h-3 w-3" />
+        {isCreatingNote ? "Creating..." : "or add a note while you wait"}
+      </button>
+
+      <div
+        className={`mt-2 w-full rounded-lg border border-border/50 bg-surface-raised/40 ${
+          isMobile ? "px-4 py-3" : "px-5 py-4"
+        }`}
+      >
+        <p className="text-caption font-medium text-muted-foreground/80">
+          How it works
+        </p>
+        <ol className="mt-2 space-y-1.5 text-left">
+          {[
+            "Install the excaliterm package on your host",
+            "Run the agent with your workspace credentials",
+            "Create terminals on this canvas",
+          ].map((step, i) => (
+            <li
+              key={step}
+              className="flex items-start gap-2 text-caption text-muted-foreground/60"
+            >
+              <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-cyan/10 text-caption font-bold text-accent-cyan/70">
+                {i + 1}
+              </span>
+              <span className="leading-relaxed">{step}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+function HasHostActions({
+  isMobile,
+  isCreating,
+  isCreatingNote,
+  onCreateTerminal,
+  onCreateNote,
+}: Readonly<{
+  isMobile: boolean;
+  isCreating: boolean;
+  isCreatingNote: boolean;
+  onCreateTerminal: () => void;
+  onCreateNote: () => void;
+}>) {
+  return (
+    <div
+      className={`flex items-center gap-2 ${isMobile ? "w-full flex-col" : ""}`}
+    >
+      <Button
+        onClick={onCreateTerminal}
+        disabled={isCreating}
+        className={`gap-2 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan transition-colors hover:bg-accent-cyan/16 ${
+          isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
+        }`}
+      >
+        <Terminal className="h-4 w-4" />
+        {isCreating ? "Creating..." : "New Terminal"}
+      </Button>
+      <Button
+        onClick={onCreateNote}
+        disabled={isCreatingNote}
+        variant="secondary"
+        className={`gap-2 rounded-md border border-border-default/50 bg-secondary/60 text-muted-foreground transition-colors hover:text-foreground ${
+          isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
+        }`}
+      >
+        <StickyNote className="h-4 w-4" />
+        {isCreatingNote ? "Creating..." : "New Note"}
+      </Button>
+    </div>
+  );
+}
+
 export function CanvasEmptyState() {
   const { createTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
@@ -88,83 +193,20 @@ export function CanvasEmptyState() {
 
           {/* Action area */}
           {noHost ? (
-            <div className="flex w-full flex-col items-center gap-3">
-              {/* Primary: connect a host */}
-              <Button
-                onClick={() => setConnectOpen(true)}
-                className={`gap-2 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan transition-colors hover:bg-accent-cyan/16 ${
-                  isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
-                }`}
-              >
-                <Server className="h-4 w-4" />
-                Connect a host
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-
-              {/* Secondary: add a note while waiting */}
-              <button
-                onClick={handleCreateNote}
-                disabled={isCreatingNote}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-muted-foreground"
-              >
-                <StickyNote className="h-3 w-3" />
-                {isCreatingNote ? "Creating..." : "or add a note while you wait"}
-              </button>
-
-              {/* Setup hint */}
-              <div
-                className={`mt-2 w-full rounded-lg border border-border/50 bg-surface-raised/40 ${
-                  isMobile ? "px-4 py-3" : "px-5 py-4"
-                }`}
-              >
-                <p className="text-caption font-medium text-muted-foreground/80">
-                  How it works
-                </p>
-                <ol className="mt-2 space-y-1.5 text-left">
-                  {[
-                    "Install the excaliterm package on your host",
-                    "Run the agent with your workspace credentials",
-                    "Create terminals on this canvas",
-                  ].map((step, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-caption text-muted-foreground/60"
-                    >
-                      <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-cyan/10 text-caption font-bold text-accent-cyan/70">
-                        {i + 1}
-                      </span>
-                      <span className="leading-relaxed">{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
+            <NoHostActions
+              isMobile={isMobile}
+              isCreatingNote={isCreatingNote}
+              onConnect={() => setConnectOpen(true)}
+              onCreateNote={handleCreateNote}
+            />
           ) : (
-            <div
-              className={`flex items-center gap-2 ${isMobile ? "w-full flex-col" : ""}`}
-            >
-              <Button
-                onClick={handleCreateTerminal}
-                disabled={isCreating}
-                className={`gap-2 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan transition-colors hover:bg-accent-cyan/16 ${
-                  isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
-                }`}
-              >
-                <Terminal className="h-4 w-4" />
-                {isCreating ? "Creating..." : "New Terminal"}
-              </Button>
-              <Button
-                onClick={handleCreateNote}
-                disabled={isCreatingNote}
-                variant="secondary"
-                className={`gap-2 rounded-md border border-border-default/50 bg-secondary/60 text-muted-foreground transition-colors hover:text-foreground ${
-                  isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
-                }`}
-              >
-                <StickyNote className="h-4 w-4" />
-                {isCreatingNote ? "Creating..." : "New Note"}
-              </Button>
-            </div>
+            <HasHostActions
+              isMobile={isMobile}
+              isCreating={isCreating}
+              isCreatingNote={isCreatingNote}
+              onCreateTerminal={handleCreateTerminal}
+              onCreateNote={handleCreateNote}
+            />
           )}
         </div>
       </div>

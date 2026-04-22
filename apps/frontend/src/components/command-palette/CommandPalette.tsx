@@ -35,7 +35,7 @@ export function CommandPalette({
   open,
   onClose,
   onViewChange,
-}: CommandPaletteProps) {
+}: Readonly<CommandPaletteProps>) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -115,7 +115,7 @@ export function CommandPalette({
         icon: Link2,
         keywords: ["share", "copy", "link", "workspace", "url"],
         action: async () => {
-          await copyToClipboard(window.location.href);
+          await copyToClipboard(globalThis.location.href);
           toast.success("Workspace link copied");
         },
       },
@@ -230,8 +230,11 @@ export function CommandPalette({
     <>
       {/* Backdrop */}
       <div
+        role="button"
+        tabIndex={0}
         className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
       />
 
       {/* Palette */}

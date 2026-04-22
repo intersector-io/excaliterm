@@ -53,7 +53,7 @@ function createEditorStoreInstance(): StoreApi<EditorStore> {
         let nextActive = state.activeFile;
         if (nextActive === path) {
           const keys = Array.from(openFiles.keys());
-          nextActive = keys.length > 0 ? (keys[keys.length - 1] ?? null) : null;
+          nextActive = keys.length > 0 ? (keys.at(-1) ?? null) : null;
         }
 
         return { openFiles, activeFile: nextActive };

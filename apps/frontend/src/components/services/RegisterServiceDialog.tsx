@@ -24,7 +24,7 @@ export function RegisterServiceDialog({
   onOpenChange,
   workspaceId,
   apiKey,
-}: RegisterServiceDialogProps) {
+}: Readonly<RegisterServiceDialogProps>) {
   const { copy, isCopied, reset } = useCopyWithFeedback();
 
   function handleClose(value: boolean) {
@@ -32,7 +32,7 @@ export function RegisterServiceDialog({
     onOpenChange(value);
   }
 
-  const hubUrl = window.location.origin;
+  const hubUrl = globalThis.location.origin;
   const params = { hubUrl, workspaceId, apiKey };
   const runCmd = buildRunCommand(params);
   const envFile = buildEnvFile(params);

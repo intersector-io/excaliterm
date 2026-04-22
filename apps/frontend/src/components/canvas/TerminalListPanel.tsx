@@ -20,7 +20,7 @@ export function TerminalListPanel({
   onClose,
   onFocusTerminal,
   onFullScreenTerminal,
-}: TerminalListPanelProps) {
+}: Readonly<TerminalListPanelProps>) {
   const { terminals, closeAllTerminals, isClosingAll } = useTerminals();
   const { nodes } = useCanvas();
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -35,7 +35,7 @@ export function TerminalListPanel({
         tagSet.add(tag);
       }
     }
-    return Array.from(tagSet).sort();
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
   }, [terminals]);
 
   const filteredTerminals = useMemo(() => {
@@ -81,8 +81,11 @@ export function TerminalListPanel({
     <>
       {/* Backdrop */}
       <div
+        role="button"
+        tabIndex={0}
         className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClose(); }}
       />
 
       {/* Panel */}

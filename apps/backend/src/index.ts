@@ -24,132 +24,147 @@ const env = loadEnv();
 initializeDb();
 initializeRedis();
 
-// Subscribe to service events from SignalR Hub
-subscribe("service:events", async (message) => {
-  try {
-    const event = JSON.parse(message) as {
-      event: string;
-      serviceInstanceId: string;
-      workspaceId: string;
-    };
-    const workspaceId = event.workspaceId;
-    const db = getDb();
+async function handleServiceOnline(serviceInstanceId: string, workspaceId: string) {
+  const db = getDb();
+  let serviceDbId: string | null = null;
 
-    if (event.event === "online") {
-      let serviceDbId: string | null = null;
+  const [existing] = await db
+    .select()
+    .from(schema.serviceInstance)
+    .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
 
-      const [existing] = await db
-        .select()
-        .from(schema.serviceInstance)
-        .where(eq(schema.serviceInstance.serviceId, event.serviceInstanceId));
+  if (existing) {
+    serviceDbId = existing.id;
+    await db
+      .update(schema.serviceInstance)
+      .set({ status: "online", lastSeen: new Date(), updatedAt: new Date() })
+      .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
+  } else if (workspaceId) {
+    const [workspace] = await db
+      .select()
+      .from(schema.workspace)
+      .where(eq(schema.workspace.id, workspaceId));
 
-      if (existing) {
-        serviceDbId = existing.id;
-        await db
-          .update(schema.serviceInstance)
-          .set({ status: "online", lastSeen: new Date(), updatedAt: new Date() })
-          .where(eq(schema.serviceInstance.serviceId, event.serviceInstanceId));
-      } else if (workspaceId) {
-        // Verify workspace exists before auto-registering
-        const [workspace] = await db
-          .select()
-          .from(schema.workspace)
-          .where(eq(schema.workspace.id, workspaceId));
-
-        if (workspace) {
-          serviceDbId = crypto.randomUUID();
-          await db.insert(schema.serviceInstance).values({
-            id: serviceDbId,
-            workspaceId,
-            serviceId: event.serviceInstanceId,
-            name: event.serviceInstanceId,
-            apiKey: "auto-registered",
-            status: "online",
-            lastSeen: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        } else {
-          console.warn(`[redis] Ignoring service online event: workspace ${workspaceId} not found`);
-        }
-      }
-
-      // Auto-create host canvas node if one doesn't exist yet
-      if (serviceDbId && workspaceId) {
-        const [existingHostNode] = await db
-          .select()
-          .from(schema.canvasNode)
-          .where(
-            and(
-              eq(schema.canvasNode.workspaceId, workspaceId),
-              eq(schema.canvasNode.nodeType, "host"),
-              eq(schema.canvasNode.serviceInstanceId, serviceDbId),
-            ),
-          );
-
-        if (!existingHostNode) {
-          const [{ value: hostCount }] = await db
-            .select({ value: count() })
-            .from(schema.canvasNode)
-            .where(
-              and(
-                eq(schema.canvasNode.workspaceId, workspaceId),
-                eq(schema.canvasNode.nodeType, "host"),
-              ),
-            );
-
-          const HOST_W = 280;
-          const HOST_H = 160;
-          const GAP = 60;
-          const x = 72 + hostCount * (HOST_W + GAP);
-          const y = 76;
-
-          await db.insert(schema.canvasNode).values({
-            id: crypto.randomUUID(),
-            workspaceId,
-            nodeType: "host",
-            serviceInstanceId: serviceDbId,
-            x,
-            y,
-            width: HOST_W,
-            height: HOST_H,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-          console.log(`[redis] Created host canvas node for service ${event.serviceInstanceId}`);
-        }
-      }
-
-      console.log(`[redis] Service ${event.serviceInstanceId} is now online`);
-    } else if (event.event === "offline") {
-      const [existing] = await db
-        .select()
-        .from(schema.serviceInstance)
-        .where(eq(schema.serviceInstance.serviceId, event.serviceInstanceId));
-
-      if (existing) {
-        await db
-          .update(schema.serviceInstance)
-          .set({ status: "offline", updatedAt: new Date() })
-          .where(eq(schema.serviceInstance.serviceId, event.serviceInstanceId));
-
-        await db
-          .update(schema.terminalSession)
-          .set({ status: "disconnected", updatedAt: new Date() })
-          .where(
-            and(
-              eq(schema.terminalSession.serviceInstanceId, existing.id),
-              eq(schema.terminalSession.status, "active"),
-            ),
-          );
-      }
-
-      console.log(`[redis] Service ${event.serviceInstanceId} is now offline`);
+    if (workspace) {
+      serviceDbId = crypto.randomUUID();
+      await db.insert(schema.serviceInstance).values({
+        id: serviceDbId,
+        workspaceId,
+        serviceId: serviceInstanceId,
+        name: serviceInstanceId,
+        apiKey: "auto-registered",
+        status: "online",
+        lastSeen: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } else {
+      console.warn(`[redis] Ignoring service online event: workspace ${workspaceId} not found`);
     }
-  } catch (err) {
-    console.error("[redis] Failed to handle service event:", err);
   }
-}).catch((err) => console.error("[redis] Failed to subscribe to service:events:", err));
+
+  if (serviceDbId && workspaceId) {
+    await ensureHostCanvasNode(serviceDbId, workspaceId, serviceInstanceId);
+  }
+
+  console.log(`[redis] Service ${serviceInstanceId} is now online`);
+}
+
+async function ensureHostCanvasNode(serviceDbId: string, workspaceId: string, serviceInstanceId: string) {
+  const db = getDb();
+  const [existingHostNode] = await db
+    .select()
+    .from(schema.canvasNode)
+    .where(
+      and(
+        eq(schema.canvasNode.workspaceId, workspaceId),
+        eq(schema.canvasNode.nodeType, "host"),
+        eq(schema.canvasNode.serviceInstanceId, serviceDbId),
+      ),
+    );
+
+  if (existingHostNode) return;
+
+  const [{ value: hostCount }] = await db
+    .select({ value: count() })
+    .from(schema.canvasNode)
+    .where(
+      and(
+        eq(schema.canvasNode.workspaceId, workspaceId),
+        eq(schema.canvasNode.nodeType, "host"),
+      ),
+    );
+
+  const HOST_W = 280;
+  const HOST_H = 160;
+  const GAP = 60;
+  const x = 72 + hostCount * (HOST_W + GAP);
+  const y = 76;
+
+  await db.insert(schema.canvasNode).values({
+    id: crypto.randomUUID(),
+    workspaceId,
+    nodeType: "host",
+    serviceInstanceId: serviceDbId,
+    x,
+    y,
+    width: HOST_W,
+    height: HOST_H,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  console.log(`[redis] Created host canvas node for service ${serviceInstanceId}`);
+}
+
+async function handleServiceOffline(serviceInstanceId: string) {
+  const db = getDb();
+  const [existing] = await db
+    .select()
+    .from(schema.serviceInstance)
+    .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
+
+  if (existing) {
+    await db
+      .update(schema.serviceInstance)
+      .set({ status: "offline", updatedAt: new Date() })
+      .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
+
+    await db
+      .update(schema.terminalSession)
+      .set({ status: "disconnected", updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.terminalSession.serviceInstanceId, existing.id),
+          eq(schema.terminalSession.status, "active"),
+        ),
+      );
+  }
+
+  console.log(`[redis] Service ${serviceInstanceId} is now offline`);
+}
+
+// Subscribe to service events from SignalR Hub
+try {
+  await subscribe("service:events", async (message) => {
+    try {
+      const event = JSON.parse(message) as {
+        event: string;
+        serviceInstanceId: string;
+        workspaceId: string;
+      };
+
+      if (event.event === "online") {
+        await handleServiceOnline(event.serviceInstanceId, event.workspaceId);
+      } else if (event.event === "offline") {
+        await handleServiceOffline(event.serviceInstanceId);
+      }
+    } catch (err) {
+      console.error("[redis] Failed to handle service event:", err);
+    }
+  });
+} catch (err) {
+  console.error("[redis] Failed to subscribe to service:events:", err);
+}
 
 // ─── Hono App ──────────────────────────────────────────────────────────────
 

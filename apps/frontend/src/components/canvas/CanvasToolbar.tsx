@@ -38,11 +38,143 @@ import { RegisterServiceDialog } from "@/components/services/RegisterServiceDial
 import { ServiceConfigDialog } from "@/components/services/ServiceConfigDialog";
 import type { ServiceInstance } from "@/lib/api-client";
 
+interface HostActionMenuItemProps {
+  noHost: boolean;
+  onlineServices: ServiceInstance[];
+  icon: React.ComponentType<{ className?: string }>;
+  disabledLabel: string;
+  singleLabel: string;
+  multiLabel: string;
+  isLoading?: boolean;
+  onAction: (serviceInstanceId?: string) => void;
+}
+
+function HostActionMenuItem({
+  noHost,
+  onlineServices,
+  icon: Icon,
+  disabledLabel,
+  singleLabel,
+  multiLabel,
+  isLoading,
+  onAction,
+}: Readonly<HostActionMenuItemProps>) {
+  if (noHost) {
+    return (
+      <DropdownMenuItem disabled>
+        <Icon className="h-3.5 w-3.5" />
+        <span>{disabledLabel}</span>
+      </DropdownMenuItem>
+    );
+  }
+
+  if (onlineServices.length === 1) {
+    return (
+      <DropdownMenuItem onClick={() => onAction()} disabled={isLoading}>
+        <Icon className="h-3.5 w-3.5" />
+        <span>{isLoading ? "Creating..." : singleLabel}</span>
+      </DropdownMenuItem>
+    );
+  }
+
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger disabled={isLoading}>
+        <Icon className="h-3.5 w-3.5" />
+        <span>{isLoading ? "Creating..." : multiLabel}</span>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        {onlineServices.map((s) => (
+          <DropdownMenuItem key={s.id} onClick={() => onAction(s.id)}>
+            <span className="h-2 w-2 rounded-full bg-accent-green" />
+            <span className="truncate">{s.name}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
+function MobileTerminalButton({
+  onlineServices,
+  isCreating,
+  noHost,
+  onNewTerminal,
+  onConnect,
+}: Readonly<{
+  onlineServices: ServiceInstance[];
+  isCreating: boolean;
+  noHost: boolean;
+  onNewTerminal: (serviceInstanceId?: string) => void;
+  onConnect: () => void;
+}>) {
+  if (onlineServices.length === 1) {
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => onNewTerminal()}
+        disabled={isCreating || noHost}
+        className={`h-7 gap-1 rounded-md px-2.5 text-caption ${
+          noHost
+            ? "border border-border-default/50 bg-muted/40 text-muted-foreground opacity-60"
+            : "border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan"
+        }`}
+      >
+        <Terminal className="h-3 w-3" />
+        {isCreating ? "..." : "Terminal"}
+      </Button>
+    );
+  }
+
+  if (onlineServices.length > 1) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isCreating}
+            className="h-7 gap-1 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 px-2.5 text-caption text-accent-cyan"
+          >
+            <Terminal className="h-3 w-3" />
+            {isCreating ? "..." : "Terminal"}
+            <ChevronDown className="h-3 w-3 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel className="text-caption text-muted-foreground">
+            Select host
+          </DropdownMenuLabel>
+          {onlineServices.map((s) => (
+            <DropdownMenuItem key={s.id} onClick={() => onNewTerminal(s.id)}>
+              <span className="h-2 w-2 rounded-full bg-accent-green" />
+              <span className="truncate">{s.name}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      onClick={onConnect}
+      className="h-7 gap-1 rounded-md border border-border-default/50 bg-muted/40 px-2.5 text-caption text-muted-foreground opacity-60"
+    >
+      <Terminal className="h-3 w-3" />
+      Terminal
+    </Button>
+  );
+}
+
 interface CanvasToolbarProps {
   onOpenTerminalList?: () => void;
 }
 
-export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
+export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProps>) {
   const { createTerminal, isCreating, terminals, closeAllTerminals, isClosingAll } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { workspaceId, apiKey, collaborator } = useWorkspace();
@@ -58,10 +190,12 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
   const onlineServices = services.filter((s) => s.status === "online");
   const activeTerminals = terminals.filter((t) => t.status === "active");
   const terminalCount = activeTerminals.length;
+  const hostLabel = noHost ? "No host" : `${onlineCount} host${onlineCount === 1 ? "" : "s"}`;
+  const terminalSuffix = terminalCount > 0 ? `, ${terminalCount} terminal${terminalCount === 1 ? "" : "s"}` : "";
 
   const handleShare = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(globalThis.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -144,61 +278,13 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
                 {terminalCount}
               </button>
             )}
-            {onlineServices.length === 1 ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => onNewTerminal()}
-                disabled={isCreating || noHost}
-                className={`h-7 gap-1 rounded-md px-2.5 text-caption ${
-                  noHost
-                    ? "border border-border-default/50 bg-muted/40 text-muted-foreground opacity-60"
-                    : "border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan"
-                }`}
-              >
-                <Terminal className="h-3 w-3" />
-                {isCreating ? "..." : "Terminal"}
-              </Button>
-            ) : onlineServices.length > 1 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={isCreating}
-                    className="h-7 gap-1 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 px-2.5 text-caption text-accent-cyan"
-                  >
-                    <Terminal className="h-3 w-3" />
-                    {isCreating ? "..." : "Terminal"}
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel className="text-caption text-muted-foreground">
-                    Select host
-                  </DropdownMenuLabel>
-                  {onlineServices.map((s) => (
-                    <DropdownMenuItem
-                      key={s.id}
-                      onClick={() => onNewTerminal(s.id)}
-                    >
-                      <span className="h-2 w-2 rounded-full bg-accent-green" />
-                      <span className="truncate">{s.name}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setConnectOpen(true)}
-                className="h-7 gap-1 rounded-md border border-border-default/50 bg-muted/40 px-2.5 text-caption text-muted-foreground opacity-60"
-              >
-                <Terminal className="h-3 w-3" />
-                Terminal
-              </Button>
-            )}
+            <MobileTerminalButton
+              onlineServices={onlineServices}
+              isCreating={isCreating}
+              noHost={noHost}
+              onNewTerminal={onNewTerminal}
+              onConnect={() => setConnectOpen(true)}
+            />
             <button
               onClick={handleShare}
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
@@ -262,9 +348,7 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
                     noHost ? "bg-accent-amber" : "bg-accent-green",
                   )}
                 />
-                {noHost
-                  ? "No host"
-                  : `${onlineCount} host${onlineCount !== 1 ? "s" : ""}`}
+                {hostLabel}
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </button>
             </DropdownMenuTrigger>
@@ -302,7 +386,7 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
           </DropdownMenu>
 
           <span className="text-caption text-muted-foreground/40">
-            {collaboratorCount} here{terminalCount > 0 ? `, ${terminalCount} terminal${terminalCount === 1 ? "" : "s"}` : ""}
+            {collaboratorCount} here{terminalSuffix}
           </span>
         </div>
 
@@ -321,69 +405,25 @@ export function CanvasToolbar({ onOpenTerminalList }: CanvasToolbarProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {/* Terminal creation — with host selection when multiple */}
-              {noHost ? (
-                <DropdownMenuItem disabled>
-                  <Terminal className="h-3.5 w-3.5" />
-                  <span>No host connected</span>
-                </DropdownMenuItem>
-              ) : onlineServices.length === 1 ? (
-                <DropdownMenuItem
-                  onClick={() => onNewTerminal()}
-                  disabled={isCreating}
-                >
-                  <Terminal className="h-3.5 w-3.5" />
-                  <span>{isCreating ? "Creating..." : "New Terminal"}</span>
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger disabled={isCreating}>
-                    <Terminal className="h-3.5 w-3.5" />
-                    <span>{isCreating ? "Creating..." : "New Terminal"}</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    {onlineServices.map((s) => (
-                      <DropdownMenuItem
-                        key={s.id}
-                        onClick={() => onNewTerminal(s.id)}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-accent-green" />
-                        <span className="truncate">{s.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              )}
-              {/* Open Editor — with host selection when multiple */}
-              {noHost ? (
-                <DropdownMenuItem disabled>
-                  <Code2 className="h-3.5 w-3.5" />
-                  <span>No host connected</span>
-                </DropdownMenuItem>
-              ) : onlineServices.length === 1 ? (
-                <DropdownMenuItem onClick={() => onNewEditor()}>
-                  <Code2 className="h-3.5 w-3.5" />
-                  <span>Open Editor</span>
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <Code2 className="h-3.5 w-3.5" />
-                    <span>Open Editor</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    {onlineServices.map((s) => (
-                      <DropdownMenuItem
-                        key={s.id}
-                        onClick={() => onNewEditor(s.id)}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-accent-green" />
-                        <span className="truncate">{s.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              )}
+              <HostActionMenuItem
+                noHost={noHost}
+                onlineServices={onlineServices}
+                icon={Terminal}
+                disabledLabel="No host connected"
+                singleLabel="New Terminal"
+                multiLabel="New Terminal"
+                isLoading={isCreating}
+                onAction={onNewTerminal}
+              />
+              <HostActionMenuItem
+                noHost={noHost}
+                onlineServices={onlineServices}
+                icon={Code2}
+                disabledLabel="No host connected"
+                singleLabel="Open Editor"
+                multiLabel="Open Editor"
+                onAction={onNewEditor}
+              />
               <DropdownMenuItem onClick={onNewNote} disabled={isCreatingNote}>
                 <StickyNote className="h-3.5 w-3.5" />
                 <span>{isCreatingNote ? "Creating..." : "New Note"}</span>

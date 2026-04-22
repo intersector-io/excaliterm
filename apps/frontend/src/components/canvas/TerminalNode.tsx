@@ -1,6 +1,5 @@
 import { memo, useCallback, useState } from "react";
-import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
 import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { TerminalView } from "@/components/terminal/TerminalView";
@@ -134,6 +133,15 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
 
   const firstActiveTyper = activeTypers[0] ?? null;
 
+  function getGlowClass(): string {
+    if (activeTypers.length > 0) return "terminal-glow-typing border-accent-cyan/20";
+    if (lockedByOther) return "terminal-glow-locked border-accent-amber/15";
+    return "shadow-[0_12px_40px_rgba(0,0,0,0.35)]";
+  }
+
+  const glowClass = getGlowClass();
+  const borderClass = isActive ? "border-border-default/60 bg-card" : "border-border-subtle/40 bg-card/80";
+
   return (
     <>
       <NodeResizer
@@ -154,19 +162,12 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         className="!w-1.5 !h-1.5 !bg-white/40 !border-0 !rounded-sm"
       />
       <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsHovered((h) => !h); }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`flex h-full w-full flex-col overflow-hidden rounded-xl border transition-all duration-300 ${
-          isActive
-            ? "border-border-default/60 bg-card"
-            : "border-border-subtle/40 bg-card/80"
-        } ${
-          activeTypers.length > 0
-            ? "terminal-glow-typing border-accent-cyan/20"
-            : lockedByOther
-              ? "terminal-glow-locked border-accent-amber/15"
-              : "shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
-        }`}
+        className={`flex h-full w-full flex-col overflow-hidden rounded-xl border transition-all duration-300 ${borderClass} ${glowClass}`}
       >
         {/* ─── Title Bar ─────────────────────────────────────────────── */}
         <div className="drag-handle flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-1.5">
@@ -223,13 +224,12 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
                   handleToggleLock().catch(() => {});
                 }}
                 disabled={lockedByOther}
-                className={`nodrag nopan flex items-center gap-1 rounded-full border px-2 py-1 text-caption font-semibold transition-colors ${
-                  lockedByCurrentCollaborator
-                    ? "border-accent-cyan/25 bg-accent-cyan/15 text-accent-cyan hover:bg-accent-cyan/25"
-                    : lockedByOther
-                      ? "border-white/[0.05] bg-white/[0.03] text-white/25"
-                      : "border-white/[0.08] bg-white/[0.05] text-white/60 hover:bg-white/[0.1] hover:text-white/90"
-                }`}
+                className={(() => {
+                  const base = "nodrag nopan flex items-center gap-1 rounded-full border px-2 py-1 text-caption font-semibold transition-colors";
+                  if (lockedByCurrentCollaborator) return `${base} border-accent-cyan/25 bg-accent-cyan/15 text-accent-cyan hover:bg-accent-cyan/25`;
+                  if (lockedByOther) return `${base} border-white/[0.05] bg-white/[0.03] text-white/25`;
+                  return `${base} border-white/[0.08] bg-white/[0.05] text-white/60 hover:bg-white/[0.1] hover:text-white/90`;
+                })()}
               >
                 {lockedByCurrentCollaborator ? (
                   <LockOpen className="h-3 w-3" />
@@ -299,7 +299,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         {/* ─── Terminal Content ───────────────────────────────────────── */}
         <div
           className={`nodrag nopan nowheel flex-1 overflow-hidden p-2.5 ${
-            !isActive ? "opacity-70" : ""
+            isActive ? "" : "opacity-70"
           }`}
         >
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border-subtle/50 bg-surface-sunken">

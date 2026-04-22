@@ -6,7 +6,7 @@ interface ChatInputProps {
   onSend: (content: string) => void;
 }
 
-export function ChatInput({ onSend }: ChatInputProps) {
+export function ChatInput({ onSend }: Readonly<ChatInputProps>) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 

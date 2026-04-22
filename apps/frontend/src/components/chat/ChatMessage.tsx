@@ -19,7 +19,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message }: Readonly<ChatMessageProps>) {
   const initials = useMemo(() => getInitials(message.displayName), [message.displayName]);
   const relativeTime = useMemo(() => formatRelativeTime(message.createdAt), [message.createdAt]);
 

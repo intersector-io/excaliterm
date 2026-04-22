@@ -33,9 +33,9 @@ function groupByDate(messages: ChatMessageItem[]) {
 
   for (const msg of messages) {
     const dateKey = new Date(msg.createdAt).toDateString();
-    const last = groups[groups.length - 1];
+    const last = groups.at(-1);
 
-    if (last && last.date === dateKey) {
+    if (last?.date === dateKey) {
       last.messages.push(msg);
     } else {
       groups.push({
@@ -55,7 +55,7 @@ export function ChatMessageList({
   hasMore,
   loadingOlder,
   onLoadOlder,
-}: ChatMessageListProps) {
+}: Readonly<ChatMessageListProps>) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);

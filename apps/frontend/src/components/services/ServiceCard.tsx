@@ -11,7 +11,7 @@ interface ServiceCardProps {
   onShutdown: (service: ServiceInstance) => void;
 }
 
-export function ServiceCard({ service, onEdit, onDelete, onShutdown }: ServiceCardProps) {
+export function ServiceCard({ service, onEdit, onDelete, onShutdown }: Readonly<ServiceCardProps>) {
   const isOnline = service.status === "online";
   const paths = service.whitelistedPaths
     ? service.whitelistedPaths

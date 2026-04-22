@@ -140,4 +140,4 @@ export function getDb() {
   return _db;
 }
 
-export { schema };
+export { schema } from "./schema.js";

@@ -36,7 +36,7 @@ export function Sidebar({
   unreadChat,
   chatOpen,
   onToggleChat,
-}: SidebarProps) {
+}: Readonly<SidebarProps>) {
   const [copied, setCopied] = useState(false);
 
   const navItems: NavItem[] = [
@@ -44,7 +44,7 @@ export function Sidebar({
   ];
 
   const handleShare = useCallback(async () => {
-    await copyToClipboard(window.location.href);
+    await copyToClipboard(globalThis.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, []);

@@ -66,7 +66,9 @@ async function main(): Promise<void> {
   console.log("[terminal-agent] Ready and waiting for commands");
 }
 
-main().catch((err) => {
+try {
+  await main();
+} catch (err) {
   console.error("[terminal-agent] Fatal error:", err);
   process.exit(1);
-});
+}

@@ -1,6 +1,5 @@
 import { memo, useCallback } from "react";
-import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import { type NodeProps, NodeResizer, Handle, Position, type Node } from "@xyflow/react";
 import { Server, Terminal, Code2 } from "lucide-react";
 import { toast } from "sonner";
 import { useServices } from "@/hooks/use-services";

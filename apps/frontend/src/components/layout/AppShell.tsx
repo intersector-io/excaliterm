@@ -39,8 +39,8 @@ export function AppShell() {
         setChatOpen((prev) => !prev);
       }
     }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Start SignalR connections (hubs already initialized in App.tsx)

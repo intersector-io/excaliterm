@@ -8,7 +8,7 @@ interface ChatPanelProps {
   onClose: () => void;
 }
 
-export function ChatPanel({ open, onClose }: ChatPanelProps) {
+export function ChatPanel({ open, onClose }: Readonly<ChatPanelProps>) {
   const { messages, sendMessage, loadOlder, loadingOlder, hasMore, isLoading } =
     useChat(open);
 

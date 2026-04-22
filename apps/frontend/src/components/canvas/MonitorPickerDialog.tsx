@@ -29,7 +29,7 @@ export function MonitorPickerDialog({
   onScreenshot,
   onStream,
   isCapturing,
-}: MonitorPickerDialogProps) {
+}: Readonly<MonitorPickerDialogProps>) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Reset selection when monitors change
@@ -49,15 +49,17 @@ export function MonitorPickerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isLoadingMonitors ? (
+        {isLoadingMonitors && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : monitors.length === 0 ? (
+        )}
+        {!isLoadingMonitors && monitors.length === 0 && (
           <div className="py-6 text-center text-sm text-muted-foreground">
             No monitors found on the host.
           </div>
-        ) : (
+        )}
+        {!isLoadingMonitors && monitors.length > 0 && (
           <div className="flex flex-col gap-2">
             {monitors.map((monitor) => (
               <button

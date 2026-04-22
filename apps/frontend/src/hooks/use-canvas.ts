@@ -161,6 +161,33 @@ function canvasNodeToFlowNode(
   });
 }
 
+function applyNodeMove(old: { nodes: CanvasNode[] } | undefined, event: { nodeId: string; x: number; y: number }) {
+  if (!old) return old;
+  return {
+    nodes: old.nodes.map((cn) =>
+      cn.id === event.nodeId ? { ...cn, x: event.x, y: event.y } : cn,
+    ),
+  };
+}
+
+function applyNodeResize(old: { nodes: CanvasNode[] } | undefined, event: { nodeId: string; width: number; height: number }) {
+  if (!old) return old;
+  return {
+    nodes: old.nodes.map((cn) =>
+      cn.id === event.nodeId
+        ? { ...cn, width: event.width, height: event.height }
+        : cn,
+    ),
+  };
+}
+
+function applyNodeRemove(old: { nodes: CanvasNode[] } | undefined, event: { nodeId: string }) {
+  if (!old) return old;
+  return {
+    nodes: old.nodes.filter((cn) => cn.id !== event.nodeId),
+  };
+}
+
 export function useCanvas() {
   const queryClient = useQueryClient();
   const { workspaceId } = useWorkspace();
@@ -236,42 +263,21 @@ export function useCanvas() {
     function handleNodeMoved(event: { nodeId: string; x: number; y: number }) {
       queryClient.setQueryData(
         ["canvas-nodes", workspaceId],
-        (old: { nodes: CanvasNode[] } | undefined) => {
-          if (!old) return old;
-          return {
-            nodes: old.nodes.map((cn) =>
-              cn.id === event.nodeId ? { ...cn, x: event.x, y: event.y } : cn,
-            ),
-          };
-        },
+        (old: { nodes: CanvasNode[] } | undefined) => applyNodeMove(old, event),
       );
     }
 
     function handleNodeResized(event: { nodeId: string; width: number; height: number }) {
       queryClient.setQueryData(
         ["canvas-nodes", workspaceId],
-        (old: { nodes: CanvasNode[] } | undefined) => {
-          if (!old) return old;
-          return {
-            nodes: old.nodes.map((cn) =>
-              cn.id === event.nodeId
-                ? { ...cn, width: event.width, height: event.height }
-                : cn,
-            ),
-          };
-        },
+        (old: { nodes: CanvasNode[] } | undefined) => applyNodeResize(old, event),
       );
     }
 
     function handleNodeRemoved(event: { nodeId: string }) {
       queryClient.setQueryData(
         ["canvas-nodes", workspaceId],
-        (old: { nodes: CanvasNode[] } | undefined) => {
-          if (!old) return old;
-          return {
-            nodes: old.nodes.filter((cn) => cn.id !== event.nodeId),
-          };
-        },
+        (old: { nodes: CanvasNode[] } | undefined) => applyNodeRemove(old, event),
       );
     }
 
@@ -354,6 +360,20 @@ export function useCanvas() {
     return [...persistedEdges, ...streamEdges];
   }, [edgesQuery.data, screenShareNodes]);
 
+  function reconcileCanvasNodes(canvasNodes: CanvasNode[], updated: Node<AnyNodeData>[]): CanvasNode[] {
+    return canvasNodes.map((cn) => {
+      const flowNode = updated.find((n) => n.id === cn.id);
+      if (!flowNode) return cn;
+      return {
+        ...cn,
+        x: flowNode.position.x,
+        y: flowNode.position.y,
+        width: flowNode.measured?.width ?? cn.width,
+        height: flowNode.measured?.height ?? cn.height,
+      };
+    });
+  }
+
   const onNodesChange = useCallback(
     (changes: NodeChange<Node<AnyNodeData>>[]) => {
       queryClient.setQueryData(
@@ -387,17 +407,7 @@ export function useCanvas() {
           }
 
           return {
-            nodes: old.nodes.map((cn) => {
-              const flowNode = updated.find((n) => n.id === cn.id);
-              if (!flowNode) return cn;
-              return {
-                ...cn,
-                x: flowNode.position.x,
-                y: flowNode.position.y,
-                width: flowNode.measured?.width ?? cn.width,
-                height: flowNode.measured?.height ?? cn.height,
-              };
-            }),
+            nodes: reconcileCanvasNodes(old.nodes, updated),
           };
         },
       );

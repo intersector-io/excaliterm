@@ -1,6 +1,5 @@
 import { memo, useState, useCallback, useEffect, useMemo } from "react";
-import { type NodeProps, NodeResizer, Handle, Position, useReactFlow } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import { type NodeProps, NodeResizer, Handle, Position, useReactFlow, type Node } from "@xyflow/react";
 import { Code2, X, PanelLeftClose, PanelLeftOpen, Maximize2, Minimize2 } from "lucide-react";
 import { useFiles } from "@/hooks/use-files";
 import { useCanvas } from "@/hooks/use-canvas";

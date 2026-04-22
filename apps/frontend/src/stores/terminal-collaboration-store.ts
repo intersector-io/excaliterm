@@ -90,7 +90,7 @@ export const useTerminalCollaborationStore = create<TerminalCollaborationStore>(
       typingByTerminal: {
         ...state.typingByTerminal,
         [event.terminalId]: {
-          ...(state.typingByTerminal[event.terminalId] ?? {}),
+          ...state.typingByTerminal[event.terminalId],
           [event.clientId]: event,
         },
       },

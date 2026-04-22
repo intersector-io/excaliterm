@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import * as api from "@/lib/api-client";
 import { getTerminalHub } from "@/lib/signalr-client";
 import { useTerminalStore } from "@/stores/terminal-store";
@@ -53,14 +53,12 @@ export function useTerminals() {
     },
   });
 
-  useEffect(() => {
-    const terminalHub = getTerminalHub();
-
-    function updateTerminalStatus(
+  const updateTerminalStatus = useCallback(
+    (
       terminalId: string,
       status: TerminalStatus,
       exitCode: number | null = null,
-    ) {
+    ) => {
       queryClient.setQueryData(
         ["terminals", workspaceId],
         (old: ListTerminalsResponse | undefined) => {
@@ -79,28 +77,45 @@ export function useTerminals() {
           };
         },
       );
-    }
+    },
+    [queryClient, workspaceId],
+  );
 
-    function handleOutput(msg: { terminalId: string; data: string }) {
+  const handleOutput = useCallback(
+    (msg: { terminalId: string; data: string }) => {
       addOutput(msg.terminalId, msg.data);
-    }
+    },
+    [addOutput],
+  );
 
-    function handleCreated() {
-      queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
-      queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
-    }
+  const handleCreated = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
+    queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+  }, [queryClient, workspaceId]);
 
-    function handleExited(msg: { terminalId: string; exitCode: number }) {
+  const handleExited = useCallback(
+    (msg: { terminalId: string; exitCode: number }) => {
       updateTerminalStatus(msg.terminalId, "exited", msg.exitCode);
-    }
+    },
+    [updateTerminalStatus],
+  );
 
-    function handleDisconnected(msg: { terminalId: string }) {
+  const handleDisconnected = useCallback(
+    (msg: { terminalId: string }) => {
       updateTerminalStatus(msg.terminalId, "disconnected");
-    }
+    },
+    [updateTerminalStatus],
+  );
 
-    function handleError(msg: { terminalId: string; error: string }) {
+  const handleError = useCallback(
+    (msg: { terminalId: string; error: string }) => {
       console.error(`Terminal ${msg.terminalId} error: ${msg.error}`);
-    }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const terminalHub = getTerminalHub();
 
     terminalHub.on("TerminalOutput", handleOutput);
     terminalHub.on("TerminalCreated", handleCreated);
@@ -115,7 +130,7 @@ export function useTerminals() {
       terminalHub.off("TerminalDisconnected", handleDisconnected);
       terminalHub.off("TerminalError", handleError);
     };
-  }, [addOutput, queryClient, workspaceId]);
+  }, [handleOutput, handleCreated, handleExited, handleDisconnected, handleError]);
 
   return {
     terminals: terminalsQuery.data?.terminals ?? [],

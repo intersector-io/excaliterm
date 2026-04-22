@@ -21,6 +21,6 @@ export async function copyToClipboard(text: string): Promise<void> {
   try {
     document.execCommand("copy");
   } finally {
-    document.body.removeChild(textarea);
+    textarea.remove();
   }
 }

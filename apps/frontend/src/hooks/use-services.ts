@@ -13,32 +13,34 @@ export function useServices() {
     queryFn: () => api.listServices(workspaceId),
   });
 
-  useEffect(() => {
-    const terminalHub = getTerminalHub();
+  function setServiceOnline(prev: { services: api.ServiceInstance[] } | undefined, serviceId: string) {
+    if (!prev) return prev;
+    return {
+      services: prev.services.map((s) =>
+        s.serviceId === serviceId ? { ...s, status: "online" as const } : s,
+      ),
+    };
+  }
 
-    function handleServiceOnline(serviceId: string) {
+  const handleServiceOnline = useCallback(
+    (serviceId: string) => {
       const old = queryClient.getQueryData<{ services: api.ServiceInstance[] }>(["services", workspaceId]);
       const exists = old?.services.some((s) => s.serviceId === serviceId);
 
       if (exists) {
         queryClient.setQueryData(
           ["services", workspaceId],
-          (prev: { services: api.ServiceInstance[] } | undefined) => {
-            if (!prev) return prev;
-            return {
-              services: prev.services.map((s) =>
-                s.serviceId === serviceId ? { ...s, status: "online" as const } : s,
-              ),
-            };
-          },
+          (prev: { services: api.ServiceInstance[] } | undefined) => setServiceOnline(prev, serviceId),
         );
       } else {
-        // New service auto-registered by CLI — refetch list
         queryClient.invalidateQueries({ queryKey: ["services", workspaceId] });
       }
-    }
+    },
+    [queryClient, workspaceId],
+  );
 
-    function handleServiceOffline(serviceId: string) {
+  const handleServiceOffline = useCallback(
+    (serviceId: string) => {
       queryClient.setQueryData(
         ["services", workspaceId],
         (old: { services: api.ServiceInstance[] } | undefined) => {
@@ -52,7 +54,12 @@ export function useServices() {
           };
         },
       );
-    }
+    },
+    [queryClient, workspaceId],
+  );
+
+  useEffect(() => {
+    const terminalHub = getTerminalHub();
 
     terminalHub.on("ServiceOnline", handleServiceOnline);
     terminalHub.on("ServiceOffline", handleServiceOffline);
@@ -61,7 +68,7 @@ export function useServices() {
       terminalHub.off("ServiceOnline", handleServiceOnline);
       terminalHub.off("ServiceOffline", handleServiceOffline);
     };
-  }, [queryClient, workspaceId]);
+  }, [handleServiceOnline, handleServiceOffline]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteServiceApi(workspaceId, id),

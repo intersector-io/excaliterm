@@ -23,7 +23,7 @@ export function FileTree({
   currentPath,
   loading,
   onFileSelect,
-}: FileTreeProps) {
+}: Readonly<FileTreeProps>) {
   const [filter, setFilter] = useState("");
   const [dirContents, setDirContents] = useState<Map<string, FileEntryDto[]>>(new Map());
   const [loadingDirs, setLoadingDirs] = useState<Set<string>>(new Set());
@@ -114,7 +114,6 @@ export function FileTree({
           <FileTreeItem
             key={entry.path}
             name={entry.name}
-            path={entry.path}
             isDirectory={entry.isDirectory}
             isExpanded={isExpanded}
             isActive={isActive}
@@ -178,11 +177,12 @@ export function FileTree({
 
       {/* Tree */}
       <div className="flex-1 overflow-y-auto px-1">
-        {loading && treeItems.length === 0 ? (
+        {loading && treeItems.length === 0 && (
           <div className="px-3 py-4 text-center text-sm text-muted-foreground">
             Loading files...
           </div>
-        ) : treeItems.length === 0 ? (
+        )}
+        {!(loading && treeItems.length === 0) && treeItems.length === 0 && (
           <div className="flex flex-col items-center gap-2 px-3 py-8 text-center text-muted-foreground">
             <FolderOpen className="h-8 w-8 opacity-30" />
             <p className="text-xs">
@@ -194,9 +194,8 @@ export function FileTree({
               </p>
             )}
           </div>
-        ) : (
-          treeItems
         )}
+        {!(loading && treeItems.length === 0) && treeItems.length > 0 && treeItems}
       </div>
     </div>
   );

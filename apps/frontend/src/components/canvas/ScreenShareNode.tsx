@@ -1,6 +1,5 @@
 import { memo, useCallback, useRef, useState } from "react";
-import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
 import { Monitor, X, Play, Pause, Maximize2 } from "lucide-react";
 import { useCanvas, type ScreenShareNodeData } from "@/hooks/use-canvas";
 import { useScreenShare } from "@/hooks/use-screen-share";
@@ -51,6 +50,7 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
   const statusLabel = getStreamStatusLabel();
 
   const frame = paused ? null : session?.currentFrame;
+  const noFrameLabel = paused ? "Paused" : (session ? "Waiting for frames..." : "No stream");
 
   return (
     <>
@@ -129,7 +129,7 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
               <div className="flex flex-col items-center gap-2 text-center">
                 <Monitor className="h-8 w-8 text-accent-green/20 animate-pulse" />
                 <span className="text-body-sm text-white/30">
-                  {paused ? "Paused" : session ? "Waiting for frames..." : "No stream"}
+                  {noFrameLabel}
                 </span>
               </div>
             </div>

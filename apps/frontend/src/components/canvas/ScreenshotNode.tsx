@@ -1,6 +1,5 @@
 import { memo, useCallback, useRef } from "react";
-import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
+import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
 import { Camera, X, Clock, Maximize2 } from "lucide-react";
 import { useCanvas } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";

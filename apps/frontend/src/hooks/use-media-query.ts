@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia(query).matches;
+    if (typeof globalThis.window === "undefined") return false;
+    return globalThis.matchMedia(query).matches;
   });
 
   useEffect(() => {
-    const mql = window.matchMedia(query);
+    const mql = globalThis.matchMedia(query);
 
     function handleChange(e: MediaQueryListEvent) {
       setMatches(e.matches);

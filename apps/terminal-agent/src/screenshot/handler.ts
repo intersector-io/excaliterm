@@ -1,7 +1,7 @@
-import { execFile } from "child_process";
-import { readFile, unlink } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
+import { execFile } from "node:child_process";
+import { readFile, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 export interface MonitorInfo {
   index: number;
@@ -51,8 +51,8 @@ export class ScreenshotHandler {
             return {
               index: i,
               name: primary === "True" ? `${name} (Primary)` : name,
-              width: parseInt(w) || 0,
-              height: parseInt(h) || 0,
+              width: Number.parseInt(w) || 0,
+              height: Number.parseInt(h) || 0,
             };
           });
         resolve(monitors.length > 0 ? monitors : [{ index: 0, name: "Primary Display", width: 0, height: 0 }]);
@@ -66,7 +66,7 @@ export class ScreenshotHandler {
     height: number;
   }> {
     const tmpFile = join(tmpdir(), `excaliterm_screenshot_${Date.now()}.jpg`);
-    const escapedPath = tmpFile.replace(/\\/g, "\\\\");
+    const escapedPath = tmpFile.replaceAll("\\", "\\\\");
 
     const script = [
       "Add-Type -AssemblyName System.Windows.Forms",
@@ -104,8 +104,8 @@ export class ScreenshotHandler {
 
             resolve({
               imageBase64: imgBuffer.toString("base64"),
-              width: parseInt(w) || 0,
-              height: parseInt(h) || 0,
+              width: Number.parseInt(w) || 0,
+              height: Number.parseInt(h) || 0,
             });
           } catch (readErr) {
             reject(new Error(`Failed to read screenshot file: ${readErr}`));

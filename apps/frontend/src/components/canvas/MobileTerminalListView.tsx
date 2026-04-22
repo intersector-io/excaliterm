@@ -72,7 +72,7 @@ export function MobileTerminalListView() {
     for (const t of terminals) {
       for (const tag of t.tags ?? []) tags.add(tag);
     }
-    return Array.from(tags).sort();
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
   }, [terminals]);
 
   const hasFilters = selectedStatuses.size > 0 || selectedTags.size > 0;
@@ -303,35 +303,33 @@ export function MobileTerminalListView() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {terminals.length === 0 ? (
-          noHost ? (
-            /* Inline connect instructions */
-            <ConnectHostInline workspaceId={workspaceId} apiKey={apiKey} />
-          ) : (
-            /* Host connected but no terminals */
-            <div className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent-cyan/15 bg-accent-cyan/[0.06]">
-                <Terminal className="h-9 w-9 text-accent-cyan/70" strokeWidth={1.5} />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-foreground">
-                  No terminals yet
-                </h2>
-                <p className="text-body-sm leading-relaxed text-muted-foreground/80">
-                  Your host is connected. Create your first terminal session.
-                </p>
-              </div>
-              <Button
-                onClick={handleNewTerminal}
-                disabled={isCreating}
-                className="h-11 w-full max-w-[280px] gap-2 rounded-xl bg-accent-cyan text-background font-medium transition-all active:scale-[0.98]"
-              >
-                <Terminal className="h-4 w-4" />
-                {isCreating ? "Creating..." : "New Terminal"}
-              </Button>
+        {terminals.length === 0 && noHost && (
+          <ConnectHostInline workspaceId={workspaceId} apiKey={apiKey} />
+        )}
+        {terminals.length === 0 && !noHost && (
+          <div className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent-cyan/15 bg-accent-cyan/[0.06]">
+              <Terminal className="h-9 w-9 text-accent-cyan/70" strokeWidth={1.5} />
             </div>
-          )
-        ) : filteredTerminals.length === 0 ? (
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-foreground">
+                No terminals yet
+              </h2>
+              <p className="text-body-sm leading-relaxed text-muted-foreground/80">
+                Your host is connected. Create your first terminal session.
+              </p>
+            </div>
+            <Button
+              onClick={handleNewTerminal}
+              disabled={isCreating}
+              className="h-11 w-full max-w-[280px] gap-2 rounded-xl bg-accent-cyan text-background font-medium transition-all active:scale-[0.98]"
+            >
+              <Terminal className="h-4 w-4" />
+              {isCreating ? "Creating..." : "New Terminal"}
+            </Button>
+          </div>
+        )}
+        {terminals.length > 0 && filteredTerminals.length === 0 ? (
           /* No matches */
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <Filter className="h-8 w-8 text-muted-foreground/30" />
@@ -434,9 +432,7 @@ export function MobileTerminalListView() {
                 <span>
                   {noHost
                     ? "No host connected"
-                    : isCreating
-                      ? "Creating..."
-                      : "New Terminal"}
+                    : (isCreating ? "Creating..." : "New Terminal")}
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -506,7 +502,7 @@ function TerminalCard({
   statusColor,
   statusLabel,
   onTap,
-}: {
+}: Readonly<{
   terminalId: string;
   status: string;
   tags?: string[];
@@ -514,7 +510,7 @@ function TerminalCard({
   statusColor: string;
   statusLabel: string;
   onTap: () => void;
-}) {
+}>) {
   return (
     <button
       onClick={onTap}
@@ -579,12 +575,12 @@ function ChevronIcon() {
 function ConnectHostInline({
   workspaceId,
   apiKey,
-}: {
+}: Readonly<{
   workspaceId: string;
   apiKey: string;
-}) {
+}>) {
   const { copy, isCopied } = useCopyWithFeedback();
-  const hubUrl = window.location.origin;
+  const hubUrl = globalThis.location.origin;
   const params = { hubUrl, workspaceId, apiKey };
   const runCmd = buildRunCommand(params);
   const envFile = buildEnvFile(params);

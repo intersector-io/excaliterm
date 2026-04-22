@@ -30,7 +30,6 @@ function getFileIcon(name: string, isDirectory: boolean, isExpanded: boolean) {
 
 interface FileTreeItemProps {
   name: string;
-  path: string;
   isDirectory: boolean;
   isExpanded: boolean;
   isActive: boolean;
@@ -47,7 +46,7 @@ export function FileTreeItem({
   depth,
   onToggle,
   onClick,
-}: FileTreeItemProps) {
+}: Readonly<FileTreeItemProps>) {
   const handleClick = () => {
     if (isDirectory) {
       onToggle();

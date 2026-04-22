@@ -7,7 +7,7 @@ interface CopyButtonProps {
   variant?: "ghost" | "plain";
 }
 
-function CopyButtonContent({ copied }: { copied: boolean }) {
+function CopyButtonContent({ copied }: Readonly<{ copied: boolean }>) {
   if (copied) {
     return (
       <>
@@ -24,7 +24,7 @@ function CopyButtonContent({ copied }: { copied: boolean }) {
   );
 }
 
-export function CopyButton({ copied, onClick, variant = "ghost" }: CopyButtonProps) {
+export function CopyButton({ copied, onClick, variant = "ghost" }: Readonly<CopyButtonProps>) {
   if (variant === "plain") {
     return (
       <button

@@ -14,22 +14,22 @@ function CreateAndRedirect() {
 
   useEffect(() => {
     // Resume last workspace if it still exists
-    const savedId = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
+    const savedId = globalThis.localStorage.getItem(WORKSPACE_STORAGE_KEY);
     if (savedId) {
       getWorkspace(savedId)
         .then(() => navigate(`/w/${savedId}`, { replace: true }))
         .catch(() => {
           // Workspace expired or deleted — create a fresh one
-          window.localStorage.removeItem(WORKSPACE_STORAGE_KEY);
+          globalThis.localStorage.removeItem(WORKSPACE_STORAGE_KEY);
           createWorkspace().then((ws) => {
-            window.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
+            globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
             navigate(`/w/${ws.id}`, { replace: true });
           });
         });
     } else {
       createWorkspace()
         .then((ws) => {
-          window.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
+          globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
           navigate(`/w/${ws.id}`, { replace: true });
         })
         .catch((err) => console.error("Failed to create workspace:", err));
@@ -66,7 +66,7 @@ function WorkspaceRoute() {
   useEffect(() => {
     getWorkspace(workspaceId)
       .then((ws) => {
-        window.localStorage.setItem(WORKSPACE_STORAGE_KEY, workspaceId);
+        globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, workspaceId);
         setApiKey(ws.apiKey ?? "");
         setValid(true);
       })
@@ -119,8 +119,13 @@ function WorkspaceRoute() {
     );
   }
 
+  const ctxValue = useMemo(
+    () => ({ workspaceId, apiKey, collaborator }),
+    [workspaceId, apiKey, collaborator],
+  );
+
   return (
-    <WorkspaceCtx.Provider value={{ workspaceId, apiKey, collaborator }}>
+    <WorkspaceCtx.Provider value={ctxValue}>
       <AppShell />
     </WorkspaceCtx.Provider>
   );

@@ -11,23 +11,23 @@ function createAnonymousDisplayName(): string {
 }
 
 export function getOrCreateCollaboratorProfile(): CollaboratorProfile {
-  if (typeof window === "undefined") {
+  if (typeof globalThis.window === "undefined") {
     return {
       clientId: "server-render",
       displayName: "Anonymous",
     };
   }
 
-  let clientId = window.localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+  let clientId = globalThis.localStorage.getItem(CLIENT_ID_STORAGE_KEY);
   if (!clientId) {
     clientId = crypto.randomUUID();
-    window.localStorage.setItem(CLIENT_ID_STORAGE_KEY, clientId);
+    globalThis.localStorage.setItem(CLIENT_ID_STORAGE_KEY, clientId);
   }
 
-  let displayName = window.localStorage.getItem(DISPLAY_NAME_STORAGE_KEY);
+  let displayName = globalThis.localStorage.getItem(DISPLAY_NAME_STORAGE_KEY);
   if (!displayName) {
     displayName = createAnonymousDisplayName();
-    window.localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
+    globalThis.localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, displayName);
   }
 
   return { clientId, displayName };
@@ -36,7 +36,7 @@ export function getOrCreateCollaboratorProfile(): CollaboratorProfile {
 export function updateCollaboratorDisplayName(displayName: string): CollaboratorProfile {
   const trimmed = displayName.trim() || createAnonymousDisplayName();
   const current = getOrCreateCollaboratorProfile();
-  window.localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, trimmed);
+  globalThis.localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, trimmed);
   return {
     ...current,
     displayName: trimmed,

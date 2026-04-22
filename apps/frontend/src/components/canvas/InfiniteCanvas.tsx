@@ -52,7 +52,7 @@ interface InfiniteCanvasProps {
   onFullScreenRef?: React.MutableRefObject<((terminalId: string, status: string) => void) | null>;
 }
 
-export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: InfiniteCanvasProps) {
+export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly<InfiniteCanvasProps>) {
   const { nodes, edges, onNodesChange } = useCanvas();
   const { createTerminal, isCreating, terminals } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
@@ -67,7 +67,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
   // Auto-zoom to latest node when a new one is added
   useEffect(() => {
     if (nodes.length > prevNodeCount.current && nodes.length > 0) {
-      const latestNode = nodes[nodes.length - 1];
+      const latestNode = nodes.at(-1);
       if (latestNode) {
         setTimeout(() => {
           reactFlow.fitView({
@@ -190,6 +190,8 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
     }
   }
 
+  const terminalButtonLabel = noHost ? "No host connected" : isCreating ? "Creating..." : "New Terminal";
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">
       <ReactFlow
@@ -252,13 +254,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
             <DropdownMenuContent side="top" align="end">
               <DropdownMenuItem onClick={onNewTerminal} disabled={isCreating || noHost}>
                 <Terminal className="h-4 w-4" />
-                <span>
-                  {noHost
-                    ? "No host connected"
-                    : isCreating
-                      ? "Creating..."
-                      : "New Terminal"}
-                </span>
+                <span>{terminalButtonLabel}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onNewNote} disabled={isCreatingNote}>
                 <StickyNote className="h-4 w-4" />

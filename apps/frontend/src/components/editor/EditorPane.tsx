@@ -6,9 +6,6 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { THEME_NAME, excalitermDarkTheme } from "@/lib/monaco-theme";
 import { EditorTabs } from "./EditorTabs";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MonacoEditor = any;
-
 const MonacoEditorLazy = lazy(() =>
   import("@monaco-editor/react").then((mod) => ({ default: mod.Editor })),
 );
@@ -18,16 +15,18 @@ interface EditorPaneProps {
   readOnly?: boolean;
 }
 
-export function EditorPane({ onSave, readOnly = false }: EditorPaneProps) {
+export function EditorPane({ onSave, readOnly = false }: Readonly<EditorPaneProps>) {
   const storeApi = useContext(EditorStoreContext);
   const { openFiles, activeFile, updateContent, markSaved } = useEditorStore();
-  const editorRef = useRef<MonacoEditor>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const editorRef = useRef<any>(null);
   const isMobile = useMediaQuery("(max-width: 767px)");
 
   const activeFileData = activeFile ? openFiles.get(activeFile) : undefined;
 
   const handleEditorDidMount = useCallback(
-    (editor: MonacoEditor, monaco: MonacoEditor) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (editor: any, monaco: any) => {
       editorRef.current = editor;
 
       // Register custom theme

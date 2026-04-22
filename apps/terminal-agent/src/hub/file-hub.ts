@@ -30,7 +30,7 @@ interface FileErrorResponse {
 }
 
 export class FileHubConnection {
-  private hub: signalR.HubConnection;
+  private readonly hub: signalR.HubConnection;
   private readonly config: Config;
   private readonly fileHandler: FileSystemHandler;
   private readonly screenshotHandler: ScreenshotHandler;

@@ -18,6 +18,8 @@ export function EditorTabs() {
         return (
           <div
             key={path}
+            role="button"
+            tabIndex={0}
             className={cn(
               "group flex min-w-0 max-w-48 shrink-0 cursor-pointer items-center gap-1.5 border-r border-border px-3 text-sm transition-colors",
               isActive
@@ -25,6 +27,7 @@ export function EditorTabs() {
                 : "bg-surface-sunken text-muted-foreground hover:bg-background/50 hover:text-foreground",
             )}
             onClick={() => setActiveFile(path)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActiveFile(path); }}
           >
             {/* Dirty indicator */}
             {file.isDirty && (

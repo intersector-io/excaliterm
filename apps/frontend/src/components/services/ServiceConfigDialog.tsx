@@ -38,7 +38,7 @@ export function ServiceConfigDialog({
   apiKey,
   onDelete,
   isDeleting,
-}: ServiceConfigDialogProps) {
+}: Readonly<ServiceConfigDialogProps>) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { copy, isCopied, reset } = useCopyWithFeedback();
 
@@ -59,7 +59,7 @@ export function ServiceConfigDialog({
     handleClose(false);
   }
 
-  const hubUrl = window.location.origin;
+  const hubUrl = globalThis.location.origin;
   const params = { hubUrl, workspaceId, apiKey, serviceId: service.serviceId };
   const runCmd = buildRunCommand(params);
   const envFile = buildEnvFile(params);
