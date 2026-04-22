@@ -1,10 +1,11 @@
-import dotenv from "dotenv";
-import path from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+// process.loadEnvFile is a Node 20.12+ built-in; missing file is intentionally ignored
+const __dirname = resolve(fileURLToPath(import.meta.url), "..");
+try { process.loadEnvFile(resolve(__dirname, "../../../.env")); }
+catch (err: unknown) { if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err; }
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),

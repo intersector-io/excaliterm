@@ -1,10 +1,17 @@
 #!/usr/bin/env node
-import { config as dotenvConfig } from "dotenv";
 import { resolve } from "node:path";
 
-// Load .env from agent dir first, then fall back to monorepo root
-dotenvConfig();
-dotenvConfig({ path: resolve(import.meta.dirname, "../../../.env") });
+// process.loadEnvFile is a Node 20.12+ built-in; missing files are intentionally ignored
+tryLoadEnvFile(resolve(import.meta.dirname, "../../../.env"));
+tryLoadEnvFile();
+
+function tryLoadEnvFile(path?: string): void {
+  try {
+    path ? process.loadEnvFile(path) : process.loadEnvFile();
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+}
 
 import { loadConfig } from "./config.js";
 import { TerminalManager } from "./terminal/manager.js";

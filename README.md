@@ -42,7 +42,7 @@ In the canvas toolbar, click **Connect a Host**. The dialog shows the full conne
 npm install -g excaliterm
 ```
 
-Requires [Node.js](https://nodejs.org/) 18 or later.
+Requires [Node.js](https://nodejs.org/) 20.12 or later.
 
 ### 4. Connect your machine
 
