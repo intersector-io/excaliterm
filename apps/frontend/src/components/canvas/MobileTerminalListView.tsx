@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { INSTALL_CMD, buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
+import { getHubUrl } from "@/lib/config";
 import { useCopyWithFeedback } from "@/hooks/use-copy";
 import { CopyButton } from "@/components/ui/copy-button";
 import type { TerminalStatus } from "@excaliterm/shared-types";
@@ -580,7 +581,7 @@ function ConnectHostInline({
   apiKey: string;
 }>) {
   const { copy, isCopied } = useCopyWithFeedback();
-  const hubUrl = globalThis.location.origin;
+  const hubUrl = getHubUrl();
   const params = { hubUrl, workspaceId, apiKey };
   const runCmd = buildRunCommand(params);
   const envFile = buildEnvFile(params);

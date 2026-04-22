@@ -11,7 +11,7 @@ npm install -g excaliterm
 ## Usage
 
 ```bash
-export SIGNALR_HUB_URL="https://your-hub:5000"
+export SIGNALR_HUB_URL="https://hub.excaliterm.com"
 export SERVICE_API_KEY="your-workspace-api-key"
 export WORKSPACE_ID="your-workspace-id"
 excaliterm

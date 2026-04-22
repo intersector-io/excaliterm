@@ -51,7 +51,7 @@ Paste the command from the "Connect a Host" dialog, or set the environment varia
 **Linux / macOS:**
 
 ```bash
-export SIGNALR_HUB_URL="<hub URL>"
+export SIGNALR_HUB_URL="https://hub.excaliterm.com"
 export SERVICE_API_KEY="<workspace API key>"
 export WORKSPACE_ID="<workspace ID from URL>"
 excaliterm
@@ -60,7 +60,7 @@ excaliterm
 **Windows (PowerShell):**
 
 ```powershell
-$env:SIGNALR_HUB_URL = "<hub URL>"
+$env:SIGNALR_HUB_URL = "https://hub.excaliterm.com"
 $env:SERVICE_API_KEY = "<workspace API key>"
 $env:WORKSPACE_ID = "<workspace ID from URL>"
 excaliterm

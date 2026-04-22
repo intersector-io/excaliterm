@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
+import { getHubUrl } from "@/lib/config";
 import { useCopyWithFeedback } from "@/hooks/use-copy";
 import type { ServiceInstance } from "@/lib/api-client";
 
@@ -59,7 +60,7 @@ export function ServiceConfigDialog({
     handleClose(false);
   }
 
-  const hubUrl = globalThis.location.origin;
+  const hubUrl = getHubUrl();
   const params = { hubUrl, workspaceId, apiKey, serviceId: service.serviceId };
   const runCmd = buildRunCommand(params);
   const envFile = buildEnvFile(params);

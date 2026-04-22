@@ -59,16 +59,16 @@ Open the "Connect a Host" dialog in the workspace UI. It shows the full connecti
 
 ```bash
 # Via environment variables
-export SIGNALR_HUB_URL="https://your-hub-url:5000"
+export SIGNALR_HUB_URL="https://hub.excaliterm.com"
 export SERVICE_API_KEY="your-workspace-api-key"
 export WORKSPACE_ID="Ab12Cd34Ef56"
 excaliterm
 
 # Or inline (useful for one-off runs)
-SIGNALR_HUB_URL=https://hub:5000 SERVICE_API_KEY=secret WORKSPACE_ID=Ab12Cd34Ef56 excaliterm
+SIGNALR_HUB_URL=https://hub.excaliterm.com SERVICE_API_KEY=secret WORKSPACE_ID=Ab12Cd34Ef56 excaliterm
 
 # Or with a .env file in the current directory
-echo 'SIGNALR_HUB_URL=https://hub:5000
+echo 'SIGNALR_HUB_URL=https://hub.excaliterm.com
 SERVICE_API_KEY=secret
 WORKSPACE_ID=Ab12Cd34Ef56' > .env
 excaliterm

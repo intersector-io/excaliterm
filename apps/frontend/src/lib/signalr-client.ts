@@ -5,6 +5,7 @@ import {
   LogLevel,
 } from "@microsoft/signalr";
 import type { CollaboratorProfile } from "@/lib/collaborator";
+import { getHubUrl } from "@/lib/config";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "reconnecting";
 
@@ -13,7 +14,7 @@ type StatusChangeHandler = (hub: string, status: ConnectionStatus) => void;
 const statusHandlers = new Set<StatusChangeHandler>();
 
 function buildConnection(path: string, workspaceId: string, collaborator: CollaboratorProfile): HubConnection {
-  const hubBase = import.meta.env.VITE_HUB_URL || globalThis.location.origin;
+  const hubBase = getHubUrl();
   const url = new URL(path, hubBase);
   url.searchParams.set("workspaceId", workspaceId);
   url.searchParams.set("clientId", collaborator.clientId);

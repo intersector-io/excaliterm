@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { INSTALL_CMD, buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
+import { getHubUrl } from "@/lib/config";
 import { useCopyWithFeedback } from "@/hooks/use-copy";
 
 interface RegisterServiceDialogProps {
@@ -32,7 +33,7 @@ export function RegisterServiceDialog({
     onOpenChange(value);
   }
 
-  const hubUrl = globalThis.location.origin;
+  const hubUrl = getHubUrl();
   const params = { hubUrl, workspaceId, apiKey };
   const runCmd = buildRunCommand(params);
   const envFile = buildEnvFile(params);

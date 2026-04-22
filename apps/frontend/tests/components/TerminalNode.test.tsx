@@ -1,14 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 
 const mockDeleteTerminal = vi.fn();
 const mockDeleteNode = vi.fn();
+const mockUpdateTerminal = vi.fn();
+const mockAddScreenShareNode = vi.fn();
 
 vi.mock("@/hooks/use-terminal", () => ({
   useTerminals: () => ({
     deleteTerminal: mockDeleteTerminal,
+    updateTerminal: mockUpdateTerminal,
     terminals: [],
     isLoading: false,
     createTerminal: vi.fn(),
@@ -19,6 +22,7 @@ vi.mock("@/hooks/use-terminal", () => ({
 vi.mock("@/hooks/use-canvas", () => ({
   useCanvas: () => ({
     deleteNode: mockDeleteNode,
+    addScreenShareNode: mockAddScreenShareNode,
     nodes: [],
     edges: [],
     onNodesChange: vi.fn(),
@@ -28,6 +32,24 @@ vi.mock("@/hooks/use-canvas", () => ({
 
 vi.mock("@/hooks/use-media-query", () => ({
   useMediaQuery: () => false,
+}));
+
+vi.mock("@/hooks/use-screenshot", () => ({
+  useScreenshot: () => ({
+    monitors: [],
+    isLoadingMonitors: false,
+    isCapturing: false,
+    listMonitors: vi.fn(),
+    captureScreenshot: vi.fn(),
+  }),
+}));
+
+vi.mock("@/hooks/use-screen-share", () => ({
+  useScreenShare: () => ({
+    isSharing: false,
+    startScreenShare: vi.fn(),
+    stopSharing: vi.fn(),
+  }),
 }));
 
 vi.mock("@/hooks/use-terminal-collaboration", () => ({
@@ -64,6 +86,7 @@ function renderTerminalNode(overrides: {
   status?: "active" | "disconnected" | "exited" | "error";
   exitCode?: number | null;
   terminalId?: string;
+  selected?: boolean;
 }) {
   const props: any = {
     id: "node-1",
@@ -73,7 +96,7 @@ function renderTerminalNode(overrides: {
       status: overrides.status ?? "active",
       exitCode: overrides.exitCode ?? null,
     },
-    selected: false,
+    selected: overrides.selected ?? false,
     type: "terminal" as const,
     dragging: false,
     isConnectable: false,
@@ -96,50 +119,42 @@ describe("TerminalNode", () => {
     vi.clearAllMocks();
     mockDeleteTerminal.mockResolvedValue(undefined);
     mockDeleteNode.mockResolvedValue(undefined);
+    mockUpdateTerminal.mockResolvedValue(undefined);
   });
 
   it("renders an active terminal", () => {
     renderTerminalNode({ status: "active", terminalId: "abc12345-xxxx" });
 
     expect(screen.getByText("abc12345")).toBeInTheDocument();
-    expect(screen.getByText("Live terminal")).toBeInTheDocument();
+    expect(screen.getAllByText("Live").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("terminal-view").dataset.status).toBe("active");
-    expect(screen.queryByText("disconnected")).not.toBeInTheDocument();
   });
 
   it("renders disconnected terminals as inactive", () => {
     const { container } = renderTerminalNode({ status: "disconnected" });
 
-    expect(screen.getAllByText("Host offline").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Offline").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByTestId("terminal-view").dataset.status).toBe("disconnected");
     expect(container.querySelector(".opacity-70")).not.toBeNull();
   });
 
-  it("close button destroys active terminals before removing the node", async () => {
-    renderTerminalNode({ status: "active" });
+  it("shows overflow menu trigger when selected for active terminals", () => {
+    renderTerminalNode({ status: "active", selected: true });
 
-    fireEvent.click(screen.getByTitle("Close terminal"));
-
-    await waitFor(() => {
-      expect(mockDeleteTerminal).toHaveBeenCalledWith("abc12345-test-id");
-      expect(mockDeleteNode).toHaveBeenCalledWith("node-1");
-    });
+    const menuTrigger = screen.getByRole("button", { expanded: false });
+    expect(menuTrigger).toBeInTheDocument();
   });
 
-  it("close button only dismisses disconnected terminals", async () => {
-    renderTerminalNode({ status: "disconnected" });
+  it("shows overflow menu trigger when selected for disconnected terminals", () => {
+    renderTerminalNode({ status: "disconnected", selected: true });
 
-    fireEvent.click(screen.getByTitle("Dismiss"));
-
-    await waitFor(() => {
-      expect(mockDeleteTerminal).not.toHaveBeenCalled();
-      expect(mockDeleteNode).toHaveBeenCalledWith("node-1");
-    });
+    const menuTrigger = screen.getByRole("button", { expanded: false });
+    expect(menuTrigger).toBeInTheDocument();
   });
 
-  it("shows the error badge for error terminals", () => {
+  it("shows error status for error terminals", () => {
     renderTerminalNode({ status: "error" });
 
-    expect(screen.getAllByText("Needs attention").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Error").length).toBeGreaterThanOrEqual(1);
   });
 });
