@@ -8,16 +8,16 @@ interface CommandParams {
 }
 
 export function buildRunCommand({ hubUrl, workspaceId, apiKey, serviceId }: CommandParams): string {
-  const lines = [
-    "excaliterm \\",
-    `  --hub-url ${hubUrl} \\`,
-    `  --workspace-id ${workspaceId} \\`,
+  const parts = [
+    "excaliterm",
+    `--hub-url ${hubUrl}`,
+    `--workspace-id ${workspaceId}`,
   ];
   if (serviceId) {
-    lines.push(`  --service-id ${serviceId} \\`);
+    parts.push(`--service-id ${serviceId}`);
   }
-  lines.push(`  --api-key ${apiKey}`);
-  return lines.join("\n");
+  parts.push(`--api-key ${apiKey}`);
+  return parts.join(" ");
 }
 
 export function buildEnvFile({ hubUrl, workspaceId, apiKey, serviceId }: CommandParams): string {
