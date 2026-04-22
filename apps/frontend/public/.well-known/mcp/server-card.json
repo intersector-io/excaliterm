@@ -1,0 +1,12 @@
+{
+  "serverInfo": {
+    "name": "excaliterm",
+    "version": "0.1.3"
+  },
+  "endpoint": "/mcp",
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": false
+  }
+}

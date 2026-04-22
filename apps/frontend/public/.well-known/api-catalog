@@ -1,0 +1,13 @@
+{
+  "linkset": [
+    {
+      "anchor": "/api/",
+      "status": [
+        {
+          "href": "/api/health",
+          "type": "application/json"
+        }
+      ]
+    }
+  ]
+}

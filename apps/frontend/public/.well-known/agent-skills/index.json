@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "workspace-management",
+      "type": "skill-md",
+      "description": "Create and manage collaborative terminal workspaces",
+      "url": "/.well-known/agent-skills/workspace-management/SKILL.md",
+      "digest": "sha256:65c164598d2f7ec4b6ff132175390a240719cc62d720194c01daaa336987f35e"
+    },
+    {
+      "name": "terminal-sessions",
+      "type": "skill-md",
+      "description": "Open, interact with, and manage terminal sessions within a workspace",
+      "url": "/.well-known/agent-skills/terminal-sessions/SKILL.md",
+      "digest": "sha256:e292b9ccbf54695fc3b6368e0c75f528614e02bb3b60472c1447977f9a83a82f"
+    }
+  ]
+}

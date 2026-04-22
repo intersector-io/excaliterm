@@ -208,6 +208,19 @@ terminal_session 1--0..1 canvas_node
 note 1--0..1 canvas_node
 ```
 
+## Agent Discovery
+
+The frontend serves several static files and nginx configuration for AI agent discoverability:
+
+- `/robots.txt` and `/sitemap.xml` for crawlers
+- `/.well-known/api-catalog` (`application/linkset+json`) for API discovery per RFC 9727
+- `/.well-known/mcp/server-card.json` for MCP server metadata
+- `/.well-known/agent-skills/index.json` with skill definitions for workspace and terminal management
+- `Link` response headers on all pages pointing to the API catalog and health endpoint
+- Content negotiation: requests with `Accept: text/markdown` on the homepage return a markdown representation instead of the SPA HTML
+- WebMCP tools registered via `navigator.modelContext` for browser-based AI agents (create-workspace, get-workspace, list-terminals, health-check)
+- Cloudflare Pages `_headers` file for production Link header and Content-Type enforcement
+
 ## Current Constraints
 
 - Browser access is workspace-link-based today. The old Better Auth flow is not part of the active architecture.

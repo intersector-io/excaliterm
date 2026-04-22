@@ -1,0 +1,19 @@
+# Link headers for agent discovery (RFC 8288 / RFC 9727)
+/
+  Link: </.well-known/api-catalog>; rel="api-catalog", </.well-known/mcp/server-card.json>; rel="describedby", </api/health>; rel="status"
+
+/*
+  Link: </.well-known/api-catalog>; rel="api-catalog"
+
+# API catalog content type
+/.well-known/api-catalog
+  Content-Type: application/linkset+json
+  Link: </.well-known/api-catalog>; rel="api-catalog"
+
+# Agent skills content type
+/.well-known/agent-skills/index.json
+  Content-Type: application/json
+
+# MCP server card content type
+/.well-known/mcp/server-card.json
+  Content-Type: application/json

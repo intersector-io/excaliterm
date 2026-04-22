@@ -221,6 +221,21 @@ pnpm --filter @excaliterm/frontend test
 dotnet build apps/signalr-hub/Excaliterm.Hub
 ```
 
+## Agent Discovery
+
+Excaliterm implements several standards for AI agent discoverability:
+
+| Standard | Endpoint | Description |
+|---|---|---|
+| Sitemap | `/sitemap.xml` | Canonical URL listing |
+| Robots | `/robots.txt` | Crawl policy with sitemap reference |
+| API Catalog (RFC 9727) | `/.well-known/api-catalog` | `application/linkset+json` API discovery |
+| MCP Server Card | `/.well-known/mcp/server-card.json` | Model Context Protocol server metadata |
+| Agent Skills (v0.2.0) | `/.well-known/agent-skills/index.json` | Agent skills discovery index |
+| Link Headers (RFC 8288) | All pages | `Link` response headers for agent discovery |
+| Markdown for Agents | Homepage | `Accept: text/markdown` content negotiation |
+| WebMCP | All pages | Browser-exposed tools via `navigator.modelContext` |
+
 ## Documentation
 
 - [Architecture](./docs/architecture.md)

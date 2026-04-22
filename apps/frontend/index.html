@@ -11,5 +11,53 @@
   <body class="min-h-screen bg-background text-foreground antialiased">
     <div id="root" class="h-screen w-screen"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if (navigator.modelContext) {
+        const reg = (def) => navigator.modelContext.registerTool(def);
+        const api = async (path, opts) => {
+          const res = await fetch(`/api${path}`, opts);
+          if (!res.ok) return { error: `${res.status} ${res.statusText}` };
+          return res.json();
+        };
+        reg({
+          name: "create-workspace",
+          description: "Create a new collaborative terminal canvas workspace",
+          inputSchema: { type: "object", properties: {}, additionalProperties: false },
+          async execute() {
+            const ws = await api("/workspaces", { method: "POST" });
+            if (ws.error) return ws;
+            return { workspaceId: ws.id, url: `${location.origin}/w/${ws.id}` };
+          }
+        });
+        reg({
+          name: "get-workspace",
+          description: "Get details of an existing workspace by ID",
+          inputSchema: {
+            type: "object",
+            properties: { workspaceId: { type: "string", description: "The workspace ID" } },
+            required: ["workspaceId"],
+            additionalProperties: false
+          },
+          async execute(params) { return api(`/workspaces/${params.workspaceId}`); }
+        });
+        reg({
+          name: "list-terminals",
+          description: "List terminal sessions in a workspace",
+          inputSchema: {
+            type: "object",
+            properties: { workspaceId: { type: "string", description: "The workspace ID" } },
+            required: ["workspaceId"],
+            additionalProperties: false
+          },
+          async execute(params) { return api(`/w/${params.workspaceId}/terminals`); }
+        });
+        reg({
+          name: "health-check",
+          description: "Check the health status of the Excaliterm service",
+          inputSchema: { type: "object", properties: {}, additionalProperties: false },
+          async execute() { return api("/health"); }
+        });
+      }
+    </script>
   </body>
 </html>
