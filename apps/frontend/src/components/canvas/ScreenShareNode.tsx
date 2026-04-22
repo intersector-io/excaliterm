@@ -93,7 +93,7 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
         } shadow-[0_12px_40px_rgba(0,0,0,0.35)]`}
       >
         {/* Title bar */}
-        <div className="drag-handle flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-2">
+        <div className="drag-handle relative z-10 flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${statusColor}`} />
             <Monitor className="h-3.5 w-3.5 shrink-0 text-accent-green/60" />

@@ -4,6 +4,7 @@ import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
 import { TerminalListPanel } from "@/components/canvas/TerminalListPanel";
+import { TerminalDock } from "@/components/canvas/TerminalDock";
 import { MobileTerminalListView } from "@/components/canvas/MobileTerminalListView";
 import { useCanvas, type HostNodeData } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -74,6 +75,10 @@ function CanvasView() {
       <div className="relative min-h-0 flex-1">
         <InfiniteCanvas onFocusTerminalRef={focusTerminalRef} onFullScreenRef={fullScreenRef} />
         {nodes.length === 0 && <CanvasEmptyState />}
+        <TerminalDock
+          onFocusTerminal={handleFocusTerminal}
+          onFullScreenTerminal={handleFullScreenTerminal}
+        />
       </div>
       <TerminalListPanel
         open={terminalListOpen}

@@ -77,7 +77,7 @@ function ScreenshotNodeComponent({ id, data, selected }: NodeProps<ScreenshotNod
         } bg-surface-raised`}
       >
         {/* Title bar */}
-        <div className="drag-handle flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-2">
+        <div className="drag-handle relative z-10 flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-2">
           <div className="flex items-center gap-2 min-w-0">
             <Camera className="h-3.5 w-3.5 shrink-0 text-accent-purple/60" />
             <span className="text-body-sm font-medium text-white/60">

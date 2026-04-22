@@ -133,7 +133,7 @@ function EditorNodeComponent({ id, data, selected }: NodeProps<EditorNodeType>) 
       />
       <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-accent-blue/12 shadow-[0_12px_40px_rgba(0,0,0,0.35)] bg-surface-raised">
         {/* Title bar */}
-        <div className="flex items-center justify-between border-b border-border-subtle px-3.5 drag-handle min-h-[40px] py-1.5">
+        <div className="relative z-10 flex items-center justify-between border-b border-border-subtle px-3.5 drag-handle min-h-[40px] py-1.5">
           <div className="flex items-center gap-2 min-w-0">
             <Code2 className="h-3.5 w-3.5 shrink-0 text-accent-blue/60" />
             <span className="truncate text-body-sm font-medium text-white/60">

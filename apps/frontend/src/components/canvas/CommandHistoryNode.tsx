@@ -164,7 +164,7 @@ function CommandHistoryNodeComponent({ id, data, selected }: NodeProps<CommandHi
         className="!w-1.5 !h-1.5 !bg-white/40 !border-0 !rounded-sm"
       />
       <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-accent-green/12 shadow-[0_12px_40px_rgba(0,0,0,0.35)] bg-surface-raised">
-        <div className="flex items-center justify-between border-b border-border-subtle px-3.5 drag-handle min-h-[40px] py-1.5">
+        <div className="relative z-10 flex items-center justify-between border-b border-border-subtle px-3.5 drag-handle min-h-[40px] py-1.5">
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-2 w-2 shrink-0 rounded-full bg-accent-green/60" />
             <span className="text-body-sm font-medium text-white/60">

@@ -210,7 +210,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         className={`flex h-full w-full flex-col overflow-hidden rounded-xl border transition-all duration-300 ${borderClass} ${glowClass}`}
       >
         {/* ─── Title Bar ─────────────────────────────────────────────── */}
-        <div className="drag-handle flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-1.5">
+        <div className="drag-handle relative z-10 flex items-center justify-between border-b border-border-subtle px-3.5 min-h-[40px] py-1.5">
           <div className="flex min-w-0 items-center gap-2.5">
             {/* Status dot */}
             <div
