@@ -12,38 +12,6 @@ Infinite canvas with live terminals, sticky notes, and a connected host:
 
 ![Desktop canvas with terminals, notes, and host](screenshots/hero-canvas.png)
 
-Sidebar navigation between Canvas, Editor, Chat, Services, and Settings:
-
-![Desktop sidebar expanded](screenshots/after-02-desktop-sidebar-pinned.png)
-
-Services page showing connected hosts with online status:
-
-![Services page with online host](screenshots/10-desktop-services-with-service.png)
-
-Command palette for keyboard-driven workflows:
-
-![Command palette](screenshots/after-03-command-palette.png)
-
-### Screen Share & Screenshots
-
-Capture a screenshot or start a live screen share from any terminal's overflow menu:
-
-![Terminal menu with Screenshot and Screen Share options](docs/screenshots/terminal-menu-screenshot-stream.png)
-
-Multi-monitor picker with resolution info -- choose which display to capture or stream:
-
-![Monitor picker dialog](docs/screenshots/monitor-picker.png)
-
-Live screen share at ~3 fps streamed directly from the host, rendered as a canvas node connected to the source terminal:
-
-![Live screen share on canvas](docs/screenshots/screen-share-live.png)
-
-### Host Management
-
-Shut down a remote host directly from the Services page (only shown for online hosts):
-
-![Services page with Shutdown button](docs/screenshots/services-shutdown.png)
-
 ### Mobile
 
 Terminal list with live status indicators and one-tap access:
