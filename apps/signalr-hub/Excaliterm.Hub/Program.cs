@@ -20,6 +20,13 @@ var redisEnabled = builder.Configuration.GetValue<bool>("Redis:Enabled")
 
 ConfigurationOptions BuildRedisOptions(string connectionString)
 {
+    // Normalize: add scheme if missing but has user:pass@host format
+    if (!connectionString.StartsWith("redis://") && !connectionString.StartsWith("rediss://")
+        && connectionString.Contains('@'))
+    {
+        connectionString = "redis://" + connectionString;
+    }
+
     // Handle redis:// URLs (e.g. from Railway Redis addon)
     if (connectionString.StartsWith("redis://") || connectionString.StartsWith("rediss://"))
     {
