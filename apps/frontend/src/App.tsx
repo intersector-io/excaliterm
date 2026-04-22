@@ -1,60 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Route, Switch, useLocation, useParams } from "wouter";
+import { Route, Switch, useParams } from "wouter";
 import { Toaster } from "sonner";
 import { WorkspaceCtx } from "@/hooks/use-workspace";
-import { createWorkspace, getWorkspace } from "@/lib/api-client";
+import { getWorkspace } from "@/lib/api-client";
 import { initHubs } from "@/lib/signalr-client";
 import { getOrCreateCollaboratorProfile } from "@/lib/collaborator";
+import { WORKSPACE_STORAGE_KEY } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
-
-const WORKSPACE_STORAGE_KEY = "excaliterm.workspace-id";
-
-function CreateAndRedirect() {
-  const [, navigate] = useLocation();
-
-  useEffect(() => {
-    // Resume last workspace if it still exists
-    const savedId = globalThis.localStorage.getItem(WORKSPACE_STORAGE_KEY);
-    if (savedId) {
-      getWorkspace(savedId)
-        .then(() => navigate(`/w/${savedId}`, { replace: true }))
-        .catch(() => {
-          // Workspace expired or deleted — create a fresh one
-          globalThis.localStorage.removeItem(WORKSPACE_STORAGE_KEY);
-          createWorkspace().then((ws) => {
-            globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
-            navigate(`/w/${ws.id}`, { replace: true });
-          });
-        });
-    } else {
-      createWorkspace()
-        .then((ws) => {
-          globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
-          navigate(`/w/${ws.id}`, { replace: true });
-        })
-        .catch((err) => console.error("Failed to create workspace:", err));
-    }
-  }, [navigate]);
-
-  return (
-    <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative h-8 w-8">
-          <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-accent-cyan" />
-          <div className="absolute inset-1 animate-spin rounded-full border-2 border-transparent border-b-accent-blue" style={{ animationDirection: "reverse", animationDuration: "0.8s" }} />
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-medium text-foreground tracking-tight">
-            Setting up your workspace
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Share the link with anyone to collaborate
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { LandingPage } from "@/components/LandingPage";
 
 function WorkspaceRoute() {
   const params = useParams<{ workspaceId: string }>();
@@ -62,6 +15,14 @@ function WorkspaceRoute() {
   const [valid, setValid] = useState<boolean | null>(null);
   const [apiKey, setApiKey] = useState("");
   const collaborator = useMemo(() => getOrCreateCollaboratorProfile(), []);
+
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, nofollow";
+    document.head.appendChild(meta);
+    return () => { meta.remove(); };
+  }, []);
 
   useEffect(() => {
     getWorkspace(workspaceId)
@@ -72,6 +33,11 @@ function WorkspaceRoute() {
       })
       .catch(() => setValid(false));
   }, [workspaceId]);
+
+  const ctxValue = useMemo(
+    () => ({ workspaceId, apiKey, collaborator }),
+    [workspaceId, apiKey, collaborator],
+  );
 
   if (valid === null) {
     return (
@@ -119,11 +85,6 @@ function WorkspaceRoute() {
     );
   }
 
-  const ctxValue = useMemo(
-    () => ({ workspaceId, apiKey, collaborator }),
-    [workspaceId, apiKey, collaborator],
-  );
-
   return (
     <WorkspaceCtx.Provider value={ctxValue}>
       <AppShell />
@@ -151,7 +112,7 @@ export function App() {
       />
       <Switch>
         <Route path="/w/:workspaceId" component={WorkspaceRoute} />
-        <Route path="/" component={CreateAndRedirect} />
+        <Route path="/" component={LandingPage} />
         <Route>
           <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4 text-center">

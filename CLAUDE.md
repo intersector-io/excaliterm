@@ -3,7 +3,7 @@
 - After changing the code, you ALWAYS need to rebuild the containers right before testing.
 
 ## Browser test
-- You must ALWAYS use /agent-browser skill to navigate to the frontend app during tests.
+- You must ALWAYS use chrome-devtools MCP to navigate to the frontend app during tests.
 
 ## Docs
 - You must ALWAYS keep the documents updated. They are located in the /docs folder.
@@ -16,3 +16,6 @@
 
 ## Backward compatibility
 - You NEVER need to keep backward compatibility.
+
+## Pre-existent issues
+- Never leave issues behind. Fix all identified issues, even it they are pre-existent.
