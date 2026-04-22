@@ -1,6 +1,6 @@
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState, useEffect } from "react";
 import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
-import { Monitor, X, Play, Pause, Maximize2 } from "lucide-react";
+import { Monitor, X, Play, Pause, Maximize2, Minimize2 } from "lucide-react";
 import { useCanvas, type ScreenShareNodeData } from "@/hooks/use-canvas";
 import { useScreenShare } from "@/hooks/use-screen-share";
 import { useScreenShareStore } from "@/stores/screen-share-store";
@@ -28,8 +28,22 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
     setPaused((p) => !p);
   }, []);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    function handleChange() {
+      setIsFullscreen(document.fullscreenElement === contentRef.current);
+    }
+    document.addEventListener("fullscreenchange", handleChange);
+    return () => document.removeEventListener("fullscreenchange", handleChange);
+  }, []);
+
   const handleFullscreen = useCallback(() => {
-    contentRef.current?.requestFullscreen?.().catch(() => {});
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      contentRef.current?.requestFullscreen?.().catch(() => {});
+    }
   }, []);
 
   function getStreamStatusColor(): string {
@@ -101,9 +115,9 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
             <button
               onClick={handleFullscreen}
               className="nodrag nopan p-1.5 rounded-md hover:bg-white/[0.08] transition-colors text-white/40 hover:text-white/70"
-              title="Fullscreen"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             >
-              <Maximize2 className="h-3.5 w-3.5" />
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             </button>
             <button
               onClick={handleClose}
@@ -133,6 +147,15 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
                 </span>
               </div>
             </div>
+          )}
+          {isFullscreen && (
+            <button
+              onClick={handleFullscreen}
+              className="absolute top-4 right-4 flex items-center gap-2 rounded-lg border border-white/10 bg-black/70 px-3 py-2 text-caption font-medium text-white/80 backdrop-blur-sm transition-colors hover:bg-black/90 hover:text-white"
+            >
+              <Minimize2 className="h-4 w-4" />
+              Exit fullscreen
+            </button>
           )}
         </div>
 

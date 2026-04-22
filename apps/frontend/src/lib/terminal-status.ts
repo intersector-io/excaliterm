@@ -28,6 +28,10 @@ export function getStatusTextColor(status: string): string {
   }
 }
 
+export function isStaleStatus(status: string): boolean {
+  return status === "error" || status === "disconnected";
+}
+
 export function getStatusLabel(status: string): string {
   switch (status) {
     case "active":

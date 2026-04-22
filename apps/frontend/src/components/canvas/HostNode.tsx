@@ -4,16 +4,8 @@ import { Server, Terminal, Code2 } from "lucide-react";
 import { toast } from "sonner";
 import { useServices } from "@/hooks/use-services";
 import { useTerminals } from "@/hooks/use-terminal";
-import { useCanvas } from "@/hooks/use-canvas";
+import { useCanvas, type HostNodeData } from "@/hooks/use-canvas";
 import { cn } from "@/lib/utils";
-
-export interface HostNodeData {
-  serviceInstanceId: string;
-  serviceId: string;
-  serviceName: string;
-  label: string;
-  [key: string]: unknown;
-}
 
 type HostNodeType = Node<HostNodeData>;
 

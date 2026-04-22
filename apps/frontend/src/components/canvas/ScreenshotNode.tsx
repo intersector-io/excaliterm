@@ -1,6 +1,6 @@
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useRef, useState, useEffect } from "react";
 import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
-import { Camera, X, Clock, Maximize2 } from "lucide-react";
+import { Camera, X, Clock, Maximize2, Minimize2 } from "lucide-react";
 import { useCanvas } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
@@ -30,8 +30,22 @@ function ScreenshotNodeComponent({ id, data, selected }: NodeProps<ScreenshotNod
     }
   }, [id, deleteNode]);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    function handleChange() {
+      setIsFullscreen(document.fullscreenElement === contentRef.current);
+    }
+    document.addEventListener("fullscreenchange", handleChange);
+    return () => document.removeEventListener("fullscreenchange", handleChange);
+  }, []);
+
   const handleFullscreen = useCallback(() => {
-    contentRef.current?.requestFullscreen?.().catch(() => {});
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      contentRef.current?.requestFullscreen?.().catch(() => {});
+    }
   }, []);
 
   const capturedDate = data.capturedAt
@@ -83,9 +97,9 @@ function ScreenshotNodeComponent({ id, data, selected }: NodeProps<ScreenshotNod
             <button
               onClick={handleFullscreen}
               className="nodrag nopan p-1.5 rounded-md hover:bg-white/[0.08] transition-colors text-white/40 hover:text-white/70"
-              title="Fullscreen"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             >
-              <Maximize2 className="h-3.5 w-3.5" />
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             </button>
             <button
               onClick={handleClose}
@@ -98,7 +112,7 @@ function ScreenshotNodeComponent({ id, data, selected }: NodeProps<ScreenshotNod
         </div>
 
         {/* Screenshot image */}
-        <div ref={contentRef} className="nodrag nopan nowheel flex-1 overflow-hidden p-2">
+        <div ref={contentRef} className="nodrag nopan nowheel relative flex-1 overflow-hidden p-2 bg-surface-raised">
           {data.imageData ? (
             <img
               src={`data:image/jpeg;base64,${data.imageData}`}
@@ -110,6 +124,15 @@ function ScreenshotNodeComponent({ id, data, selected }: NodeProps<ScreenshotNod
             <div className="flex h-full items-center justify-center">
               <Camera className="h-8 w-8 text-accent-purple/20" />
             </div>
+          )}
+          {isFullscreen && (
+            <button
+              onClick={handleFullscreen}
+              className="absolute top-4 right-4 flex items-center gap-2 rounded-lg border border-white/10 bg-black/70 px-3 py-2 text-caption font-medium text-white/80 backdrop-blur-sm transition-colors hover:bg-black/90 hover:text-white"
+            >
+              <Minimize2 className="h-4 w-4" />
+              Exit fullscreen
+            </button>
           )}
         </div>
 

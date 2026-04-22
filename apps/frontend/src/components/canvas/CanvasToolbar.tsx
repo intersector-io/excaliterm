@@ -172,9 +172,10 @@ function MobileTerminalButton({
 
 interface CanvasToolbarProps {
   onOpenTerminalList?: () => void;
+  onFocusService?: (serviceId: string) => void;
 }
 
-export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProps>) {
+export function CanvasToolbar({ onOpenTerminalList, onFocusService }: Readonly<CanvasToolbarProps>) {
   const { createTerminal, isCreating, terminals, closeAllTerminals, isClosingAll } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { workspaceId, apiKey, collaborator } = useWorkspace();
@@ -185,6 +186,7 @@ export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProp
   const [copied, setCopied] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const [configService, setConfigService] = useState<ServiceInstance | null>(null);
+  const [hostMenuOpen, setHostMenuOpen] = useState(false);
 
   const noHost = onlineCount === 0;
   const onlineServices = services.filter((s) => s.status === "online");
@@ -307,7 +309,7 @@ export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProp
         />
         {configService && (
           <ServiceConfigDialog
-            open={!!configService}
+            open
             onOpenChange={(open) => { if (!open) setConfigService(null); }}
             service={configService}
             workspaceId={workspaceId}
@@ -339,7 +341,7 @@ export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProp
           </span>
 
           {/* Host status dropdown */}
-          <DropdownMenu>
+          <DropdownMenu open={hostMenuOpen} onOpenChange={setHostMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button className="ml-1 inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-caption text-muted-foreground/60 transition-colors hover:bg-white/[0.04] hover:text-muted-foreground">
                 <span
@@ -361,7 +363,7 @@ export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProp
                 services.map((service) => (
                   <DropdownMenuItem
                     key={service.id}
-                    onClick={() => setConfigService(service)}
+                    onClick={() => onFocusService?.(service.id)}
                     className="gap-2"
                   >
                     <span
@@ -373,7 +375,16 @@ export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProp
                       )}
                     />
                     <span className="flex-1 truncate">{service.name}</span>
-                    <Settings className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHostMenuOpen(false);
+                        setConfigService(service);
+                      }}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:bg-white/[0.08] hover:text-muted-foreground"
+                    >
+                      <Settings className="h-3 w-3" />
+                    </button>
                   </DropdownMenuItem>
                 ))
               )}
@@ -474,7 +485,7 @@ export function CanvasToolbar({ onOpenTerminalList }: Readonly<CanvasToolbarProp
       />
       {configService && (
         <ServiceConfigDialog
-          open={!!configService}
+          open
           onOpenChange={(open) => { if (!open) setConfigService(null); }}
           service={configService}
           workspaceId={workspaceId}

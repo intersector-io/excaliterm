@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Settings } from "lucide-react";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
 import { TerminalListPanel } from "@/components/canvas/TerminalListPanel";
 import { MobileTerminalListView } from "@/components/canvas/MobileTerminalListView";
-import { useCanvas } from "@/hooks/use-canvas";
+import { useCanvas, type HostNodeData } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ActiveView } from "./AppShell";
 
@@ -48,6 +48,18 @@ function CanvasView() {
     focusTerminalRef.current?.(nodeId);
   }, []);
 
+  const nodesRef = useRef(nodes);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+
+  const handleFocusService = useCallback((serviceId: string) => {
+    const hostNode = nodesRef.current.find(
+      (n) => n.type === "host" && (n.data as HostNodeData).serviceInstanceId === serviceId,
+    );
+    if (hostNode) {
+      focusTerminalRef.current?.(hostNode.id);
+    }
+  }, []);
+
   const handleFullScreenTerminal = useCallback((terminalId: string, status: string) => {
     fullScreenRef.current?.(terminalId, status);
   }, []);
@@ -58,7 +70,7 @@ function CanvasView() {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <CanvasToolbar onOpenTerminalList={() => setTerminalListOpen(true)} />
+      <CanvasToolbar onOpenTerminalList={() => setTerminalListOpen(true)} onFocusService={handleFocusService} />
       <div className="relative min-h-0 flex-1">
         <InfiniteCanvas onFocusTerminalRef={focusTerminalRef} onFullScreenRef={fullScreenRef} />
         {nodes.length === 0 && <CanvasEmptyState />}

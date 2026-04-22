@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
-import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor } from "lucide-react";
+import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { TerminalView } from "@/components/terminal/TerminalView";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
@@ -9,9 +9,9 @@ import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { useScreenShare } from "@/hooks/use-screen-share";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
+import { getStatusDotColor, getStatusLabel, isStaleStatus } from "@/lib/terminal-status";
 import { TagEditor } from "./TagEditor";
-import { MonitorPickerDialog } from "./MonitorPickerDialog";
+import { MonitorPickerDialog, type MonitorPickerMode } from "./MonitorPickerDialog";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,8 +28,8 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   const { monitors, isLoadingMonitors, isCapturing, listMonitors, captureScreenshot } = useScreenshot();
   const { startScreenShare } = useScreenShare();
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const [isHovered, setIsHovered] = useState(false);
   const [monitorPickerOpen, setMonitorPickerOpen] = useState(false);
+  const [monitorPickerMode, setMonitorPickerMode] = useState<MonitorPickerMode>("screenshot");
   const {
     lockInfo,
     activeTypers,
@@ -40,7 +40,8 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   } = useTerminalCollaboration(data.terminalId);
 
   const isActive = data.status === "active";
-  const showControls = selected || isHovered;
+  const isStale = isStaleStatus(data.status);
+
 
   const handleClose = useCallback(async () => {
     try {
@@ -78,11 +79,12 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
     toast.success("Terminal ID copied");
   }, [data.terminalId]);
 
-  const handleOpenMonitorPicker = useCallback(() => {
+  const handleOpenMonitorPicker = useCallback((mode: MonitorPickerMode) => {
     if (!data.serviceId) {
       toast.error("No host service associated with this terminal");
       return;
     }
+    setMonitorPickerMode(mode);
     setMonitorPickerOpen(true);
     listMonitors(data.serviceId).catch(() => {
       toast.error("Failed to list monitors");
@@ -162,11 +164,6 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         className="!w-1.5 !h-1.5 !bg-white/40 !border-0 !rounded-sm"
       />
       <div
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsHovered((h) => !h); }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         className={`flex h-full w-full flex-col overflow-hidden rounded-xl border transition-all duration-300 ${borderClass} ${glowClass}`}
       >
         {/* ─── Title Bar ─────────────────────────────────────────────── */}
@@ -217,7 +214,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
             )}
 
             {/* Lock button — hover/select only */}
-            {showControls && isActive && (
+            {isActive && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -240,8 +237,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
             )}
 
             {/* Overflow menu — hover/select only */}
-            {showControls && (
-              <DropdownMenu>
+            <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     className="nodrag nopan flex h-6 w-6 items-center justify-center rounded-md text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/70"
@@ -258,11 +254,11 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
                   {isActive && data.serviceId && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleOpenMonitorPicker}>
+                      <DropdownMenuItem onClick={() => handleOpenMonitorPicker("screenshot")}>
                         <Camera className="h-3.5 w-3.5" />
                         <span>Screenshot</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleOpenMonitorPicker}>
+                      <DropdownMenuItem onClick={() => handleOpenMonitorPicker("stream")}>
                         <Monitor className="h-3.5 w-3.5" />
                         <span>Screen Share</span>
                       </DropdownMenuItem>
@@ -278,7 +274,6 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
           </div>
         </div>
 
@@ -298,7 +293,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
 
         {/* ─── Terminal Content ───────────────────────────────────────── */}
         <div
-          className={`nodrag nopan nowheel flex-1 overflow-hidden p-2.5 ${
+          className={`nodrag nopan nowheel relative flex-1 overflow-hidden p-2.5 ${
             isActive ? "" : "opacity-70"
           }`}
         >
@@ -315,12 +310,40 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
               <TerminalView terminalId={data.terminalId} status={data.status} />
             </div>
           </div>
+
+          {/* Stale session overlay */}
+          {isStale && (
+            <div className="absolute inset-0 flex items-end justify-center p-2.5">
+              <div className="pointer-events-none absolute inset-0 rounded-lg bg-background/60" />
+              <div className="nodrag nopan relative flex w-full items-center gap-3 rounded-lg border border-border-subtle/60 bg-surface-raised/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-accent-amber" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-body-sm font-medium text-foreground/90">
+                    Session expired
+                  </p>
+                  <p className="text-caption text-muted-foreground">
+                    {data.status === "disconnected" ? "Host went offline" : "Terminal no longer available"}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClose();
+                  }}
+                  className="shrink-0 rounded-md border border-border-default/50 bg-white/[0.06] px-3 py-1.5 text-caption font-medium text-foreground/80 transition-colors hover:bg-white/[0.1] hover:text-foreground"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <MonitorPickerDialog
         open={monitorPickerOpen}
         onOpenChange={setMonitorPickerOpen}
+        mode={monitorPickerMode}
         monitors={monitors}
         isLoadingMonitors={isLoadingMonitors}
         onScreenshot={handleScreenshot}

@@ -63,6 +63,8 @@ export function useTerminals() {
         ["terminals", workspaceId],
         (old: ListTerminalsResponse | undefined) => {
           if (!old) return old;
+          const existing = old.terminals.find((t) => t.id === terminalId);
+          if (existing?.status === status) return old;
           return {
             terminals: old.terminals.map((terminal) =>
               terminal.id === terminalId
@@ -110,8 +112,9 @@ export function useTerminals() {
   const handleError = useCallback(
     (msg: { terminalId: string; error: string }) => {
       console.error(`Terminal ${msg.terminalId} error: ${msg.error}`);
+      updateTerminalStatus(msg.terminalId, "error");
     },
-    [],
+    [updateTerminalStatus],
   );
 
   useEffect(() => {

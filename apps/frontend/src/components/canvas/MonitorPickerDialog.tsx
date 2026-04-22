@@ -11,9 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import type { MonitorInfo } from "@excaliterm/shared-types";
 
+export type MonitorPickerMode = "screenshot" | "stream";
+
 interface MonitorPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: MonitorPickerMode;
   monitors: MonitorInfo[];
   isLoadingMonitors: boolean;
   onScreenshot: (monitorIndex: number) => void;
@@ -24,12 +27,14 @@ interface MonitorPickerDialogProps {
 export function MonitorPickerDialog({
   open,
   onOpenChange,
+  mode,
   monitors,
   isLoadingMonitors,
   onScreenshot,
   onStream,
   isCapturing,
 }: Readonly<MonitorPickerDialogProps>) {
+  const isScreenshotMode = mode === "screenshot";
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Reset selection when monitors change
@@ -43,9 +48,11 @@ export function MonitorPickerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Select Monitor</DialogTitle>
+          <DialogTitle>{isScreenshotMode ? "Take Screenshot" : "Start Stream"}</DialogTitle>
           <DialogDescription>
-            Choose a monitor to capture or stream from the host.
+            {isScreenshotMode
+              ? "Select a monitor to capture."
+              : "Select a monitor to stream from the host."}
           </DialogDescription>
         </DialogHeader>
 
@@ -101,27 +108,29 @@ export function MonitorPickerDialog({
           >
             Cancel
           </Button>
-          <Button
-            onClick={() => onScreenshot(selectedIndex)}
-            disabled={isCapturing || monitors.length === 0}
-            className="gap-1.5"
-          >
-            {isCapturing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Camera className="h-3.5 w-3.5" />
-            )}
-            {isCapturing ? "Capturing..." : "Screenshot"}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => onStream(selectedIndex)}
-            disabled={isCapturing || monitors.length === 0}
-            className="gap-1.5"
-          >
-            <Monitor className="h-3.5 w-3.5" />
-            Stream
-          </Button>
+          {isScreenshotMode ? (
+            <Button
+              onClick={() => onScreenshot(selectedIndex)}
+              disabled={isCapturing || monitors.length === 0}
+              className="gap-1.5"
+            >
+              {isCapturing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Camera className="h-3.5 w-3.5" />
+              )}
+              {isCapturing ? "Capturing..." : "Screenshot"}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => onStream(selectedIndex)}
+              disabled={isCapturing || monitors.length === 0}
+              className="gap-1.5"
+            >
+              <Monitor className="h-3.5 w-3.5" />
+              Stream
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
