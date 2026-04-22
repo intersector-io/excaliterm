@@ -101,6 +101,18 @@ export function initializeDb() {
       "targetNodeId" text NOT NULL REFERENCES "canvas_node"("id") ON DELETE CASCADE,
       "createdAt" integer NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS "command_history" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "terminalSessionId" text NOT NULL REFERENCES "terminal_session"("id") ON DELETE CASCADE,
+      "command" text NOT NULL,
+      "executedAt" integer NOT NULL DEFAULT (unixepoch()),
+      "createdAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE INDEX IF NOT EXISTS "idx_command_history_ws_terminal"
+      ON "command_history"("workspaceId", "terminalSessionId");
   `);
 
   // Migrations for existing databases

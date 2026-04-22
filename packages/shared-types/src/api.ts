@@ -1,4 +1,4 @@
-import type { CanvasNode, CanvasEdge, Screenshot, TerminalSession } from "./models.js";
+import type { CanvasNode, CanvasEdge, Screenshot, TerminalSession, CommandHistory, CommandHistoryTopEntry } from "./models.js";
 
 // ─── Terminal Sessions ──────────────────────────────────────────────────────
 
@@ -74,6 +74,37 @@ export interface CreateEditorNodeResponse {
 
 export interface ListCanvasEdgesResponse {
   edges: CanvasEdge[];
+}
+
+// ─── Command History ────────────────────────────────────────────────────────
+
+export interface SaveCommandRequest {
+  terminalSessionId: string;
+  command: string;
+}
+
+export interface SaveCommandResponse {
+  command: CommandHistory;
+}
+
+export interface ListCommandHistoryResponse {
+  commands: CommandHistory[];
+}
+
+export interface TopCommandsResponse {
+  commands: CommandHistoryTopEntry[];
+}
+
+export interface CreateCommandHistoryNodeRequest {
+  terminalSessionId: string;
+  sourceTerminalNodeId: string;
+  x?: number;
+  y?: number;
+}
+
+export interface CreateCommandHistoryNodeResponse {
+  canvasNode: CanvasNode;
+  canvasEdge: CanvasEdge;
 }
 
 // ─── Health ─────────────────────────────────────────────────────────────────

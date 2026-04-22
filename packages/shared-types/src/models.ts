@@ -81,6 +81,21 @@ export interface Screenshot {
   updatedAt: string;
 }
 
+// ─── Command History ───────────────────────────────────────────────────────
+
+export interface CommandHistory {
+  id: string;
+  terminalSessionId: string;
+  command: string;
+  executedAt: string;
+}
+
+export interface CommandHistoryTopEntry {
+  command: string;
+  count: number;
+  lastExecutedAt: string;
+}
+
 // ─── Canvas Edge ────────────────────────────────────────────────────────────
 
 export interface CanvasEdge {

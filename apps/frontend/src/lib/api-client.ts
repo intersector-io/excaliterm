@@ -5,9 +5,15 @@ import type {
   CreateScreenshotResponse,
   CreateEditorNodeRequest,
   CreateEditorNodeResponse,
+  CreateCommandHistoryNodeRequest,
+  CreateCommandHistoryNodeResponse,
   ListTerminalsResponse,
   ListCanvasNodesResponse,
   ListCanvasEdgesResponse,
+  ListCommandHistoryResponse,
+  TopCommandsResponse,
+  SaveCommandRequest,
+  SaveCommandResponse,
   UpdateCanvasNodeRequest,
   CanvasNode,
 } from "@excaliterm/shared-types";
@@ -234,6 +240,43 @@ export function createEditorNode(
   data: CreateEditorNodeRequest,
 ): Promise<CreateEditorNodeResponse> {
   return request(`/w/${workspaceId}/canvas/editors`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ─── Command History ──────────────────────────────────────────────────────
+
+export function saveCommand(
+  workspaceId: string,
+  data: SaveCommandRequest,
+): Promise<SaveCommandResponse> {
+  return request(`/w/${workspaceId}/command-history`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function listCommandHistory(
+  workspaceId: string,
+  terminalSessionId: string,
+  limit = 100,
+): Promise<ListCommandHistoryResponse> {
+  return request(`/w/${workspaceId}/command-history/${terminalSessionId}?limit=${limit}`);
+}
+
+export function listTopCommands(
+  workspaceId: string,
+  terminalSessionId: string,
+): Promise<TopCommandsResponse> {
+  return request(`/w/${workspaceId}/command-history/${terminalSessionId}/top`);
+}
+
+export function createCommandHistoryNode(
+  workspaceId: string,
+  data: CreateCommandHistoryNodeRequest,
+): Promise<CreateCommandHistoryNodeResponse> {
+  return request(`/w/${workspaceId}/command-history/node`, {
     method: "POST",
     body: JSON.stringify(data),
   });

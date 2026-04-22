@@ -108,6 +108,23 @@ export const screenshot = sqliteTable("screenshot", {
     .default(sql`(unixepoch())`),
 });
 
+export const commandHistory = sqliteTable("command_history", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspaceId")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" }),
+  terminalSessionId: text("terminalSessionId")
+    .notNull()
+    .references(() => terminalSession.id, { onDelete: "cascade" }),
+  command: text("command").notNull(),
+  executedAt: integer("executedAt", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  createdAt: integer("createdAt", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 export const canvasNode = sqliteTable("canvas_node", {
   id: text("id").primaryKey(),
   workspaceId: text("workspaceId")
@@ -180,3 +197,6 @@ export type InsertScreenshot = InferInsertModel<typeof screenshot>;
 
 export type SelectCanvasEdge = InferSelectModel<typeof canvasEdge>;
 export type InsertCanvasEdge = InferInsertModel<typeof canvasEdge>;
+
+export type SelectCommandHistory = InferSelectModel<typeof commandHistory>;
+export type InsertCommandHistory = InferInsertModel<typeof commandHistory>;

@@ -11,14 +11,21 @@ import type { TerminalStatus } from "@excaliterm/shared-types";
 interface TerminalViewProps {
   terminalId: string;
   status: TerminalStatus;
+  onCommandDetected?: (terminalId: string, command: string) => void;
 }
 
-export function TerminalView({ terminalId, status }: Readonly<TerminalViewProps>) {
+export function TerminalView({ terminalId, status, onCommandDetected }: Readonly<TerminalViewProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const initializedRef = useRef(false);
   const previousLockOwnerRef = useRef<string | null>(null);
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const commandBufferRef = useRef("");
+  const bufferCorruptedRef = useRef(false);
+  const onCommandDetectedRef = useRef(onCommandDetected);
+  onCommandDetectedRef.current = onCommandDetected;
   const { lockInfo, lockedByOther } = useTerminalCollaboration(terminalId);
 
   useEffect(() => {
@@ -90,24 +97,59 @@ export function TerminalView({ terminalId, status }: Readonly<TerminalViewProps>
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
-    // Replay buffered output
     const buffered = useTerminalStore.getState().getOutput(terminalId);
     for (const chunk of buffered) {
       terminal.write(chunk);
     }
 
-    // Handle user input -> send via SignalR (only if active)
     const inputDisposable = terminal.onData((data) => {
-      if (status !== "active") return;
+      if (statusRef.current !== "active") return;
       terminalHub.invoke("TerminalInput", terminalId, data).catch(() => {});
+
+      for (let i = 0; i < data.length; i++) {
+        const char = data[i]!;
+        const code = char.charCodeAt(0);
+
+        if (char === "\r") {
+          if (!bufferCorruptedRef.current) {
+            const cmd = commandBufferRef.current.trim();
+            if (cmd.length > 0 && cmd.length <= 1000) {
+              onCommandDetectedRef.current?.(terminalId, cmd);
+            }
+          }
+          commandBufferRef.current = "";
+          bufferCorruptedRef.current = false;
+        } else if (char === "\x7f" || char === "\b") {
+          commandBufferRef.current = commandBufferRef.current.slice(0, -1);
+        } else if (char === "\x1b") {
+          // Escape sequences can carry shell history text we never saw, making the buffer unreliable
+          bufferCorruptedRef.current = true;
+        } else if (code === 3 || code === 4) {
+          commandBufferRef.current = "";
+          bufferCorruptedRef.current = false;
+        } else if (code >= 32) {
+          if (!bufferCorruptedRef.current && commandBufferRef.current.length < 1000) {
+            commandBufferRef.current += char;
+          }
+        }
+      }
     });
 
-    // Handle terminal resize -> send via SignalR
     const resizeDisposable = terminal.onResize(({ cols, rows }) => {
       terminalHub.invoke("TerminalResize", terminalId, cols, rows).catch(() => {});
     });
 
-    // Listen for output from SignalR
+    // Fix cursor positioning after exiting alternate screen buffer apps (vim, claude, htop)
+    // ConPTY on Windows can leave the cursor displaced when switching back to the normal buffer
+    const bufferChangeDisposable = terminal.buffer.onBufferChange((buffer) => {
+      if (buffer === terminal.buffer.normal) {
+        requestAnimationFrame(() => {
+          terminal.scrollToBottom();
+          terminal.refresh(0, terminal.rows - 1);
+        });
+      }
+    });
+
     function handleOutput(msg: { terminalId: string; data: string }) {
       if (msg.terminalId === terminalId) {
         terminal.write(msg.data);
@@ -137,7 +179,6 @@ export function TerminalView({ terminalId, status }: Readonly<TerminalViewProps>
     terminalHub.on("TerminalDisconnected", handleDisconnected);
     terminalHub.on("TerminalError", handleError);
 
-    // ResizeObserver for container resize
     const resizeObserver = new ResizeObserver(() => {
       requestAnimationFrame(() => {
         try {
@@ -149,10 +190,8 @@ export function TerminalView({ terminalId, status }: Readonly<TerminalViewProps>
     });
     resizeObserver.observe(containerRef.current);
 
-    // Send initial size to backend
     terminalHub.invoke("TerminalResize", terminalId, terminal.cols, terminal.rows).catch(() => {});
 
-    // Request buffered output from Redis for persistence across reloads
     const requestBuffer = () => {
       terminalHub.invoke("RequestTerminalBuffer", terminalId).catch(() => {});
     };
@@ -172,6 +211,7 @@ export function TerminalView({ terminalId, status }: Readonly<TerminalViewProps>
     return () => {
       inputDisposable.dispose();
       resizeDisposable.dispose();
+      bufferChangeDisposable.dispose();
       terminalHub.off("TerminalOutput", handleOutput);
       terminalHub.off("TerminalExited", handleExited);
       terminalHub.off("TerminalDisconnected", handleDisconnected);
@@ -184,7 +224,6 @@ export function TerminalView({ terminalId, status }: Readonly<TerminalViewProps>
     };
   }, [terminalId]);
 
-  // Disable cursor and input when terminal becomes inactive
   useEffect(() => {
     const terminal = terminalRef.current;
     if (!terminal) return;

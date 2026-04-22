@@ -16,6 +16,7 @@ import { services } from "./routes/services.js";
 import { notes } from "./routes/notes.js";
 import { chat } from "./routes/chat.js";
 import { files } from "./routes/files.js";
+import { commandHistory } from "./routes/command-history.js";
 
 // ─── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -222,6 +223,7 @@ app.route("/api/w/:workspaceId/services", services);
 app.route("/api/w/:workspaceId/notes", notes);
 app.route("/api/w/:workspaceId/chat", chat);
 app.route("/api/w/:workspaceId/files", files);
+app.route("/api/w/:workspaceId/command-history", commandHistory);
 
 // ─── Global Error Handler ──────────────────────────────────────────────────
 

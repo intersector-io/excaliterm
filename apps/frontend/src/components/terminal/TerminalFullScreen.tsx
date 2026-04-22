@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Lock, LockOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
@@ -54,6 +55,16 @@ export function TerminalFullScreen({
   } = useTerminalCollaboration(terminalId);
 
   const hasCycling = onPrev && onNext && totalCount && totalCount > 1;
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onBack();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onBack]);
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex flex-col bg-background">

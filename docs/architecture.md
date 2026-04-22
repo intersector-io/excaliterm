@@ -92,6 +92,13 @@ If Redis is not available, terminal creation and backend-driven fanout will not 
 - SignalR is used for collaboration events such as `NodeMoved` and `NodeResized`.
 - Notes are stored separately and linked to canvas nodes through `noteId`.
 
+### Command history
+
+- The frontend tracks keystrokes in each terminal and detects commands when Enter is pressed.
+- Commands are persisted to the `command_history` table via the REST API.
+- A `command-history` canvas node can be created from a terminal's dropdown menu to display the history and top 10 most-used commands.
+- Each command row has copy and execute buttons. Execute re-sends the command to the linked terminal via SignalR.
+
 ### Chat
 
 - Chat history is stored in SQLite and retrieved through REST.
@@ -194,6 +201,19 @@ Fields:
 - `content`
 - `createdAt`
 
+### `command_history`
+
+Stores commands entered in terminal sessions. Tracked on the frontend by buffering keystrokes and detecting Enter.
+
+Fields:
+
+- `id`
+- `workspaceId`
+- `terminalSessionId`
+- `command`
+- `executedAt`
+- `createdAt`
+
 ## Relationships
 
 ```text
@@ -202,9 +222,11 @@ workspace 1--* terminal_session
 workspace 1--* canvas_node
 workspace 1--* note
 workspace 1--* chat_message
+workspace 1--* command_history
 
 service_instance 1--* terminal_session
 terminal_session 1--0..1 canvas_node
+terminal_session 1--* command_history
 note 1--0..1 canvas_node
 ```
 

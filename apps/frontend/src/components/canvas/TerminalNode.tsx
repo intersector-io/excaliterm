@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
-import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor, AlertTriangle } from "lucide-react";
+import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor, AlertTriangle, History, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { TerminalView } from "@/components/terminal/TerminalView";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
@@ -8,6 +8,9 @@ import { useTerminals } from "@/hooks/use-terminal";
 import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { useScreenShare } from "@/hooks/use-screen-share";
+import { useCommandHistorySave } from "@/hooks/use-command-history";
+import { copyToClipboard } from "@/lib/clipboard";
+import { useFullscreenStore } from "@/stores/fullscreen-store";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { getStatusDotColor, getStatusLabel, isStaleStatus } from "@/lib/terminal-status";
 import { TagEditor } from "./TagEditor";
@@ -24,10 +27,13 @@ type TerminalNodeType = Node<TerminalNodeData>;
 
 function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeType>) {
   const { deleteTerminal, updateTerminal } = useTerminals();
-  const { deleteNode, addScreenShareNode } = useCanvas();
+  const { nodes: canvasNodes, deleteNode, addScreenShareNode } = useCanvas();
   const { monitors, isLoadingMonitors, isCapturing, listMonitors, captureScreenshot } = useScreenshot();
   const { startScreenShare } = useScreenShare();
+  const { saveCommand, createNode: createHistoryNode } = useCommandHistorySave(data.terminalId);
+  const openFullScreen = useFullscreenStore((s) => s.open);
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [hovered, setHovered] = useState(false);
   const [monitorPickerOpen, setMonitorPickerOpen] = useState(false);
   const [monitorPickerMode, setMonitorPickerMode] = useState<MonitorPickerMode>("screenshot");
   const {
@@ -41,7 +47,9 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
 
   const isActive = data.status === "active";
   const isStale = isStaleStatus(data.status);
-
+  const hasHistoryNode = canvasNodes.some(
+    (n) => n.type === "command-history" && (n.data as { terminalSessionId?: string }).terminalSessionId === data.terminalId,
+  );
 
   const handleClose = useCallback(async () => {
     try {
@@ -75,8 +83,9 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   ]);
 
   const handleCopyId = useCallback(() => {
-    navigator.clipboard.writeText(data.terminalId).catch(() => {});
-    toast.success("Terminal ID copied");
+    copyToClipboard(data.terminalId).then(() => {
+      toast.success("Terminal ID copied");
+    }).catch(() => {});
   }, [data.terminalId]);
 
   const handleOpenMonitorPicker = useCallback((mode: MonitorPickerMode) => {
@@ -130,6 +139,36 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
     [data.serviceId, id, monitors, startScreenShare, addScreenShareNode],
   );
 
+  const handleCommandDetected = useCallback(
+    (_terminalId: string, command: string) => {
+      saveCommand(command);
+    },
+    [saveCommand],
+  );
+
+  const handleToggleHistory = useCallback(async () => {
+    try {
+      const existing = canvasNodes.find(
+        (n) => n.type === "command-history" && (n.data as { terminalSessionId?: string }).terminalSessionId === data.terminalId,
+      );
+      if (existing) {
+        await deleteNode(existing.id);
+      } else {
+        await createHistoryNode({ sourceTerminalNodeId: id });
+      }
+    } catch {
+      toast.error("Failed to toggle command history");
+    }
+  }, [canvasNodes, data.terminalId, id, createHistoryNode, deleteNode]);
+
+  const handleFocus = useCallback(() => {
+    openFullScreen({
+      terminalId: data.terminalId,
+      status: data.status,
+      tags: data.tags,
+    });
+  }, [data.terminalId, data.status, data.tags, openFullScreen]);
+
   const statusColor = getStatusDotColor(data.status);
   const statusLabel = getStatusLabel(data.status);
 
@@ -145,11 +184,15 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   const borderClass = isActive ? "border-border-default/60 bg-card" : "border-border-subtle/40 bg-card/80";
 
   return (
-    <>
+    <div
+      className="h-full w-full"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <NodeResizer
         minWidth={isMobile ? 340 : 520}
         minHeight={isMobile ? 240 : 340}
-        isVisible={!!selected && !lockedByOther}
+        isVisible={(!!selected || hovered) && !lockedByOther}
         lineClassName="!border-white/20"
         handleClassName="!w-2 !h-2 !bg-white/60 !border-0 !rounded-sm"
       />
@@ -247,9 +290,17 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleFocus}>
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span>Focus</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleCopyId}>
                     <Copy className="h-3.5 w-3.5" />
                     <span>Copy terminal ID</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleToggleHistory}>
+                    <History className="h-3.5 w-3.5" />
+                    <span>{hasHistoryNode ? "Hide Command History" : "Command History"}</span>
                   </DropdownMenuItem>
                   {isActive && data.serviceId && (
                     <>
@@ -307,7 +358,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
               </span>
             </div>
             <div className="min-h-0 flex-1">
-              <TerminalView terminalId={data.terminalId} status={data.status} />
+              <TerminalView terminalId={data.terminalId} status={data.status} onCommandDetected={handleCommandDetected} />
             </div>
           </div>
 
@@ -350,7 +401,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
         onStream={handleStream}
         isCapturing={isCapturing}
       />
-    </>
+    </div>
   );
 }
 

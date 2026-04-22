@@ -74,7 +74,11 @@ Once the agent logs `Ready and waiting for commands`, the UI shows **"1 host rea
 
 Click the **Terminal** button in the canvas toolbar. A live shell session appears on the canvas. Create as many as you need -- they arrange in a grid automatically. Tag them, filter by tag, drag them around, resize, and collaborate in real-time.
 
-### 6. Share with others
+### 6. View command history
+
+Open the overflow menu on any terminal and select **Command History**. A linked history node appears on the canvas showing all commands entered in that terminal. Switch to the **Top 10** tab to see the most frequently used commands. Each command has **copy** and **execute** buttons -- execute re-sends the command to the terminal.
+
+### 7. Share with others
 
 Copy the workspace URL and send it to anyone. They join instantly as a collaborator -- no accounts needed.
 

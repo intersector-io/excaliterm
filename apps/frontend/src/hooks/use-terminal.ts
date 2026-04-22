@@ -25,6 +25,7 @@ export function useTerminals() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
       queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
     },
   });
 
@@ -93,6 +94,7 @@ export function useTerminals() {
   const handleCreated = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
     queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+    queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
   }, [queryClient, workspaceId]);
 
   const handleExited = useCallback(

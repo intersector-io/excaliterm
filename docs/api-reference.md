@@ -427,6 +427,121 @@ Example response:
 }
 ```
 
+## Command History
+
+### `POST /w/:workspaceId/command-history`
+
+Saves a command to the history for a terminal session.
+
+Request body:
+
+```json
+{
+  "terminalSessionId": "terminal-id",
+  "command": "ls -la"
+}
+```
+
+Response:
+
+```json
+{
+  "command": {
+    "id": "command-id",
+    "terminalSessionId": "terminal-id",
+    "command": "ls -la",
+    "executedAt": "2026-04-22T12:00:00.000Z"
+  }
+}
+```
+
+Errors:
+
+- `400` if `command` is empty or exceeds 1000 characters
+- `404` if the terminal session is not part of the workspace
+
+### `GET /w/:workspaceId/command-history/:terminalSessionId`
+
+Lists commands for a terminal session, ordered by most recent first.
+
+Query parameters:
+
+- `limit`: default `100`, maximum `500`
+
+Response:
+
+```json
+{
+  "commands": [
+    {
+      "id": "command-id",
+      "terminalSessionId": "terminal-id",
+      "command": "ls -la",
+      "executedAt": "2026-04-22T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+### `GET /w/:workspaceId/command-history/:terminalSessionId/top`
+
+Returns the top 10 most frequently used commands for a terminal session.
+
+Response:
+
+```json
+{
+  "commands": [
+    {
+      "command": "ls -la",
+      "count": 5,
+      "lastExecutedAt": "2026-04-22T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+### `POST /w/:workspaceId/command-history/node`
+
+Creates a command-history canvas node linked to a terminal, with an edge connecting the terminal node to the new history node.
+
+Request body:
+
+```json
+{
+  "terminalSessionId": "terminal-id",
+  "sourceTerminalNodeId": "canvas-node-id",
+  "x": 800,
+  "y": 100
+}
+```
+
+Response:
+
+```json
+{
+  "canvasNode": {
+    "id": "node-id",
+    "terminalSessionId": "terminal-id",
+    "nodeType": "command-history",
+    "x": 800,
+    "y": 100,
+    "width": 380,
+    "height": 420,
+    "zIndex": 0,
+    "createdAt": "2026-04-22T12:00:00.000Z",
+    "updatedAt": "2026-04-22T12:00:00.000Z"
+  },
+  "canvasEdge": {
+    "id": "edge-id",
+    "workspaceId": "workspace-id",
+    "sourceNodeId": "canvas-node-id",
+    "targetNodeId": "node-id",
+    "createdAt": "2026-04-22T12:00:00.000Z"
+  }
+}
+```
+
 ## Files
 
 ### `GET /w/:workspaceId/files/tree/:serviceId`

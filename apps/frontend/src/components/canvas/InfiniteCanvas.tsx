@@ -26,8 +26,10 @@ import { ScreenshotNode } from "./ScreenshotNode";
 import { ScreenShareNode } from "./ScreenShareNode";
 import { HostNode } from "./HostNode";
 import { EditorNode } from "./EditorNode";
+import { CommandHistoryNode } from "./CommandHistoryNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
+import { useFullscreenStore } from "@/stores/fullscreen-store";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 import {
   DropdownMenu,
@@ -43,6 +45,7 @@ const nodeTypes: NodeTypes = {
   "screen-share": ScreenShareNode,
   host: HostNode,
   editor: EditorNode,
+  "command-history": CommandHistoryNode,
 };
 
 const defaultViewport = { x: 0, y: 0, zoom: 1 };
@@ -59,6 +62,10 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
   const { onlineCount } = useServices();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const reactFlow = useReactFlow();
+
+  const fullScreenTerminal = useFullscreenStore((s) => s.terminal);
+  const openFullScreen = useFullscreenStore((s) => s.open);
+  const closeFullScreen = useFullscreenStore((s) => s.close);
 
   const noHost = onlineCount === 0;
   const isEmpty = nodes.length === 0;
@@ -104,14 +111,14 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
     if (onFullScreenRef) {
       onFullScreenRef.current = (terminalId: string, status: string) => {
         const terminal = terminals.find((t) => t.id === terminalId);
-        setFullScreenTerminal({
+        openFullScreen({
           terminalId,
           status: (status as TerminalStatus) ?? "active",
           tags: terminal?.tags,
         });
       };
     }
-  }, [onFullScreenRef, terminals]);
+  }, [onFullScreenRef, terminals, openFullScreen]);
 
   const [localEdges, setLocalEdges] = useState<Edge[]>([]);
 
@@ -131,12 +138,6 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
     [],
   );
 
-  const [fullScreenTerminal, setFullScreenTerminal] = useState<{
-    terminalId: string;
-    status: TerminalStatus;
-    tags?: string[];
-  } | null>(null);
-
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
   const fitViewOptions = useMemo(
     () => ({
@@ -151,7 +152,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
       if (!isMobile) return;
       if (node.type !== "terminal") return;
       const data = node.data as TerminalNodeData;
-      setFullScreenTerminal({
+      openFullScreen({
         terminalId: data.terminalId,
         status: data.status,
         tags: data.tags,
@@ -160,9 +161,20 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
     [isMobile],
   );
 
-  const closeFullScreen = useCallback(() => {
-    setFullScreenTerminal(null);
-  }, []);
+  const handleNodeDoubleClick: NodeMouseHandler = useCallback(
+    (_event, node) => {
+      if (isMobile) return;
+      if (node.type !== "terminal") return;
+      const data = node.data as TerminalNodeData;
+      openFullScreen({
+        terminalId: data.terminalId,
+        status: data.status,
+        tags: data.tags,
+      });
+    },
+    [isMobile],
+  );
+
 
   async function onNewTerminal() {
     if (noHost) {
@@ -200,6 +212,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
         onNodesChange={onNodesChange}
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={handleNodeDoubleClick}
         nodeTypes={nodeTypes}
         defaultViewport={defaultViewport}
         proOptions={proOptions}
@@ -265,7 +278,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
         </div>
       )}
 
-      {/* Full-screen terminal overlay for mobile */}
+      {/* Full-screen terminal overlay (mobile: tap, desktop: double-click or menu) */}
       {fullScreenTerminal && (
         <TerminalFullScreen
           terminalId={fullScreenTerminal.terminalId}
@@ -277,12 +290,12 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
           onPrev={() => {
             const idx = terminals.findIndex((t) => t.id === fullScreenTerminal.terminalId);
             const prev = terminals[(idx - 1 + terminals.length) % terminals.length];
-            if (prev) setFullScreenTerminal({ terminalId: prev.id, status: prev.status, tags: prev.tags });
+            if (prev) openFullScreen({ terminalId: prev.id, status: prev.status, tags: prev.tags });
           }}
           onNext={() => {
             const idx = terminals.findIndex((t) => t.id === fullScreenTerminal.terminalId);
             const next = terminals[(idx + 1) % terminals.length];
-            if (next) setFullScreenTerminal({ terminalId: next.id, status: next.status, tags: next.tags });
+            if (next) openFullScreen({ terminalId: next.id, status: next.status, tags: next.tags });
           }}
         />
       )}

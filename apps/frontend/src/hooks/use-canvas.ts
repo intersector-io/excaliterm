@@ -77,7 +77,13 @@ export interface EditorNodeData {
   [key: string]: unknown;
 }
 
-type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData | HostNodeData | EditorNodeData;
+export interface CommandHistoryNodeData {
+  terminalSessionId: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData | HostNodeData | EditorNodeData | CommandHistoryNodeData;
 
 function buildFlowNode(cn: CanvasNode, type: string, data: AnyNodeData): Node<AnyNodeData> {
   return {
@@ -144,6 +150,15 @@ function canvasNodeToFlowNode(
           height: shot?.height ?? 0,
           capturedAt: shot?.capturedAt ?? "",
           label: "Screenshot",
+        });
+      }
+      break;
+
+    case "command-history":
+      if (cn.terminalSessionId) {
+        return buildFlowNode(cn, "command-history", {
+          terminalSessionId: cn.terminalSessionId,
+          label: "Command History",
         });
       }
       break;
