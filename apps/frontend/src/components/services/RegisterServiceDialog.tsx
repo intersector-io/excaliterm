@@ -39,7 +39,7 @@ export function RegisterServiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Connect a Host</DialogTitle>
           <DialogDescription>
@@ -48,7 +48,7 @@ export function RegisterServiceDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Step 1: Install */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
