@@ -7,6 +7,9 @@ import {
   Plus,
   Server,
   Users,
+  Focus,
+  Filter,
+  X,
 } from "lucide-react";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
@@ -24,22 +27,25 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 
-interface MobileTerminalListViewProps {
-  onNavigateToServices: () => void;
-}
+const ALL_STATUSES: TerminalStatus[] = [
+  "active",
+  "disconnected",
+  "exited",
+  "error",
+];
 
-export function MobileTerminalListView({
-  onNavigateToServices,
-}: MobileTerminalListViewProps) {
+export function MobileTerminalListView() {
   const { terminals, createTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { onlineCount } = useServices();
-  const { collaborator, workspaceId } = useWorkspace();
+  const { collaborator, workspaceId, apiKey } = useWorkspace();
   const { collaboratorCount } = useTerminalCollaboration();
 
   const noHost = onlineCount === 0;
+  const [connectOpen, setConnectOpen] = useState(false);
 
   const screenshotsQuery = useQuery({
     queryKey: ["screenshots", workspaceId],
@@ -53,21 +59,89 @@ export function MobileTerminalListView({
     tags?: string[];
   } | null>(null);
 
+  // ── Filter state ──────────────────────────────────────────────────────
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<TerminalStatus>>(
+    new Set(),
+  );
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    for (const t of terminals) {
+      for (const tag of t.tags ?? []) tags.add(tag);
+    }
+    return Array.from(tags).sort();
+  }, [terminals]);
+
+  const hasFilters = selectedStatuses.size > 0 || selectedTags.size > 0;
+
+  const filteredTerminals = useMemo(() => {
+    if (!hasFilters) return terminals;
+    return terminals.filter((t) => {
+      if (
+        selectedStatuses.size > 0 &&
+        !selectedStatuses.has(t.status as TerminalStatus)
+      )
+        return false;
+      if (selectedTags.size > 0) {
+        const tTags = t.tags ?? [];
+        if (!tTags.some((tag) => selectedTags.has(tag))) return false;
+      }
+      return true;
+    });
+  }, [terminals, selectedStatuses, selectedTags, hasFilters]);
+
   const activeTerminals = useMemo(
-    () => terminals.filter((t) => t.status === "active"),
-    [terminals],
+    () => filteredTerminals.filter((t) => t.status === "active"),
+    [filteredTerminals],
   );
   const inactiveTerminals = useMemo(
-    () => terminals.filter((t) => t.status !== "active"),
-    [terminals],
+    () => filteredTerminals.filter((t) => t.status !== "active"),
+    [filteredTerminals],
   );
 
+  const toggleStatus = useCallback((s: TerminalStatus) => {
+    setSelectedStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+  }, []);
+
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSelectedStatuses(new Set());
+    setSelectedTags(new Set());
+  }, []);
+
+  // ── Fullscreen / focus helpers ────────────────────────────────────────
   const handleOpenTerminal = useCallback(
     (terminalId: string, status: TerminalStatus, tags?: string[]) => {
       setFullScreenTerminal({ terminalId, status, tags });
     },
     [],
   );
+
+  const enterFocusMode = useCallback(() => {
+    const first = filteredTerminals[0];
+    if (first) {
+      setFullScreenTerminal({
+        terminalId: first.id,
+        status: first.status as TerminalStatus,
+        tags: first.tags,
+      });
+    }
+  }, [filteredTerminals]);
 
   async function handleNewTerminal() {
     if (noHost) {
@@ -141,7 +215,103 @@ export function MobileTerminalListView({
             </span>
           </div>
         </div>
+        {/* Focus + Filter buttons */}
+        {terminals.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setFilterOpen((v) => !v)}
+              className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-caption font-medium transition-colors ${
+                filterOpen || hasFilters
+                  ? "bg-accent-cyan/15 text-accent-cyan"
+                  : "bg-surface-raised text-muted-foreground"
+              }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              {hasFilters && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-cyan text-[10px] font-bold text-background">
+                  {selectedStatuses.size + selectedTags.size}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={enterFocusMode}
+              disabled={filteredTerminals.length === 0}
+              className="flex h-8 items-center gap-1.5 rounded-lg bg-accent-cyan/12 px-2.5 text-caption font-medium text-accent-cyan transition-colors hover:bg-accent-cyan/20 disabled:opacity-40"
+            >
+              <Focus className="h-3.5 w-3.5" />
+              Focus
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Filter bar */}
+      {filterOpen && terminals.length > 0 && (
+        <div className="border-b border-border-default bg-surface-sunken/30 px-4 py-2.5 space-y-2">
+          {/* Status filters */}
+          <div className="space-y-1">
+            <span className="text-caption font-medium uppercase tracking-wider text-muted-foreground/50">
+              Status
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => toggleStatus(s)}
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-caption font-medium transition-colors ${
+                    selectedStatuses.has(s)
+                      ? `${statusColor(s)}/20 ${statusColor(s).replace("bg-", "text-")} border-current`
+                      : "border-border/40 text-muted-foreground"
+                  }`}
+                >
+                  <div
+                    className={`h-1.5 w-1.5 rounded-full ${statusColor(s)}`}
+                  />
+                  {statusLabel(s)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tag filters */}
+          {allTags.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-caption font-medium uppercase tracking-wider text-muted-foreground/50">
+                Tags
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    className={`rounded-full border px-2.5 py-1 text-caption font-medium transition-colors ${
+                      selectedTags.has(tag)
+                        ? getTagColor(tag)
+                        : "border-border/40 text-muted-foreground"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Clear filters */}
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-caption text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+              Clear filters
+              <span className="text-muted-foreground/40">
+                ({filteredTerminals.length} of {terminals.length})
+              </span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
@@ -157,17 +327,17 @@ export function MobileTerminalListView({
               </h2>
               <p className="text-body-sm leading-relaxed text-muted-foreground">
                 {noHost
-                  ? "Register a host service to start creating terminal sessions."
+                  ? "Connect a host to start creating terminal sessions."
                   : "Create your first terminal session to get started."}
               </p>
             </div>
             {noHost ? (
               <Button
-                onClick={onNavigateToServices}
+                onClick={() => setConnectOpen(true)}
                 className="gap-2 rounded-xl border border-accent-cyan/20 bg-accent-cyan/12 text-accent-cyan"
               >
                 <Server className="h-4 w-4" />
-                Register a service
+                Connect a host
               </Button>
             ) : (
               <Button
@@ -179,6 +349,25 @@ export function MobileTerminalListView({
                 {isCreating ? "Creating..." : "New Terminal"}
               </Button>
             )}
+          </div>
+        ) : filteredTerminals.length === 0 ? (
+          /* No matches */
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+            <Filter className="h-8 w-8 text-muted-foreground/30" />
+            <div className="space-y-1">
+              <h2 className="text-body font-semibold text-foreground">
+                No matching terminals
+              </h2>
+              <p className="text-body-sm text-muted-foreground">
+                Try adjusting your filters.
+              </p>
+            </div>
+            <button
+              onClick={clearFilters}
+              className="text-body-sm font-medium text-accent-cyan"
+            >
+              Clear all filters
+            </button>
           </div>
         ) : (
           <div className="p-3 space-y-2">
@@ -281,23 +470,32 @@ export function MobileTerminalListView({
         </div>
       )}
 
-      {/* Fullscreen terminal overlay */}
+      <RegisterServiceDialog
+        open={connectOpen}
+        onOpenChange={setConnectOpen}
+        workspaceId={workspaceId}
+        apiKey={apiKey}
+      />
+
+      {/* Fullscreen terminal overlay — cycles through filtered terminals */}
       {fullScreenTerminal && (
         <TerminalFullScreen
           terminalId={fullScreenTerminal.terminalId}
           status={fullScreenTerminal.status}
           tags={fullScreenTerminal.tags}
           onBack={() => setFullScreenTerminal(null)}
-          currentIndex={terminals.findIndex(
+          currentIndex={filteredTerminals.findIndex(
             (t) => t.id === fullScreenTerminal.terminalId,
           )}
-          totalCount={terminals.length}
+          totalCount={filteredTerminals.length}
           onPrev={() => {
-            const idx = terminals.findIndex(
+            const idx = filteredTerminals.findIndex(
               (t) => t.id === fullScreenTerminal.terminalId,
             );
             const prev =
-              terminals[(idx - 1 + terminals.length) % terminals.length];
+              filteredTerminals[
+                (idx - 1 + filteredTerminals.length) % filteredTerminals.length
+              ];
             if (prev)
               setFullScreenTerminal({
                 terminalId: prev.id,
@@ -306,10 +504,11 @@ export function MobileTerminalListView({
               });
           }}
           onNext={() => {
-            const idx = terminals.findIndex(
+            const idx = filteredTerminals.findIndex(
               (t) => t.id === fullScreenTerminal.terminalId,
             );
-            const next = terminals[(idx + 1) % terminals.length];
+            const next =
+              filteredTerminals[(idx + 1) % filteredTerminals.length];
             if (next)
               setFullScreenTerminal({
                 terminalId: next.id,

@@ -17,17 +17,25 @@ export function useServices() {
     const terminalHub = getTerminalHub();
 
     function handleServiceOnline(serviceId: string) {
-      queryClient.setQueryData(
-        ["services", workspaceId],
-        (old: { services: api.ServiceInstance[] } | undefined) => {
-          if (!old) return old;
-          return {
-            services: old.services.map((s) =>
-              s.serviceId === serviceId ? { ...s, status: "online" as const } : s,
-            ),
-          };
-        },
-      );
+      const old = queryClient.getQueryData<{ services: api.ServiceInstance[] }>(["services", workspaceId]);
+      const exists = old?.services.some((s) => s.serviceId === serviceId);
+
+      if (exists) {
+        queryClient.setQueryData(
+          ["services", workspaceId],
+          (prev: { services: api.ServiceInstance[] } | undefined) => {
+            if (!prev) return prev;
+            return {
+              services: prev.services.map((s) =>
+                s.serviceId === serviceId ? { ...s, status: "online" as const } : s,
+              ),
+            };
+          },
+        );
+      } else {
+        // New service auto-registered by CLI — refetch list
+        queryClient.invalidateQueries({ queryKey: ["services", workspaceId] });
+      }
     }
 
     function handleServiceOffline(serviceId: string) {
@@ -55,26 +63,6 @@ export function useServices() {
     };
   }, [queryClient, workspaceId]);
 
-  const registerMutation = useMutation({
-    mutationFn: (name: string) => api.createService(workspaceId, name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services", workspaceId] });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: { name?: string; whitelistedPaths?: string };
-    }) => api.updateService(workspaceId, id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["services", workspaceId] });
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteServiceApi(workspaceId, id),
     onSuccess: () => {
@@ -101,10 +89,6 @@ export function useServices() {
     services,
     onlineCount,
     isLoading: servicesQuery.isLoading,
-    registerService: registerMutation.mutateAsync,
-    isRegistering: registerMutation.isPending,
-    updateService: updateMutation.mutateAsync,
-    isUpdating: updateMutation.isPending,
     deleteService: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
     shutdownService,

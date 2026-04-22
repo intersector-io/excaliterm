@@ -35,7 +35,7 @@ The root `.env` file is consumed by the backend and terminal agent. The SignalR 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `SIGNALR_HUB_URL` | Yes | Base URL for the SignalR hub |
-| `SERVICE_API_KEY` | Yes | Shared secret accepted by the SignalR hub |
+| `SERVICE_API_KEY` | Yes | Per-workspace API key shown in the "Connect a Host" dialog (auto-generated per workspace) |
 | `SERVICE_ID` | Recommended | Stable identifier for this agent instance |
 | `WORKSPACE_ID` | Required for useful terminal work | Workspace ID the agent should join |
 | `WHITELISTED_PATHS` | Optional | Comma-separated filesystem roots allowed by the agent |
@@ -163,7 +163,7 @@ This brings up:
 The terminal agent still runs separately on a host machine or VM. Configure it with:
 
 - `SIGNALR_HUB_URL` pointing at the deployed hub
-- `SERVICE_API_KEY` matching the hub configuration
+- `SERVICE_API_KEY` set to the per-workspace API key (shown in the UI's "Connect a Host" dialog)
 - `WORKSPACE_ID` matching the target workspace
 
 ## Verification Checklist

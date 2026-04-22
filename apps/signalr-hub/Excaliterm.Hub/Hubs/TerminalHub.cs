@@ -13,7 +13,7 @@ public class TerminalHub : BaseHub
 
     private readonly ServiceRegistry _serviceRegistry;
     private readonly TerminalCollaborationRegistry _collaborationRegistry;
-    private readonly IConfiguration _config;
+    private readonly ApiKeyValidator _apiKeyValidator;
     private readonly RedisSubscriber _redisSubscriber;
     private readonly IConnectionMultiplexer? _redis;
 
@@ -22,7 +22,7 @@ public class TerminalHub : BaseHub
         ServiceRegistry serviceRegistry,
         TerminalCollaborationRegistry collaborationRegistry,
         RedisSubscriber redisSubscriber,
-        IConfiguration config,
+        ApiKeyValidator apiKeyValidator,
         ILogger<TerminalHub> logger,
         IConnectionMultiplexer? redis = null)
         : base(workspaceValidator, logger)
@@ -30,7 +30,7 @@ public class TerminalHub : BaseHub
         _serviceRegistry = serviceRegistry;
         _collaborationRegistry = collaborationRegistry;
         _redisSubscriber = redisSubscriber;
-        _config = config;
+        _apiKeyValidator = apiKeyValidator;
         _redis = redis;
     }
 
@@ -147,23 +147,21 @@ public class TerminalHub : BaseHub
 
     public async Task RegisterService(string serviceId, string apiKey)
     {
-        // Validate the API key against configuration
-        var expectedKey = _config["ServiceAuth:ApiKey"]
-            ?? Environment.GetEnvironmentVariable("SERVICE_API_KEY");
+        // Extract workspaceId from the SignalR query string
+        var httpContext = Context.GetHttpContext();
+        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
 
-        if (string.IsNullOrWhiteSpace(expectedKey) || apiKey != expectedKey)
+        // Validate the API key against the workspace's stored key
+        var isValid = await _apiKeyValidator.ValidateAsync(workspaceId, apiKey);
+        if (!isValid)
         {
             Logger.LogWarning(
-                "Service registration rejected: invalid API key from {ConnectionId}",
-                Context.ConnectionId
+                "Service registration rejected: invalid API key from {ConnectionId} for workspace {WorkspaceId}",
+                Context.ConnectionId, workspaceId
             );
             Context.Abort();
             return;
         }
-
-        // Extract workspaceId from the SignalR query string
-        var httpContext = Context.GetHttpContext();
-        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
 
         Context.Items["IsService"] = true;
         Context.Items["ServiceId"] = serviceId;

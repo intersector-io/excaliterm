@@ -96,7 +96,7 @@ export function ServiceCard({ service, onEdit, onDelete, onShutdown }: ServiceCa
           onClick={() => onEdit(service)}
         >
           <Settings className="h-3 w-3" />
-          Edit
+          Setup
         </Button>
         {isOnline && (
           <Button

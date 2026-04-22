@@ -23,7 +23,7 @@ All configuration is via environment variables. Create a `.env` file or export t
 
 | Variable | Description |
 |----------|-------------|
-| `SERVICE_API_KEY` | Shared secret matching the SignalR hub's configured key. The agent will refuse to start without this. |
+| `SERVICE_API_KEY` | Per-workspace API key (auto-generated, shown in the "Connect a Host" dialog). The agent will refuse to start without this. |
 
 ### Recommended
 
@@ -53,14 +53,14 @@ https://your-excaliterm.example.com/w/Ab12Cd34Ef56
 
 ### Step 2: Get the API key
 
-The `SERVICE_API_KEY` must match the key configured on the SignalR hub deployment. Ask whoever deployed the hub, or check the hub's environment variables / `appsettings.json`.
+Open the "Connect a Host" dialog in the workspace UI. It shows the full connection command with the workspace API key pre-filled. Each workspace has its own auto-generated API key.
 
 ### Step 3: Run the agent
 
 ```bash
 # Via environment variables
 export SIGNALR_HUB_URL="https://your-hub-url:5000"
-export SERVICE_API_KEY="your-shared-secret"
+export SERVICE_API_KEY="your-workspace-api-key"
 export WORKSPACE_ID="Ab12Cd34Ef56"
 excaliterm
 
@@ -98,13 +98,13 @@ Once connected, the agent handles these operations from the web UI:
 ## Security Notes
 
 - **`WHITELISTED_PATHS`** restricts filesystem access. In production, always set this to limit exposure. Symlinks pointing outside whitelisted directories are blocked.
-- **`SERVICE_API_KEY`** authenticates the agent with the hub. If the key doesn't match, the connection is rejected.
+- **`SERVICE_API_KEY`** authenticates the agent with the hub. The hub validates the key against the backend per-workspace (via `GET /api/validate-key`). If the key doesn't match the workspace, the connection is rejected.
 - Path traversal attacks (`..`) are blocked after path normalization.
 - Null bytes in paths are rejected.
 
 ## Troubleshooting
 
-**"SERVICE_API_KEY is required"** - Set the `SERVICE_API_KEY` environment variable. It must match the hub's configured key.
+**"SERVICE_API_KEY is required"** - Set the `SERVICE_API_KEY` environment variable. Use the per-workspace API key from the "Connect a Host" dialog in the UI.
 
 **Agent connects but UI shows "No host"** - The `WORKSPACE_ID` doesn't match. Copy the exact ID from the browser URL bar.
 

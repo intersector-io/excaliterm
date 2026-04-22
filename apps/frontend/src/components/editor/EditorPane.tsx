@@ -1,7 +1,7 @@
-import { useRef, useCallback, useEffect, lazy, Suspense } from "react";
+import { useRef, useCallback, useEffect, useContext, lazy, Suspense } from "react";
 import { Save, Lock, FileCode } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEditorStore } from "@/stores/editor-store";
+import { useEditorStore, EditorStoreContext } from "@/stores/editor-store";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { THEME_NAME, excalitermDarkTheme } from "@/lib/monaco-theme";
 import { EditorTabs } from "./EditorTabs";
@@ -19,6 +19,7 @@ interface EditorPaneProps {
 }
 
 export function EditorPane({ onSave, readOnly = false }: EditorPaneProps) {
+  const storeApi = useContext(EditorStoreContext);
   const { openFiles, activeFile, updateContent, markSaved } = useEditorStore();
   const editorRef = useRef<MonacoEditor>(null);
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -35,9 +36,11 @@ export function EditorPane({ onSave, readOnly = false }: EditorPaneProps) {
 
       // Ctrl+S / Cmd+S to save
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-        const currentPath = useEditorStore.getState().activeFile;
+        if (!storeApi) return;
+        const state = storeApi.getState();
+        const currentPath = state.activeFile;
         const currentFile = currentPath
-          ? useEditorStore.getState().openFiles.get(currentPath)
+          ? state.openFiles.get(currentPath)
           : undefined;
 
         if (currentPath && currentFile?.isDirty) {

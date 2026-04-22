@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import { loadEnv } from "./env.js";
-import { initializeDb } from "./db/index.js";
+import { initializeDb, getDb, schema } from "./db/index.js";
+import { eq, and, count } from "drizzle-orm";
 import { initializeRedis, subscribe } from "./lib/redis.js";
 import { HTTPException } from "hono/http-exception";
 import { workspaceMiddleware } from "./middleware/workspace.js";
@@ -32,17 +33,18 @@ subscribe("service:events", async (message) => {
       workspaceId: string;
     };
     const workspaceId = event.workspaceId;
-    const db = (await import("./db/index.js")).getDb();
-    const { schema } = await import("./db/index.js");
-    const { eq, and } = await import("drizzle-orm");
+    const db = getDb();
 
     if (event.event === "online") {
+      let serviceDbId: string | null = null;
+
       const [existing] = await db
         .select()
         .from(schema.serviceInstance)
         .where(eq(schema.serviceInstance.serviceId, event.serviceInstanceId));
 
       if (existing) {
+        serviceDbId = existing.id;
         await db
           .update(schema.serviceInstance)
           .set({ status: "online", lastSeen: new Date(), updatedAt: new Date() })
@@ -55,8 +57,9 @@ subscribe("service:events", async (message) => {
           .where(eq(schema.workspace.id, workspaceId));
 
         if (workspace) {
+          serviceDbId = crypto.randomUUID();
           await db.insert(schema.serviceInstance).values({
-            id: crypto.randomUUID(),
+            id: serviceDbId,
             workspaceId,
             serviceId: event.serviceInstanceId,
             name: event.serviceInstanceId,
@@ -70,6 +73,53 @@ subscribe("service:events", async (message) => {
           console.warn(`[redis] Ignoring service online event: workspace ${workspaceId} not found`);
         }
       }
+
+      // Auto-create host canvas node if one doesn't exist yet
+      if (serviceDbId && workspaceId) {
+        const [existingHostNode] = await db
+          .select()
+          .from(schema.canvasNode)
+          .where(
+            and(
+              eq(schema.canvasNode.workspaceId, workspaceId),
+              eq(schema.canvasNode.nodeType, "host"),
+              eq(schema.canvasNode.serviceInstanceId, serviceDbId),
+            ),
+          );
+
+        if (!existingHostNode) {
+          const [{ value: hostCount }] = await db
+            .select({ value: count() })
+            .from(schema.canvasNode)
+            .where(
+              and(
+                eq(schema.canvasNode.workspaceId, workspaceId),
+                eq(schema.canvasNode.nodeType, "host"),
+              ),
+            );
+
+          const HOST_W = 280;
+          const HOST_H = 160;
+          const GAP = 60;
+          const x = 72 + hostCount * (HOST_W + GAP);
+          const y = 76;
+
+          await db.insert(schema.canvasNode).values({
+            id: crypto.randomUUID(),
+            workspaceId,
+            nodeType: "host",
+            serviceInstanceId: serviceDbId,
+            x,
+            y,
+            width: HOST_W,
+            height: HOST_H,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          console.log(`[redis] Created host canvas node for service ${event.serviceInstanceId}`);
+        }
+      }
+
       console.log(`[redis] Service ${event.serviceInstanceId} is now online`);
     } else if (event.event === "offline") {
       const [existing] = await db
@@ -122,6 +172,26 @@ app.use("*", rateLimiter({ max: 100, windowMs: 60_000 }));
 // ─── Health (public) ───────────────────────────────────────────────────────
 
 app.route("/api/health", health);
+
+// ─── Connect Info (public) ────────────────────────────────────────────────
+
+// Validate a workspace API key (used by SignalR hub)
+app.get("/api/validate-key", async (c) => {
+  const workspaceId = c.req.query("workspaceId");
+  const apiKey = c.req.query("apiKey");
+
+  if (!workspaceId || !apiKey) {
+    return c.json({ valid: false }, 400);
+  }
+
+  const db = getDb();
+  const [ws] = await db
+    .select({ apiKey: schema.workspace.apiKey })
+    .from(schema.workspace)
+    .where(eq(schema.workspace.id, workspaceId));
+
+  return c.json({ valid: !!ws && ws.apiKey === apiKey });
+});
 
 // ─── Workspaces (public) ──────────────────────────────────────────────────
 

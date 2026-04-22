@@ -1,9 +1,7 @@
 import { Link2, Check } from "lucide-react";
 import {
   LayoutDashboard,
-  Code2,
   MessageSquare,
-  Server,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
@@ -19,8 +17,6 @@ interface SidebarProps {
   activeView: ActiveView;
   onViewChange: (view: ActiveView) => void;
   unreadChat: number;
-  onlineServices: number;
-  collaboratorCount: number;
   chatOpen: boolean;
   onToggleChat: () => void;
 }
@@ -36,7 +32,6 @@ export function Sidebar({
   activeView,
   onViewChange,
   unreadChat,
-  onlineServices,
   chatOpen,
   onToggleChat,
 }: SidebarProps) {
@@ -44,8 +39,6 @@ export function Sidebar({
 
   const navItems: NavItem[] = [
     { id: "canvas", icon: LayoutDashboard, label: "Canvas" },
-    { id: "editor", icon: Code2, label: "Editor" },
-    { id: "services", icon: Server, label: "Hosts", badge: onlineServices },
   ];
 
   const handleShare = useCallback(async () => {

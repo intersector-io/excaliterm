@@ -52,25 +52,45 @@ terminals.post("/", async (c) => {
   const x = body.x ?? ORIGIN_X + col * (NODE_W + GAP_X);
   const y = body.y ?? ORIGIN_Y + row * (NODE_H + GAP_Y);
 
-  // Check if any service is online for this workspace
-  const [targetService] = await db
-    .select()
-    .from(schema.serviceInstance)
-    .where(
-      and(
-        eq(schema.serviceInstance.workspaceId, workspaceId),
-        eq(schema.serviceInstance.status, "online"),
-      ),
-    )
-    .orderBy(
-      desc(schema.serviceInstance.lastSeen),
-      desc(schema.serviceInstance.updatedAt),
-    );
-
-  if (!targetService) {
-    throw new HTTPException(503, {
-      message: "No online service available for this workspace",
-    });
+  // Resolve target service — use explicit pick or fall back to most-recent online
+  let targetService;
+  if (body.serviceInstanceId) {
+    const [picked] = await db
+      .select()
+      .from(schema.serviceInstance)
+      .where(
+        and(
+          eq(schema.serviceInstance.id, body.serviceInstanceId),
+          eq(schema.serviceInstance.workspaceId, workspaceId),
+          eq(schema.serviceInstance.status, "online"),
+        ),
+      );
+    if (!picked) {
+      throw new HTTPException(400, {
+        message: "Selected service is not online",
+      });
+    }
+    targetService = picked;
+  } else {
+    const [autoService] = await db
+      .select()
+      .from(schema.serviceInstance)
+      .where(
+        and(
+          eq(schema.serviceInstance.workspaceId, workspaceId),
+          eq(schema.serviceInstance.status, "online"),
+        ),
+      )
+      .orderBy(
+        desc(schema.serviceInstance.lastSeen),
+        desc(schema.serviceInstance.updatedAt),
+      );
+    if (!autoService) {
+      throw new HTTPException(503, {
+        message: "No online service available for this workspace",
+      });
+    }
+    targetService = autoService;
   }
 
   const terminalId = uuidv4();
@@ -100,6 +120,27 @@ terminals.post("/", async (c) => {
     createdAt: now,
     updatedAt: now,
   });
+
+  // Create edge from terminal node to host node (if host node exists)
+  const [hostNode] = await db
+    .select()
+    .from(schema.canvasNode)
+    .where(
+      and(
+        eq(schema.canvasNode.workspaceId, workspaceId),
+        eq(schema.canvasNode.nodeType, "host"),
+        eq(schema.canvasNode.serviceInstanceId, targetService.id),
+      ),
+    );
+
+  if (hostNode) {
+    await db.insert(schema.canvasEdge).values({
+      id: uuidv4(),
+      workspaceId,
+      sourceNodeId: nodeId,
+      targetNodeId: hostNode.id,
+    });
+  }
 
   await publish("terminal:commands", {
     command: "terminal:create",

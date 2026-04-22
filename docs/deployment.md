@@ -52,7 +52,7 @@ If you run the hub outside Docker, provide equivalent settings through environme
 | Variable | Example |
 |----------|---------|
 | `SIGNALR_HUB_URL` | `https://your-domain.example` |
-| `SERVICE_API_KEY` | shared-secret-used-by-hub |
+| `SERVICE_API_KEY` | per-workspace API key from the UI |
 | `SERVICE_ID` | `host-a` |
 | `WORKSPACE_ID` | workspace-id-from-url |
 | `WHITELISTED_PATHS` | `/app,/home,/var/log` |
@@ -128,7 +128,8 @@ node apps/terminal-agent/dist/index.js
 
 ## Security Notes
 
-- Protect `SERVICE_API_KEY`; it is the shared secret accepted by the SignalR hub for service registration.
+- API keys are auto-generated per workspace and stored in the workspace table. The "Connect a Host" dialog in the UI shows the full connection command with the key pre-filled.
+- The SignalR hub no longer uses a single shared `SERVICE_API_KEY` environment variable for validation. Instead, it calls the backend's `GET /api/validate-key` endpoint to verify each agent's key against the target workspace.
 - Workspace URLs act as collaboration entry points. Anyone with a valid workspace ID can currently join that workspace.
 - Restrict network access so only expected clients can reach the backend and hub.
 - Keep `WHITELISTED_PATHS` as narrow as possible on the terminal agent host.

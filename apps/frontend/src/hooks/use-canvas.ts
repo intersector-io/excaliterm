@@ -14,7 +14,9 @@ import type {
   Screenshot,
   TerminalSession,
   TerminalStatus,
+  CreateEditorNodeRequest,
 } from "@excaliterm/shared-types";
+import type { ServiceInstance } from "@/lib/api-client";
 import type { NoteData } from "@/hooks/use-notes";
 import { useScreenShareStore } from "@/stores/screen-share-store";
 
@@ -59,14 +61,69 @@ export interface ScreenShareNodeData {
   [key: string]: unknown;
 }
 
-type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData;
+export interface HostNodeData {
+  serviceInstanceId: string;
+  serviceId: string;
+  serviceName: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+export interface EditorNodeData {
+  serviceInstanceId: string;
+  serviceId: string;
+  serviceName: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData | HostNodeData | EditorNodeData;
 
 function canvasNodeToFlowNode(
   cn: CanvasNode,
   terminals: TerminalSession[],
   notes: NoteData[],
   screenshots: Screenshot[],
+  services: ServiceInstance[],
 ): Node<AnyNodeData> {
+  if (cn.nodeType === "host" && cn.serviceInstanceId) {
+    const service = services.find((s) => s.id === cn.serviceInstanceId);
+    return {
+      id: cn.id,
+      type: "host",
+      position: { x: cn.x, y: cn.y },
+      dragHandle: ".drag-handle",
+      data: {
+        serviceInstanceId: cn.serviceInstanceId,
+        serviceId: service?.serviceId ?? "",
+        serviceName: service?.name ?? "Unknown",
+        label: "Host",
+      },
+      style: { width: cn.width, height: cn.height },
+      measured: { width: cn.width, height: cn.height },
+      zIndex: cn.zIndex,
+    };
+  }
+
+  if (cn.nodeType === "editor" && cn.serviceInstanceId) {
+    const service = services.find((s) => s.id === cn.serviceInstanceId);
+    return {
+      id: cn.id,
+      type: "editor",
+      position: { x: cn.x, y: cn.y },
+      dragHandle: ".drag-handle",
+      data: {
+        serviceInstanceId: cn.serviceInstanceId,
+        serviceId: service?.serviceId ?? "",
+        serviceName: service?.name ?? "Unknown",
+        label: "Editor",
+      },
+      style: { width: cn.width, height: cn.height },
+      measured: { width: cn.width, height: cn.height },
+      zIndex: cn.zIndex,
+    };
+  }
+
   if (cn.nodeType === "note" && cn.noteId) {
     const note = notes.find((n) => n.id === cn.noteId);
     return {
@@ -181,9 +238,24 @@ export function useCanvas() {
     queryFn: () => api.listScreenshots(workspaceId),
   });
 
+  const servicesQuery = useQuery({
+    queryKey: ["services", workspaceId],
+    queryFn: () => api.listServices(workspaceId),
+  });
+
+  const createEditorMutation = useMutation({
+    mutationFn: (req: CreateEditorNodeRequest) =>
+      api.createEditorNode(workspaceId, req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
+    },
+  });
+
   const terminals = terminalsQuery.data?.terminals ?? [];
   const notes = (notesQuery.data?.notes ?? []) as NoteData[];
   const screenshots = screenshotsQuery.data?.screenshots ?? [];
+  const services = servicesQuery.data?.services ?? [];
 
   useEffect(() => {
     const canvasHub = getCanvasHub();
@@ -290,10 +362,10 @@ export function useCanvas() {
 
   const nodes: Node<AnyNodeData>[] = useMemo(
     () => [
-      ...(nodesQuery.data?.nodes ?? []).map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots)),
+      ...(nodesQuery.data?.nodes ?? []).map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots, services)),
       ...screenShareNodes,
     ],
-    [nodesQuery.data, terminals, notes, screenshots, screenShareNodes],
+    [nodesQuery.data, terminals, notes, screenshots, services, screenShareNodes],
   );
 
   const edges: Edge[] = useMemo(() => {
@@ -328,7 +400,7 @@ export function useCanvas() {
         (old: { nodes: CanvasNode[] } | undefined) => {
           if (!old) return old;
 
-          const flowNodes = old.nodes.map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots));
+          const flowNodes = old.nodes.map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots, services));
           const updated = applyNodeChanges(changes, flowNodes);
 
           const canvasHub = getCanvasHub();
@@ -377,6 +449,8 @@ export function useCanvas() {
     edges,
     onNodesChange,
     deleteNode: deleteMutation.mutateAsync,
+    deleteCanvasNode: deleteMutation.mutateAsync,
+    createEditorNode: createEditorMutation.mutateAsync,
     addScreenShareNode,
     removeScreenShareNode,
     isLoading: nodesQuery.isLoading,

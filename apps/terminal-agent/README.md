@@ -12,7 +12,7 @@ npm install -g excaliterm
 
 ```bash
 export SIGNALR_HUB_URL="https://your-hub:5000"
-export SERVICE_API_KEY="your-shared-secret"
+export SERVICE_API_KEY="your-workspace-api-key"
 export WORKSPACE_ID="your-workspace-id"
 excaliterm
 ```
@@ -27,7 +27,7 @@ npx excaliterm
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `SERVICE_API_KEY` | Yes | -- | Shared secret matching the SignalR hub |
+| `SERVICE_API_KEY` | Yes | -- | Per-workspace API key (from the "Connect a Host" dialog) |
 | `SIGNALR_HUB_URL` | No | `http://localhost:5000` | SignalR hub URL |
 | `WORKSPACE_ID` | No | null UUID | Workspace ID from the browser URL (`/w/<id>`) |
 | `SERVICE_ID` | No | `{hostname}-{pid}` | Stable identifier for this agent |

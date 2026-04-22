@@ -17,9 +17,12 @@ workspaces.post("/", async (c) => {
   const id = generateId();
   const now = new Date();
 
+  const apiKey = crypto.randomUUID();
+
   await db.insert(schema.workspace).values({
     id,
     name: "Untitled workspace",
+    apiKey,
     createdAt: now,
     lastAccessedAt: now,
   });
@@ -33,6 +36,7 @@ workspaces.post("/", async (c) => {
     {
       id: workspace.id,
       name: workspace.name,
+      apiKey: workspace.apiKey,
       createdAt: workspace.createdAt.toISOString(),
       lastAccessedAt: workspace.lastAccessedAt.toISOString(),
     },
@@ -63,6 +67,7 @@ workspaces.get("/:id", async (c) => {
   return c.json({
     id: workspace.id,
     name: workspace.name,
+    apiKey: workspace.apiKey,
     createdAt: workspace.createdAt.toISOString(),
     lastAccessedAt: workspace.lastAccessedAt.toISOString(),
   });

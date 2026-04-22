@@ -3,6 +3,7 @@ import type { CanvasNode, CanvasEdge, Screenshot, TerminalSession } from "./mode
 // ─── Terminal Sessions ──────────────────────────────────────────────────────
 
 export interface CreateTerminalRequest {
+  serviceInstanceId?: string;
   cols?: number;
   rows?: number;
   x?: number;
@@ -52,6 +53,19 @@ export interface CreateScreenshotRequest {
 
 export interface CreateScreenshotResponse {
   screenshot: Screenshot;
+  canvasNode: CanvasNode;
+  canvasEdge: CanvasEdge;
+}
+
+// ─── Editor Nodes ─────────────────────────────────────────────────────────
+
+export interface CreateEditorNodeRequest {
+  serviceInstanceId: string;
+  x?: number;
+  y?: number;
+}
+
+export interface CreateEditorNodeResponse {
   canvasNode: CanvasNode;
   canvasEdge: CanvasEdge;
 }

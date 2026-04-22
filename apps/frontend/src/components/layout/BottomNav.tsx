@@ -1,8 +1,6 @@
 import {
   LayoutDashboard,
-  Code2,
   MessageSquare,
-  Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActiveView } from "./AppShell";
@@ -25,9 +23,7 @@ interface TabItem {
 export function BottomNav({ activeView, onViewChange, unreadChat, onToggleChat, chatOpen }: BottomNavProps) {
   const tabs: TabItem[] = [
     { id: "canvas", icon: LayoutDashboard, label: "Canvas" },
-    { id: "editor", icon: Code2, label: "Editor" },
     { id: "chat", icon: MessageSquare, label: "Chat", badge: unreadChat },
-    { id: "services", icon: Server, label: "Hosts" },
   ];
 
   return (

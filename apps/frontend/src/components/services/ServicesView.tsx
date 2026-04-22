@@ -19,15 +19,11 @@ import { ServiceConfigDialog } from "./ServiceConfigDialog";
 import type { ServiceInstance } from "@/lib/api-client";
 
 export function ServicesView() {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, apiKey } = useWorkspace();
   const {
     services,
     onlineCount,
     isLoading,
-    registerService,
-    isRegistering,
-    updateService,
-    isUpdating,
     deleteService,
     isDeleting,
     shutdownService,
@@ -111,7 +107,7 @@ export function ServicesView() {
           onClick={() => setRegisterOpen(true)}
         >
           <Plus className="h-3.5 w-3.5" />
-          Register Service
+          Connect Host
         </Button>
       </div>
 
@@ -137,7 +133,7 @@ export function ServicesView() {
               onClick={() => setRegisterOpen(true)}
             >
               <Plus className="h-3.5 w-3.5" />
-              Register Service
+              Connect Host
             </Button>
           </div>
         ) : (
@@ -159,9 +155,8 @@ export function ServicesView() {
       <RegisterServiceDialog
         open={registerOpen}
         onOpenChange={setRegisterOpen}
-        onRegister={registerService}
-        isRegistering={isRegistering}
         workspaceId={workspaceId}
+        apiKey={apiKey}
       />
 
       {/* Edit dialog */}
@@ -172,10 +167,8 @@ export function ServicesView() {
             if (!open) setEditingService(null);
           }}
           service={editingService}
-          onSave={(data) =>
-            updateService({ id: editingService.id, data })
-          }
-          isSaving={isUpdating}
+          workspaceId={workspaceId}
+          apiKey={apiKey}
           onDelete={async () => {
             await deleteService(editingService.id);
             setEditingService(null);

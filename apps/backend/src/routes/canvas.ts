@@ -1,12 +1,15 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 import { getDb, schema } from "../db/index.js";
 import type {
   UpdateCanvasNodeRequest,
   ListCanvasNodesResponse,
   CreateScreenshotRequest,
   CreateScreenshotResponse,
+  CreateEditorNodeRequest,
+  CreateEditorNodeResponse,
   ListCanvasEdgesResponse,
   CanvasNode,
   CanvasEdge,
@@ -24,6 +27,7 @@ function toCanvasNodeResponse(
     nodeType: row.nodeType,
     noteId: row.noteId,
     screenshotId: row.screenshotId,
+    serviceInstanceId: row.serviceInstanceId,
     x: row.x,
     y: row.y,
     width: row.width,
@@ -238,6 +242,101 @@ canvas.post("/screenshots", async (c) => {
       sourceNodeId: body.sourceTerminalNodeId,
       targetNodeId: nodeId,
       createdAt: new Date().toISOString(),
+    },
+  };
+
+  return c.json(response, 201);
+});
+
+// ─── Editor Nodes ──────────────────────────────────────────────────────────
+
+// POST /editors - Create an editor node connected to a host node
+canvas.post("/editors", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const db = getDb();
+  const body = await c.req.json<CreateEditorNodeRequest>();
+
+  if (!body.serviceInstanceId) {
+    throw new HTTPException(400, { message: "serviceInstanceId is required" });
+  }
+
+  // Validate service belongs to workspace and is online
+  const [service] = await db
+    .select()
+    .from(schema.serviceInstance)
+    .where(
+      and(
+        eq(schema.serviceInstance.id, body.serviceInstanceId),
+        eq(schema.serviceInstance.workspaceId, workspaceId),
+      ),
+    );
+
+  if (!service) {
+    throw new HTTPException(404, { message: "Service not found" });
+  }
+
+  // Find the host node for this service
+  const [hostNode] = await db
+    .select()
+    .from(schema.canvasNode)
+    .where(
+      and(
+        eq(schema.canvasNode.workspaceId, workspaceId),
+        eq(schema.canvasNode.nodeType, "host"),
+        eq(schema.canvasNode.serviceInstanceId, body.serviceInstanceId),
+      ),
+    );
+
+  if (!hostNode) {
+    throw new HTTPException(400, { message: "Host node not found for this service" });
+  }
+
+  // Position beside the host node
+  const [{ value: existingCount }] = await db
+    .select({ value: count() })
+    .from(schema.canvasNode)
+    .where(eq(schema.canvasNode.workspaceId, workspaceId));
+
+  const x = body.x ?? hostNode.x + hostNode.width + 60;
+  const y = body.y ?? hostNode.y;
+
+  const nodeId = uuidv4();
+  const edgeId = uuidv4();
+  const now = new Date();
+
+  await db.insert(schema.canvasNode).values({
+    id: nodeId,
+    workspaceId,
+    nodeType: "editor",
+    serviceInstanceId: body.serviceInstanceId,
+    x,
+    y,
+    width: 760,
+    height: 520,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await db.insert(schema.canvasEdge).values({
+    id: edgeId,
+    workspaceId,
+    sourceNodeId: nodeId,
+    targetNodeId: hostNode.id,
+  });
+
+  const [newNode] = await db
+    .select()
+    .from(schema.canvasNode)
+    .where(eq(schema.canvasNode.id, nodeId));
+
+  const response: CreateEditorNodeResponse = {
+    canvasNode: toCanvasNodeResponse(newNode),
+    canvasEdge: {
+      id: edgeId,
+      workspaceId,
+      sourceNodeId: nodeId,
+      targetNodeId: hostNode.id,
+      createdAt: now.toISOString(),
     },
   };
 

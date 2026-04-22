@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Settings } from "lucide-react";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
@@ -9,24 +9,8 @@ import { useCanvas } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ActiveView } from "./AppShell";
 
-const EditorView = lazy(() =>
-  import("@/components/editor/EditorView").then((m) => ({ default: m.EditorView })),
-);
-const ServicesView = lazy(() =>
-  import("@/components/services/ServicesView").then((m) => ({ default: m.ServicesView })),
-);
-
 interface ViewRouterProps {
   activeView: ActiveView;
-  onViewChange: (view: ActiveView) => void;
-}
-
-function ViewLoadingFallback() {
-  return (
-    <div className="flex h-full items-center justify-center text-muted-foreground">
-      <p className="text-sm">Loading...</p>
-    </div>
-  );
 }
 
 function SettingsView() {
@@ -53,7 +37,7 @@ function SettingsView() {
   );
 }
 
-function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void }) {
+function CanvasView() {
   const { nodes } = useCanvas();
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [terminalListOpen, setTerminalListOpen] = useState(false);
@@ -69,11 +53,7 @@ function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void
   }, []);
 
   if (isMobile) {
-    return (
-      <MobileTerminalListView
-        onNavigateToServices={() => onViewChange("services")}
-      />
-    );
+    return <MobileTerminalListView />;
   }
 
   return (
@@ -81,11 +61,7 @@ function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void
       <CanvasToolbar onOpenTerminalList={() => setTerminalListOpen(true)} />
       <div className="relative min-h-0 flex-1">
         <InfiniteCanvas onFocusTerminalRef={focusTerminalRef} onFullScreenRef={fullScreenRef} />
-        {nodes.length === 0 && (
-          <CanvasEmptyState
-            onNavigateToServices={() => onViewChange("services")}
-          />
-        )}
+        {nodes.length === 0 && <CanvasEmptyState />}
       </div>
       <TerminalListPanel
         open={terminalListOpen}
@@ -97,22 +73,10 @@ function CanvasView({ onViewChange }: { onViewChange: (view: ActiveView) => void
   );
 }
 
-export function ViewRouter({ activeView, onViewChange }: ViewRouterProps) {
+export function ViewRouter({ activeView }: ViewRouterProps) {
   switch (activeView) {
     case "canvas":
-      return <CanvasView onViewChange={onViewChange} />;
-    case "editor":
-      return (
-        <Suspense fallback={<ViewLoadingFallback />}>
-          <EditorView />
-        </Suspense>
-      );
-    case "services":
-      return (
-        <Suspense fallback={<ViewLoadingFallback />}>
-          <ServicesView />
-        </Suspense>
-      );
+      return <CanvasView />;
     case "settings":
       return <SettingsView />;
     default:

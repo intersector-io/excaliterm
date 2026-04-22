@@ -19,6 +19,7 @@ export function initializeDb() {
     CREATE TABLE IF NOT EXISTS "workspace" (
       "id" text PRIMARY KEY NOT NULL,
       "name" text NOT NULL DEFAULT 'Untitled workspace',
+      "apiKey" text NOT NULL DEFAULT '',
       "createdAt" integer NOT NULL DEFAULT (unixepoch()),
       "lastAccessedAt" integer NOT NULL DEFAULT (unixepoch())
     );
@@ -83,6 +84,7 @@ export function initializeDb() {
       "nodeType" text NOT NULL DEFAULT 'terminal',
       "noteId" text REFERENCES "note"("id") ON DELETE SET NULL,
       "screenshotId" text REFERENCES "screenshot"("id") ON DELETE SET NULL,
+      "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
       "x" real NOT NULL DEFAULT 100,
       "y" real NOT NULL DEFAULT 100,
       "width" real NOT NULL DEFAULT 600,
@@ -109,6 +111,18 @@ export function initializeDb() {
   }
   try {
     _sqlite.exec(`ALTER TABLE "canvas_node" ADD COLUMN "screenshotId" text REFERENCES "screenshot"("id") ON DELETE SET NULL`);
+  } catch {
+    // Column already exists
+  }
+  try {
+    _sqlite.exec(`ALTER TABLE "canvas_node" ADD COLUMN "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL`);
+  } catch {
+    // Column already exists
+  }
+  try {
+    _sqlite.exec(`ALTER TABLE "workspace" ADD COLUMN "apiKey" text NOT NULL DEFAULT ''`);
+    // Backfill existing workspaces with generated UUIDs (only runs once, when column is first added)
+    _sqlite.exec(`UPDATE "workspace" SET "apiKey" = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE "apiKey" = ''`);
   } catch {
     // Column already exists
   }

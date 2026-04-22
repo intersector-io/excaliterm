@@ -16,7 +16,7 @@ The terminal agent is a Node.js process that:
 
 - Node.js 20+
 - access to the SignalR hub URL
-- a valid shared `SERVICE_API_KEY`
+- a valid per-workspace API key (used as `SERVICE_API_KEY`)
 - a `WORKSPACE_ID` matching the target workspace
 
 Platform notes:
@@ -31,7 +31,7 @@ The agent loads environment variables from the current process and then falls ba
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `SIGNALR_HUB_URL` | Yes | Base URL of the hub, default `http://localhost:5000` |
-| `SERVICE_API_KEY` | Yes | Shared secret accepted by the hub |
+| `SERVICE_API_KEY` | Yes | Per-workspace API key (auto-generated, shown in the "Connect a Host" dialog) |
 | `SERVICE_ID` | Recommended | Stable identifier for this service instance |
 | `WORKSPACE_ID` | Yes | Workspace to join |
 | `WHITELISTED_PATHS` | Optional | Comma-separated allowed roots for file access |
@@ -41,7 +41,7 @@ Example:
 
 ```dotenv
 SIGNALR_HUB_URL=http://localhost:5000
-SERVICE_API_KEY=change-me
+SERVICE_API_KEY=your-workspace-api-key
 SERVICE_ID=my-agent-01
 WORKSPACE_ID=Ab12Cd34Ef56
 WHITELISTED_PATHS=/app,/home,/var/log

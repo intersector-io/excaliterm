@@ -24,6 +24,8 @@ import { TerminalNode } from "./TerminalNode";
 import { NoteNode } from "./NoteNode";
 import { ScreenshotNode } from "./ScreenshotNode";
 import { ScreenShareNode } from "./ScreenShareNode";
+import { HostNode } from "./HostNode";
+import { EditorNode } from "./EditorNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
 import type { TerminalStatus } from "@excaliterm/shared-types";
@@ -39,6 +41,8 @@ const nodeTypes: NodeTypes = {
   note: NoteNode,
   screenshot: ScreenshotNode,
   "screen-share": ScreenShareNode,
+  host: HostNode,
+  editor: EditorNode,
 };
 
 const defaultViewport = { x: 0, y: 0, zoom: 1 };

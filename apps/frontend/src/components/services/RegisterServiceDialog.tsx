@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Terminal } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,157 +9,172 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { copyToClipboard } from "@/lib/clipboard";
-import type { ServiceInstance } from "@/lib/api-client";
 
 interface RegisterServiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRegister: (name: string) => Promise<{ service: ServiceInstance }>;
-  isRegistering: boolean;
   workspaceId: string;
+  apiKey: string;
 }
 
 export function RegisterServiceDialog({
   open,
   onOpenChange,
-  onRegister,
-  isRegistering,
   workspaceId,
+  apiKey,
 }: RegisterServiceDialogProps) {
-  const [name, setName] = useState("");
-  const [createdService, setCreatedService] = useState<ServiceInstance | null>(null);
-  const [copiedConfig, setCopiedConfig] = useState(false);
+  const [copiedInstall, setCopiedInstall] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState(false);
+  const [copiedEnv, setCopiedEnv] = useState(false);
 
-  function handleClose(open: boolean) {
-    if (!open) {
-      setName("");
-      setCreatedService(null);
-      setCopiedConfig(false);
+  function handleClose(value: boolean) {
+    if (!value) {
+      setCopiedInstall(false);
+      setCopiedCommand(false);
+      setCopiedEnv(false);
     }
-    onOpenChange(open);
+    onOpenChange(value);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
+  const hubUrl = window.location.origin;
 
-    const result = await onRegister(name.trim());
-    setCreatedService(result.service);
+  const installCmd = "npm install -g excaliterm";
+
+  const inlineCmd = [
+    "excaliterm \\",
+    `  --hub-url ${hubUrl} \\`,
+    `  --workspace-id ${workspaceId} \\`,
+    `  --api-key ${apiKey}`,
+  ].join("\n");
+
+  const envFileContent = [
+    `SIGNALR_HUB_URL=${hubUrl}`,
+    `WORKSPACE_ID=${workspaceId}`,
+    `SERVICE_API_KEY=${apiKey}`,
+  ].join("\n");
+
+  async function handleCopy(
+    text: string,
+    setter: (v: boolean) => void,
+  ) {
+    await copyToClipboard(text);
+    setter(true);
+    setTimeout(() => setter(false), 2000);
   }
 
-  function getConfigSnippet(): string {
-    if (!createdService) return "";
-    return [
-      `SIGNALR_HUB_URL=${window.location.origin}`,
-      "SERVICE_API_KEY=<same value configured on the SignalR hub>",
-      `SERVICE_ID=${createdService.serviceId}`,
-      `WORKSPACE_ID=${workspaceId}`,
-    ].join("\n");
-  }
-
-  async function handleCopyConfig() {
-    await copyToClipboard(getConfigSnippet());
-    setCopiedConfig(true);
-    setTimeout(() => setCopiedConfig(false), 2000);
-  }
-
-  // After creation: show setup instructions
-  if (createdService) {
+  function CopyButton({
+    copied,
+    onClick,
+  }: {
+    copied: boolean;
+    onClick: () => void;
+  }) {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Service Registered</DialogTitle>
-            <DialogDescription>
-              "{createdService.name}" has been registered successfully.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="rounded-md border border-border bg-surface-sunken px-3 py-2.5">
-              <p className="text-xs text-muted-foreground">
-                The terminal agent must use the same `SERVICE_API_KEY` configured on
-                the SignalR hub deployment.
-              </p>
-            </div>
-
-            {/* Config snippet */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">.env</Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 gap-1 px-2 text-caption"
-                  onClick={handleCopyConfig}
-                >
-                  {copiedConfig ? (
-                    <>
-                      <Check className="h-3 w-3 text-accent-green" />
-                      Copied
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3 w-3" />
-                      Copy config
-                    </>
-                  )}
-                </Button>
-              </div>
-              <pre className="max-h-48 overflow-auto rounded border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
-                {getConfigSnippet()}
-              </pre>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => handleClose(false)}>Done</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 gap-1 px-2 text-caption"
+        onClick={onClick}
+      >
+        {copied ? (
+          <>
+            <Check className="h-3 w-3 text-accent-green" />
+            Copied
+          </>
+        ) : (
+          <>
+            <Copy className="h-3 w-3" />
+            Copy
+          </>
+        )}
+      </Button>
     );
   }
 
-  // Registration form
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Register Service</DialogTitle>
+          <DialogTitle>Connect a Host</DialogTitle>
           <DialogDescription>
-            Register a new terminal agent instance to manage terminals and files.
+            Install the Excaliterm agent on the machine you want to connect, then
+            run it with your workspace credentials.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="service-name">Service Name</Label>
-            <Input
-              id="service-name"
-              placeholder="e.g. Production Server 1"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              required
-            />
+        <div className="space-y-4">
+          {/* Step 1: Install */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                1. Install the package
+              </span>
+              <CopyButton
+                copied={copiedInstall}
+                onClick={() => handleCopy(installCmd, setCopiedInstall)}
+              />
+            </div>
+            <pre className="overflow-x-auto rounded border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
+              {installCmd}
+            </pre>
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleClose(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!name.trim() || isRegistering}>
-              {isRegistering ? "Registering..." : "Register"}
-            </Button>
-          </DialogFooter>
-        </form>
+          {/* Step 2: Run */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                2. Run the agent
+              </span>
+              <CopyButton
+                copied={copiedCommand}
+                onClick={() => handleCopy(inlineCmd, setCopiedCommand)}
+              />
+            </div>
+            <pre className="overflow-x-auto rounded border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
+              {inlineCmd}
+            </pre>
+          </div>
+
+          {/* Alternative: .env */}
+          <details className="group">
+            <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+              Or use environment variables / .env file
+            </summary>
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  .env
+                </span>
+                <CopyButton
+                  copied={copiedEnv}
+                  onClick={() => handleCopy(envFileContent, setCopiedEnv)}
+                />
+              </div>
+              <pre className="overflow-x-auto rounded border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
+                {envFileContent}
+              </pre>
+              <p className="text-caption text-muted-foreground">
+                Then run <code className="rounded bg-surface-sunken px-1">excaliterm</code> or{" "}
+                <code className="rounded bg-surface-sunken px-1">npx excaliterm</code>
+              </p>
+            </div>
+          </details>
+
+          {/* Hint */}
+          <div className="flex items-start gap-2 rounded-md border border-border bg-surface-sunken px-3 py-2.5">
+            <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <p className="text-caption leading-relaxed text-muted-foreground">
+              The service will appear here automatically once the agent connects.
+              Use <code className="rounded bg-surface-sunken px-1">--help</code>{" "}
+              for all available options.
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button onClick={() => handleClose(false)}>Done</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

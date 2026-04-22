@@ -60,9 +60,9 @@ Fullscreen terminal with swipe navigation between sessions:
 
 Go to [excaliterm.com](https://excaliterm.com) -- a workspace is created automatically. Copy the **workspace ID** from the URL (`/w/<id>`).
 
-### 2. Register a service
+### 2. Connect a host
 
-In the sidebar, open the **Services** tab and click **Register Service**. Give it a name (e.g. "My Laptop"). Copy the **API key** and **hub URL** from the config that appears.
+In the canvas toolbar, click **Connect a Host**. The dialog shows the full connection command with the workspace API key and hub URL pre-filled. Copy it.
 
 ### 3. Install the CLI
 
@@ -74,13 +74,13 @@ Requires [Node.js](https://nodejs.org/) 18 or later.
 
 ### 4. Connect your machine
 
-Set the environment variables from the previous steps and run the CLI:
+Paste the command from the "Connect a Host" dialog, or set the environment variables manually:
 
 **Linux / macOS:**
 
 ```bash
-export SIGNALR_HUB_URL="<hub URL from service config>"
-export SERVICE_API_KEY="<API key from service config>"
+export SIGNALR_HUB_URL="<hub URL>"
+export SERVICE_API_KEY="<workspace API key>"
 export WORKSPACE_ID="<workspace ID from URL>"
 excaliterm
 ```
@@ -88,11 +88,13 @@ excaliterm
 **Windows (PowerShell):**
 
 ```powershell
-$env:SIGNALR_HUB_URL = "<hub URL from service config>"
-$env:SERVICE_API_KEY = "<API key from service config>"
+$env:SIGNALR_HUB_URL = "<hub URL>"
+$env:SERVICE_API_KEY = "<workspace API key>"
 $env:WORKSPACE_ID = "<workspace ID from URL>"
 excaliterm
 ```
+
+The API key is auto-generated per workspace. You can find it any time in the "Connect a Host" dialog.
 
 Once the agent logs `Ready and waiting for commands`, the UI shows **"1 host ready"** -- your machine is connected.
 
@@ -108,7 +110,7 @@ Copy the workspace URL and send it to anyone. They join instantly as a collabora
 
 | Environment Variable | Required | Default | Description |
 |---|---|---|---|
-| `SERVICE_API_KEY` | Yes | -- | API key from the service registration step |
+| `SERVICE_API_KEY` | Yes | -- | Per-workspace API key (auto-generated, shown in "Connect a Host" dialog) |
 | `SIGNALR_HUB_URL` | Yes | `http://localhost:5000` | SignalR hub URL from the service config |
 | `WORKSPACE_ID` | Yes | -- | Workspace ID from the browser URL |
 | `SHELL_OVERRIDE` | No | Auto-detected | Override the default shell (e.g. `/bin/zsh`, `bash.exe`) |
@@ -150,7 +152,7 @@ Copy the workspace URL and send it to anyone. They join instantly as a collabora
 docker compose up --build -d
 ```
 
-This starts four containers: Redis, Backend API, SignalR Hub, and Frontend. Open **http://localhost:5173** -- a workspace is created automatically. Then follow steps 2-6 above, using `http://localhost:5000` as the hub URL and the `SERVICE_API_KEY` from your `.env` file.
+This starts four containers: Redis, Backend API, SignalR Hub, and Frontend. Open **http://localhost:5173** -- a workspace is created automatically. Then follow steps 2-6 above. The "Connect a Host" dialog in the UI provides the full connection command with the workspace API key pre-filled.
 
 ## Local Development
 
@@ -175,7 +177,6 @@ Set at least these values in `.env`:
 - `BACKEND_PORT`
 - `REDIS_URL`
 - `SIGNALR_HUB_URL`
-- `SERVICE_API_KEY`
 
 ### Run
 

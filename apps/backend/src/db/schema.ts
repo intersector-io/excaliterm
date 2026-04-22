@@ -6,6 +6,7 @@ import { sql, type InferSelectModel, type InferInsertModel } from "drizzle-orm";
 export const workspace = sqliteTable("workspace", {
   id: text("id").primaryKey(),
   name: text("name").notNull().default("Untitled workspace"),
+  apiKey: text("apiKey").notNull().default(""),
   createdAt: integer("createdAt", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -121,6 +122,10 @@ export const canvasNode = sqliteTable("canvas_node", {
   screenshotId: text("screenshotId").references(() => screenshot.id, {
     onDelete: "set null",
   }),
+  serviceInstanceId: text("serviceInstanceId").references(
+    () => serviceInstance.id,
+    { onDelete: "set null" },
+  ),
   x: real("x").notNull().default(100),
   y: real("y").notNull().default(100),
   width: real("width").notNull().default(600),

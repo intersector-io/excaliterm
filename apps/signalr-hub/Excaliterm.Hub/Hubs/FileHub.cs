@@ -8,34 +8,32 @@ namespace Excaliterm.Hub.Hubs;
 public class FileHub : BaseHub
 {
     private readonly ServiceRegistry _serviceRegistry;
-    private readonly IConfiguration _config;
+    private readonly ApiKeyValidator _apiKeyValidator;
 
     // Default whitelisted base paths; can be overridden per-service from DB/cache
     private static readonly string[] DefaultAllowedBasePaths = ["/app", "/home", "/var/log"];
 
-    public FileHub(WorkspaceValidator workspaceValidator, ServiceRegistry serviceRegistry, IConfiguration config, ILogger<FileHub> logger)
+    public FileHub(WorkspaceValidator workspaceValidator, ServiceRegistry serviceRegistry, ApiKeyValidator apiKeyValidator, ILogger<FileHub> logger)
         : base(workspaceValidator, logger)
     {
         _serviceRegistry = serviceRegistry;
-        _config = config;
+        _apiKeyValidator = apiKeyValidator;
     }
 
     // ─── Service registration ─────────────────────────────────────────────────
 
     public async Task RegisterService(string serviceId, string apiKey)
     {
-        var expectedKey = _config["ServiceAuth:ApiKey"]
-            ?? Environment.GetEnvironmentVariable("SERVICE_API_KEY");
+        var httpContext = Context.GetHttpContext();
+        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
 
-        if (string.IsNullOrWhiteSpace(expectedKey) || apiKey != expectedKey)
+        var isValid = await _apiKeyValidator.ValidateAsync(workspaceId, apiKey);
+        if (!isValid)
         {
-            Logger.LogWarning("File Hub: service registration rejected from {ConnectionId}", Context.ConnectionId);
+            Logger.LogWarning("File Hub: service registration rejected from {ConnectionId} for workspace {WorkspaceId}", Context.ConnectionId, workspaceId);
             Context.Abort();
             return;
         }
-
-        var httpContext = Context.GetHttpContext();
-        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
 
         Context.Items["IsService"] = true;
         Context.Items["ServiceId"] = serviceId;

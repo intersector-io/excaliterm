@@ -59,6 +59,7 @@ ConfigurationOptions BuildRedisOptions(string connectionString)
 
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<WorkspaceValidator>();
+builder.Services.AddSingleton<ApiKeyValidator>();
 builder.Services.AddSingleton<ServiceRegistry>();
 builder.Services.AddSingleton<TerminalCollaborationRegistry>();
 

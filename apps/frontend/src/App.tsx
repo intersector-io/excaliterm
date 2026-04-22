@@ -60,12 +60,14 @@ function WorkspaceRoute() {
   const params = useParams<{ workspaceId: string }>();
   const workspaceId = params.workspaceId!;
   const [valid, setValid] = useState<boolean | null>(null);
+  const [apiKey, setApiKey] = useState("");
   const collaborator = useMemo(() => getOrCreateCollaboratorProfile(), []);
 
   useEffect(() => {
     getWorkspace(workspaceId)
-      .then(() => {
+      .then((ws) => {
         window.localStorage.setItem(WORKSPACE_STORAGE_KEY, workspaceId);
+        setApiKey(ws.apiKey ?? "");
         setValid(true);
       })
       .catch(() => setValid(false));
@@ -118,7 +120,7 @@ function WorkspaceRoute() {
   }
 
   return (
-    <WorkspaceCtx.Provider value={{ workspaceId, collaborator }}>
+    <WorkspaceCtx.Provider value={{ workspaceId, apiKey, collaborator }}>
       <AppShell />
     </WorkspaceCtx.Provider>
   );

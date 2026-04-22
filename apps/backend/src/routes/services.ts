@@ -148,6 +148,16 @@ services.delete("/:id", async (c) => {
     throw new HTTPException(404, { message: "Service not found" });
   }
 
+  // Delete host and editor canvas nodes for this service
+  await db
+    .delete(schema.canvasNode)
+    .where(
+      and(
+        eq(schema.canvasNode.workspaceId, workspaceId),
+        eq(schema.canvasNode.serviceInstanceId, serviceId),
+      ),
+    );
+
   await db
     .delete(schema.serviceInstance)
     .where(eq(schema.serviceInstance.id, serviceId));

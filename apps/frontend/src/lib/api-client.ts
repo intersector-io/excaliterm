@@ -34,6 +34,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export interface WorkspaceResponse {
   id: string;
   name: string;
+  apiKey: string;
   createdAt: string;
   lastAccessedAt: string;
 }
@@ -224,6 +225,20 @@ export function deleteServiceApi(workspaceId: string, id: string): Promise<{ suc
   return request(`/w/${workspaceId}/services/${id}`, { method: "DELETE" });
 }
 
+// ─── Editor Nodes ────────────────────────────────────────────────────────
+
+import type { CreateEditorNodeRequest, CreateEditorNodeResponse } from "@excaliterm/shared-types";
+
+export function createEditorNode(
+  workspaceId: string,
+  data: CreateEditorNodeRequest,
+): Promise<CreateEditorNodeResponse> {
+  return request(`/w/${workspaceId}/canvas/editors`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 // ─── Chat ─────────────────────────────────────────────────────────────────
 
 export interface ChatHistoryResponse {
@@ -244,3 +259,4 @@ export function getChatHistory(
 ): Promise<ChatHistoryResponse> {
   return request(`/w/${workspaceId}/chat?limit=${limit}&offset=${offset}`);
 }
+

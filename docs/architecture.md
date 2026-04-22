@@ -51,7 +51,7 @@ The terminal agent is a Node.js process that owns shell processes through `node-
 
 Key responsibilities:
 
-- Connect to SignalR with `SERVICE_API_KEY`, `SERVICE_ID`, and `WORKSPACE_ID`
+- Connect to SignalR with the workspace API key, `SERVICE_ID`, and `WORKSPACE_ID`
 - Create, resize, write to, and destroy terminal sessions
 - Stream terminal output back to the hub
 - Read and write files within its configured whitelist
@@ -116,6 +116,7 @@ Fields:
 
 - `id`
 - `name`
+- `apiKey` -- auto-generated per workspace, used to authenticate terminal agents
 - `createdAt`
 - `lastAccessedAt`
 

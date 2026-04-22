@@ -3,6 +3,7 @@ import type { CollaboratorProfile } from "@/lib/collaborator";
 
 export interface WorkspaceContext {
   workspaceId: string;
+  apiKey: string;
   collaborator: CollaboratorProfile;
 }
 

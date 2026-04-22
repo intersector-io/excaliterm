@@ -30,6 +30,8 @@ The terminal agent connects with query parameters:
 - `apiKey`
 - `workspaceId`
 
+The hub validates the `apiKey` by calling the backend's `GET /api/validate-key?workspaceId=X&apiKey=Y` endpoint to confirm it matches the target workspace's auto-generated key.
+
 After the SignalR connection is established, the agent calls `RegisterService(serviceId, apiKey)` on the terminal and file hubs.
 
 ## Terminal Hub

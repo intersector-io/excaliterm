@@ -33,10 +33,13 @@ Example response:
 {
   "id": "Ab12Cd34Ef56",
   "name": "Untitled workspace",
+  "apiKey": "auto-generated-key",
   "createdAt": "2026-04-20T12:00:00.000Z",
   "lastAccessedAt": "2026-04-20T12:00:00.000Z"
 }
 ```
+
+The `apiKey` is auto-generated when the workspace is created. It is used by terminal agents to authenticate with the SignalR hub.
 
 ### `GET /workspaces/:id`
 
@@ -311,7 +314,36 @@ Response:
 Note:
 
 - The stored service-entry `apiKey` is part of the REST model.
-- The live SignalR hub currently authenticates service connections with the shared `SERVICE_API_KEY` environment variable.
+- The SignalR hub validates API keys by calling the backend's `GET /validate-key` endpoint (see below), checking against the per-workspace key.
+
+## API Key Validation
+
+### `GET /validate-key`
+
+Used by the SignalR hub to validate a terminal agent's API key against the workspace. This is not a workspace-scoped route; it uses query parameters instead.
+
+Query parameters:
+
+- `workspaceId`: the workspace ID
+- `apiKey`: the API key to validate
+
+Example response (valid):
+
+```json
+{
+  "valid": true
+}
+```
+
+Example response (invalid):
+
+```json
+{
+  "valid": false
+}
+```
+
+This endpoint replaces the previous approach where the hub validated against a single shared `SERVICE_API_KEY` environment variable. The hub now calls this endpoint on each service connection to verify the key matches the target workspace.
 
 ## Notes
 

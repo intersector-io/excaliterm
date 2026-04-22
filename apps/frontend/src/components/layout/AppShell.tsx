@@ -1,30 +1,24 @@
 import { useEffect, useState, useCallback } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useWorkspace } from "@/hooks/use-workspace";
-import {
-  useInitializeTerminalCollaboration,
-  useTerminalCollaboration,
-} from "@/hooks/use-terminal-collaboration";
+import { useInitializeTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { startAll, stopAll } from "@/lib/signalr-client";
 import { useChatStore } from "@/stores/chat-store";
-import { useServices } from "@/hooks/use-services";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { ViewRouter } from "./ViewRouter";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 
-export type ActiveView = "canvas" | "editor" | "services" | "settings";
+export type ActiveView = "canvas" | "settings";
 
 export function AppShell() {
   const [activeView, setActiveView] = useState<ActiveView>("canvas");
   const [chatOpen, setChatOpen] = useState(false);
   const unreadChat = useChatStore((s) => s.unreadCount);
   const resetUnread = useChatStore((s) => s.resetUnread);
-  const { onlineCount: onlineServices } = useServices();
   const { workspaceId } = useWorkspace();
   useInitializeTerminalCollaboration();
-  const { collaboratorCount } = useTerminalCollaboration();
 
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -81,7 +75,7 @@ export function AppShell() {
     return (
       <div className="flex min-h-[100dvh] w-screen flex-col bg-background">
         <main className="flex flex-1 flex-col overflow-hidden pb-14">
-          <ViewRouter activeView={activeView} onViewChange={setActiveView} />
+          <ViewRouter activeView={activeView} />
         </main>
         <BottomNav
           activeView={activeView}
@@ -101,14 +95,12 @@ export function AppShell() {
         activeView={activeView}
         onViewChange={setActiveView}
         unreadChat={unreadChat}
-        onlineServices={onlineServices}
-        collaboratorCount={collaboratorCount}
         chatOpen={chatOpen}
         onToggleChat={toggleChat}
       />
       <main className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden">
-          <ViewRouter activeView={activeView} onViewChange={setActiveView} />
+          <ViewRouter activeView={activeView} />
         </div>
         <ChatPanel open={chatOpen} onClose={toggleChat} />
       </main>
