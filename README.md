@@ -8,13 +8,17 @@ Collaborative terminal workspace with an infinite canvas UI, shared notes, chat,
 
 ### Desktop
 
-Infinite canvas with live terminals, sticky notes, and tag-based organization:
+Infinite canvas with live terminals, sticky notes, and a connected host:
 
-![Desktop canvas with terminals and tags](screenshots/after-05-terminal-tags-row.png)
+![Desktop canvas with terminals, notes, and host](screenshots/hero-canvas.png)
 
-Pinned sidebar for quick navigation between Canvas, Editor, Chat, Services, and Settings:
+Sidebar navigation between Canvas, Editor, Chat, Services, and Settings:
 
 ![Desktop sidebar expanded](screenshots/after-02-desktop-sidebar-pinned.png)
+
+Services page showing connected hosts with online status:
+
+![Services page with online host](screenshots/10-desktop-services-with-service.png)
 
 Command palette for keyboard-driven workflows:
 
