@@ -5,7 +5,6 @@ import {
   Terminal,
   StickyNote,
   Plus,
-  Server,
   Users,
   Focus,
   Filter,
@@ -27,7 +26,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
+import { INSTALL_CMD, buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
+import { useCopyWithFeedback } from "@/hooks/use-copy";
+import { CopyButton } from "@/components/ui/copy-button";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 
 const ALL_STATUSES: TerminalStatus[] = [
@@ -45,7 +46,6 @@ export function MobileTerminalListView() {
   const { collaboratorCount } = useTerminalCollaboration();
 
   const noHost = onlineCount === 0;
-  const [connectOpen, setConnectOpen] = useState(false);
 
   const screenshotsQuery = useQuery({
     queryKey: ["screenshots", workspaceId],
@@ -201,17 +201,29 @@ export function MobileTerminalListView() {
       <div className="flex items-center justify-between border-b border-border-default px-4 py-3">
         <div>
           <h1 className="text-body font-semibold text-foreground">Terminals</h1>
-          <div className="mt-0.5 flex items-center gap-3 text-caption text-muted-foreground">
-            <span className="truncate">{collaborator.displayName}</span>
-            <span className="flex items-center gap-1">
+          <div className="mt-1 flex items-center gap-2 text-caption">
+            <span className="truncate text-muted-foreground/70">
+              {collaborator.displayName}
+            </span>
+            <span className="text-border-default">|</span>
+            <span className="flex items-center gap-1 text-muted-foreground/70">
               <Users className="h-3 w-3" />
               {collaboratorCount}
             </span>
+            <span className="text-border-default">|</span>
             <span
-              className={`flex items-center gap-1 ${noHost ? "text-accent-amber" : "text-accent-green"}`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-caption font-medium ${
+                noHost
+                  ? "bg-accent-amber/10 text-accent-amber"
+                  : "bg-accent-green/10 text-accent-green"
+              }`}
             >
-              <Server className="h-3 w-3" />
-              {noHost ? "No host" : `${onlineCount} host`}
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  noHost ? "bg-accent-amber" : "bg-accent-green animate-pulse"
+                }`}
+              />
+              {noHost ? "No host" : `${onlineCount} online`}
             </span>
           </div>
         </div>
@@ -316,40 +328,33 @@ export function MobileTerminalListView() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {terminals.length === 0 ? (
-          /* Empty state */
-          <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-accent-cyan/15 bg-accent-cyan/[0.06]">
-              <Terminal className="h-6 w-6 text-accent-cyan/70" strokeWidth={1.5} />
-            </div>
-            <div className="space-y-1.5">
-              <h2 className="text-body font-semibold text-foreground">
-                {noHost ? "Connect a host" : "No terminals yet"}
-              </h2>
-              <p className="text-body-sm leading-relaxed text-muted-foreground">
-                {noHost
-                  ? "Connect a host to start creating terminal sessions."
-                  : "Create your first terminal session to get started."}
-              </p>
-            </div>
-            {noHost ? (
-              <Button
-                onClick={() => setConnectOpen(true)}
-                className="gap-2 rounded-xl border border-accent-cyan/20 bg-accent-cyan/12 text-accent-cyan"
-              >
-                <Server className="h-4 w-4" />
-                Connect a host
-              </Button>
-            ) : (
+          noHost ? (
+            /* Inline connect instructions */
+            <ConnectHostInline workspaceId={workspaceId} apiKey={apiKey} />
+          ) : (
+            /* Host connected but no terminals */
+            <div className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent-cyan/15 bg-accent-cyan/[0.06]">
+                <Terminal className="h-9 w-9 text-accent-cyan/70" strokeWidth={1.5} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-foreground">
+                  No terminals yet
+                </h2>
+                <p className="text-body-sm leading-relaxed text-muted-foreground/80">
+                  Your host is connected. Create your first terminal session.
+                </p>
+              </div>
               <Button
                 onClick={handleNewTerminal}
                 disabled={isCreating}
-                className="gap-2 rounded-xl border border-accent-cyan/20 bg-accent-cyan/12 text-accent-cyan"
+                className="h-11 w-full max-w-[280px] gap-2 rounded-xl bg-accent-cyan text-background font-medium transition-all active:scale-[0.98]"
               >
                 <Terminal className="h-4 w-4" />
                 {isCreating ? "Creating..." : "New Terminal"}
               </Button>
-            )}
-          </div>
+            </div>
+          )
         ) : filteredTerminals.length === 0 ? (
           /* No matches */
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
@@ -469,13 +474,6 @@ export function MobileTerminalListView() {
           </DropdownMenu>
         </div>
       )}
-
-      <RegisterServiceDialog
-        open={connectOpen}
-        onOpenChange={setConnectOpen}
-        workspaceId={workspaceId}
-        apiKey={apiKey}
-      />
 
       {/* Fullscreen terminal overlay — cycles through filtered terminals */}
       {fullScreenTerminal && (
@@ -597,5 +595,107 @@ function ChevronIcon() {
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
+  );
+}
+
+/* ─── Inline Connect Host ────────────────────────────────────────────────── */
+
+function ConnectHostInline({
+  workspaceId,
+  apiKey,
+}: {
+  workspaceId: string;
+  apiKey: string;
+}) {
+  const { copy, isCopied } = useCopyWithFeedback();
+  const hubUrl = window.location.origin;
+  const params = { hubUrl, workspaceId, apiKey };
+  const runCmd = buildRunCommand(params);
+  const envFile = buildEnvFile(params);
+
+  return (
+    <div className="px-4 py-5 space-y-5">
+      <div className="space-y-1.5">
+        <h2 className="text-body font-semibold text-foreground">
+          Connect a host
+        </h2>
+        <p className="text-body-sm leading-relaxed text-muted-foreground">
+          Install the Excaliterm agent on the machine you want to connect, then
+          run it with your workspace credentials.
+        </p>
+      </div>
+
+      {/* Step 1: Install */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-caption font-medium text-muted-foreground">
+            1. Install the package
+          </span>
+          <CopyButton
+            variant="plain"
+            copied={isCopied("install")}
+            onClick={() => copy(INSTALL_CMD, "install")}
+          />
+        </div>
+        <pre className="overflow-x-auto rounded-lg border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
+          {INSTALL_CMD}
+        </pre>
+      </div>
+
+      {/* Step 2: Run */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-caption font-medium text-muted-foreground">
+            2. Run the agent
+          </span>
+          <CopyButton
+            variant="plain"
+            copied={isCopied("command")}
+            onClick={() => copy(runCmd, "command")}
+          />
+        </div>
+        <pre className="overflow-x-auto rounded-lg border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
+          {runCmd}
+        </pre>
+      </div>
+
+      {/* Alternative: .env */}
+      <details className="group">
+        <summary className="cursor-pointer text-caption text-muted-foreground hover:text-foreground">
+          Or use environment variables / .env file
+        </summary>
+        <div className="mt-2 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-caption font-medium text-muted-foreground">
+              .env
+            </span>
+            <CopyButton
+              variant="plain"
+              copied={isCopied("env")}
+              onClick={() => copy(envFile, "env")}
+            />
+          </div>
+          <pre className="overflow-x-auto rounded-lg border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
+            {envFile}
+          </pre>
+          <p className="text-caption text-muted-foreground">
+            Then run{" "}
+            <code className="rounded bg-surface-sunken px-1">excaliterm</code>{" "}
+            or{" "}
+            <code className="rounded bg-surface-sunken px-1">
+              npx excaliterm
+            </code>
+          </p>
+        </div>
+      </details>
+
+      {/* Hint */}
+      <div className="flex items-start gap-2 rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
+        <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <p className="text-caption leading-relaxed text-muted-foreground">
+          The host will appear here automatically once the agent connects.
+        </p>
+      </div>
+    </div>
   );
 }

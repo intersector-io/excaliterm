@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Terminal } from "lucide-react";
+import { Terminal } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { copyToClipboard } from "@/lib/clipboard";
+import { CopyButton } from "@/components/ui/copy-button";
+import { buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
+import { useCopyWithFeedback } from "@/hooks/use-copy";
 import type { ServiceInstance } from "@/lib/api-client";
 
 interface ServiceConfigDialogProps {
@@ -32,14 +34,12 @@ export function ServiceConfigDialog({
   isDeleting,
 }: ServiceConfigDialogProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [copiedCommand, setCopiedCommand] = useState(false);
-  const [copiedEnv, setCopiedEnv] = useState(false);
+  const { copy, isCopied, reset } = useCopyWithFeedback();
 
   function handleClose(value: boolean) {
     if (!value) {
       setConfirmDelete(false);
-      setCopiedCommand(false);
-      setCopiedEnv(false);
+      reset();
     }
     onOpenChange(value);
   }
@@ -54,56 +54,9 @@ export function ServiceConfigDialog({
   }
 
   const hubUrl = window.location.origin;
-
-  const inlineCmd = [
-    "excaliterm \\",
-    `  --hub-url ${hubUrl} \\`,
-    `  --workspace-id ${workspaceId} \\`,
-    `  --service-id ${service.serviceId} \\`,
-    `  --api-key ${apiKey}`,
-  ].join("\n");
-
-  const envFileContent = [
-    `SIGNALR_HUB_URL=${hubUrl}`,
-    `WORKSPACE_ID=${workspaceId}`,
-    `SERVICE_ID=${service.serviceId}`,
-    `SERVICE_API_KEY=${apiKey}`,
-  ].join("\n");
-
-  async function handleCopy(text: string, setter: (v: boolean) => void) {
-    await copyToClipboard(text);
-    setter(true);
-    setTimeout(() => setter(false), 2000);
-  }
-
-  function CopyButton({
-    copied,
-    onClick,
-  }: {
-    copied: boolean;
-    onClick: () => void;
-  }) {
-    return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 gap-1 px-2 text-caption"
-        onClick={onClick}
-      >
-        {copied ? (
-          <>
-            <Check className="h-3 w-3 text-accent-green" />
-            Copied
-          </>
-        ) : (
-          <>
-            <Copy className="h-3 w-3" />
-            Copy
-          </>
-        )}
-      </Button>
-    );
-  }
+  const params = { hubUrl, workspaceId, apiKey, serviceId: service.serviceId };
+  const runCmd = buildRunCommand(params);
+  const envFile = buildEnvFile(params);
 
   const isOnline = service.status === "online";
 
@@ -149,12 +102,12 @@ export function ServiceConfigDialog({
                 Run command
               </span>
               <CopyButton
-                copied={copiedCommand}
-                onClick={() => handleCopy(inlineCmd, setCopiedCommand)}
+                copied={isCopied("command")}
+                onClick={() => copy(runCmd, "command")}
               />
             </div>
             <pre className="overflow-x-auto rounded border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
-              {inlineCmd}
+              {runCmd}
             </pre>
           </div>
 
@@ -169,12 +122,12 @@ export function ServiceConfigDialog({
                   .env
                 </span>
                 <CopyButton
-                  copied={copiedEnv}
-                  onClick={() => handleCopy(envFileContent, setCopiedEnv)}
+                  copied={isCopied("env")}
+                  onClick={() => copy(envFile, "env")}
                 />
               </div>
               <pre className="overflow-x-auto rounded border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
-                {envFileContent}
+                {envFile}
               </pre>
             </div>
           </details>
