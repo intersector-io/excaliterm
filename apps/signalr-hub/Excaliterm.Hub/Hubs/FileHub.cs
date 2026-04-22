@@ -24,161 +24,60 @@ public class FileHub : BaseHub
 
     public async Task RegisterService(string serviceId, string apiKey)
     {
-        var httpContext = Context.GetHttpContext();
-        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
-
-        var isValid = await _apiKeyValidator.ValidateAsync(workspaceId, apiKey);
-        if (!isValid)
-        {
-            Logger.LogWarning("File Hub: service registration rejected from {ConnectionId} for workspace {WorkspaceId}", Context.ConnectionId, workspaceId);
-            Context.Abort();
-            return;
-        }
-
-        Context.Items["IsService"] = true;
-        Context.Items["ServiceId"] = serviceId;
-        Context.Items["WorkspaceId"] = workspaceId;
-
-        _serviceRegistry.Register(Context.ConnectionId, serviceId, workspaceId, "file");
-
-        // Add service to workspace group so it can broadcast events
-        await Groups.AddToGroupAsync(Context.ConnectionId, WorkspaceGroup(workspaceId));
-
-        Logger.LogInformation("File Hub: service {ServiceId} registered on {ConnectionId}", serviceId, Context.ConnectionId);
-        await Clients.Caller.SendAsync("ServiceRegistered", serviceId);
+        await RegisterServiceAsync(serviceId, apiKey, "file", _apiKeyValidator, _serviceRegistry);
     }
 
     public async Task ListDirectory(string serviceId, string path)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
         if (!ValidatePath(path))
         {
             await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Path not allowed"));
             return;
         }
 
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Service not found or offline"));
-            return;
-        }
-
-        // Verify the service belongs to the same workspace
-        if (service.WorkspaceId != workspaceId)
-        {
-            Logger.LogWarning(
-                "Workspace mismatch: user workspace {UserWorkspace} tried to access service in workspace {ServiceWorkspace}",
-                workspaceId, service.WorkspaceId
-            );
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Access denied"));
-            return;
-        }
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, path);
         if (fileConnId is null) return;
 
         Logger.LogDebug("ListDirectory: {Path} on service {ServiceId} by {ConnectionId}", path, serviceId, Context.ConnectionId);
-
-        await Clients.Client(fileConnId).SendAsync(
-            "ListDirectory", Context.ConnectionId, serviceId, path
-        );
+        await Clients.Client(fileConnId).SendAsync("ListDirectory", Context.ConnectionId, serviceId, path);
     }
 
     public async Task ReadFile(string serviceId, string path)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
         if (!ValidatePath(path))
         {
             await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Path not allowed"));
             return;
         }
 
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Service not found or offline"));
-            return;
-        }
-
-        if (service.WorkspaceId != workspaceId)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Access denied"));
-            return;
-        }
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, path);
         if (fileConnId is null) return;
 
         Logger.LogDebug("ReadFile: {Path} on service {ServiceId}", path, serviceId);
-        await Clients.Client(fileConnId).SendAsync(
-            "ReadFile", Context.ConnectionId, serviceId, path
-        );
+        await Clients.Client(fileConnId).SendAsync("ReadFile", Context.ConnectionId, serviceId, path);
     }
 
     public async Task WriteFile(string serviceId, string path, string content)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
         if (!ValidatePath(path))
         {
             await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Path not allowed"));
             return;
         }
 
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Service not found or offline"));
-            return;
-        }
-
-        if (service.WorkspaceId != workspaceId)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Access denied"));
-            return;
-        }
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, path);
         if (fileConnId is null) return;
 
         Logger.LogDebug("WriteFile: {Path} on service {ServiceId}", path, serviceId);
-        await Clients.Client(fileConnId).SendAsync(
-            "WriteFile", Context.ConnectionId, serviceId, path, content
-        );
+        await Clients.Client(fileConnId).SendAsync("WriteFile", Context.ConnectionId, serviceId, path, content);
     }
 
     // ─── Monitor / Screenshot methods ──────────────────────────────────────────
 
     public async Task ListMonitors(string serviceId)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, "", "Service not found or offline"));
-            return;
-        }
-
-        if (service.WorkspaceId != workspaceId)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, "", "Access denied"));
-            return;
-        }
-
-        var fileConnId = GetFileConnectionId(serviceId);
-        if (fileConnId is null)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, "", "Service file hub connection not found"));
-            return;
-        }
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, "");
+        if (fileConnId is null) return;
 
         Logger.LogDebug("ListMonitors on service {ServiceId} by {ConnectionId}", serviceId, Context.ConnectionId);
         await Clients.Client(fileConnId).SendAsync("ListMonitors", Context.ConnectionId, serviceId);
@@ -186,23 +85,7 @@ public class FileHub : BaseHub
 
     public async Task CaptureScreenshot(string serviceId, int monitorIndex)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, "", "Service not found or offline"));
-            return;
-        }
-
-        if (service.WorkspaceId != workspaceId)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, "", "Access denied"));
-            return;
-        }
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, "");
         if (fileConnId is null) return;
 
         Logger.LogDebug("CaptureScreenshot: monitor {MonitorIndex} on service {ServiceId}", monitorIndex, serviceId);
@@ -213,23 +96,7 @@ public class FileHub : BaseHub
 
     public async Task StartScreenShare(string serviceId, int monitorIndex)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, "", "Service not found or offline"));
-            return;
-        }
-
-        if (service.WorkspaceId != workspaceId)
-        {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, "", "Access denied"));
-            return;
-        }
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, "");
         if (fileConnId is null) return;
 
         Logger.LogDebug("StartScreenShare: monitor {MonitorIndex} on service {ServiceId}", monitorIndex, serviceId);
@@ -238,15 +105,7 @@ public class FileHub : BaseHub
 
     public async Task StopScreenShare(string serviceId, string sessionId)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null) return;
-
-        if (service.WorkspaceId != workspaceId) return;
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, "", sendErrors: false);
         if (fileConnId is null) return;
 
         Logger.LogDebug("StopScreenShare: session {SessionId} on service {ServiceId}", sessionId, serviceId);
@@ -255,15 +114,7 @@ public class FileHub : BaseHub
 
     public async Task ScreenShareAnswer(string serviceId, string sessionId, string sdp, string type)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null) return;
-
-        if (service.WorkspaceId != workspaceId) return;
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, "", sendErrors: false);
         if (fileConnId is null) return;
 
         await Clients.Client(fileConnId).SendAsync(
@@ -273,15 +124,7 @@ public class FileHub : BaseHub
 
     public async Task ScreenShareIceCandidate(string serviceId, string sessionId, string candidate, string? sdpMid, int? sdpMLineIndex)
     {
-        var workspaceId = GetWorkspaceId();
-        if (workspaceId is null) return;
-
-        var service = _serviceRegistry.GetService(serviceId);
-        if (service is null) return;
-
-        if (service.WorkspaceId != workspaceId) return;
-
-        var fileConnId = GetFileConnectionId(serviceId);
+        var fileConnId = await ValidateAndGetFileConnection(serviceId, "", sendErrors: false);
         if (fileConnId is null) return;
 
         await Clients.Client(fileConnId).SendAsync(
@@ -365,12 +208,41 @@ public class FileHub : BaseHub
         }
     }
 
-    // ─── Helper: resolve FileHub connection for a service ─────────────────────
+    // ─── Helpers ────────────────────────────────────────────────────────────────
 
-    private string? GetFileConnectionId(string serviceId)
+    /// <summary>
+    /// Validates workspace access for the service and returns the file hub connection ID.
+    /// Sends appropriate error messages to the caller on failure. Returns null if validation fails.
+    /// </summary>
+    private async Task<string?> ValidateAndGetFileConnection(string serviceId, string path, bool sendErrors = true)
     {
-        return _serviceRegistry.GetFileHubConnection(serviceId)
-            ?? _serviceRegistry.GetService(serviceId)?.ConnectionId;
+        var workspaceId = GetWorkspaceId();
+        if (workspaceId is null) return null;
+
+        var service = _serviceRegistry.GetService(serviceId);
+        if (service is null)
+        {
+            if (sendErrors)
+                await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Service not found or offline"));
+            return null;
+        }
+
+        if (service.WorkspaceId != workspaceId)
+        {
+            if (sendErrors)
+                await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Access denied"));
+            return null;
+        }
+
+        var fileConnId = _serviceRegistry.GetFileHubConnection(serviceId)
+            ?? service.ConnectionId;
+
+        if (fileConnId is null && sendErrors)
+        {
+            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Service file hub connection not found"));
+        }
+
+        return fileConnId;
     }
 
     // ─── Path validation ────────────────────────────────────────────────────────

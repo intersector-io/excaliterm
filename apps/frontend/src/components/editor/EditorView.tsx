@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useServices } from "@/hooks/use-services";
 import { useFiles } from "@/hooks/use-files";
@@ -32,13 +31,6 @@ export function EditorView() {
       setSelectedServiceId(online?.id ?? first?.id ?? null);
     }
   }, [services, selectedServiceId]);
-
-  const handleSave = useCallback(
-    async (path: string, content: string) => {
-      await writeFile(path, content);
-    },
-    [writeFile],
-  );
 
   const handleFileSelect = useCallback(() => {
     // On mobile, switch from tree to editor when a file is selected
@@ -84,7 +76,7 @@ export function EditorView() {
               onFileSelect={handleFileSelect}
             />
           ) : (
-            <EditorPane onSave={handleSave} />
+            <EditorPane onSave={writeFile} />
           )}
         </div>
       </div>
@@ -122,9 +114,7 @@ export function EditorView() {
       {/* Toggle sidebar button */}
       <button
         onClick={() => setShowTree(!showTree)}
-        className={cn(
-          "flex w-6 shrink-0 items-center justify-center border-r border-border text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground",
-        )}
+        className="flex w-6 shrink-0 items-center justify-center border-r border-border text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
         title={showTree ? "Hide file tree" : "Show file tree"}
       >
         {showTree ? (
@@ -136,7 +126,7 @@ export function EditorView() {
 
       {/* Editor pane */}
       <div className="flex-1 overflow-hidden">
-        <EditorPane onSave={handleSave} />
+        <EditorPane onSave={writeFile} />
       </div>
     </div>
   );

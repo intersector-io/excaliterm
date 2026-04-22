@@ -2,8 +2,8 @@ import { ScreenShareSession } from "./session.js";
 import type { ScreenshotHandler } from "../screenshot/handler.js";
 
 export class ScreenShareManager {
-  private sessions = new Map<string, ScreenShareSession>();
-  private screenshotHandler: ScreenshotHandler;
+  private readonly sessions = new Map<string, ScreenShareSession>();
+  private readonly screenshotHandler: ScreenshotHandler;
 
   constructor(screenshotHandler: ScreenshotHandler) {
     this.screenshotHandler = screenshotHandler;

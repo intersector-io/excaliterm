@@ -12,7 +12,6 @@ export function useScreenshot() {
   const [isLoadingMonitors, setIsLoadingMonitors] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
 
-  // Track pending screenshot requests
   const pendingScreenshot = useRef<{
     serviceId: string;
     serviceInstanceId: string;
@@ -26,19 +25,16 @@ export function useScreenshot() {
     const fileHub = getFileHub();
 
     function handleMonitorListing(event: { serviceId: string; monitors: MonitorInfo[] }) {
-      console.log("[useScreenshot] MonitorListing received:", event.monitors?.length, "monitors");
       setMonitors(event.monitors);
       setIsLoadingMonitors(false);
     }
 
     function handleScreenshotCaptured(event: ScreenshotCapturedEvent) {
-      console.log("[useScreenshot] ScreenshotCaptured received, size:", event.imageBase64?.length, "pending:", !!pendingScreenshot.current);
       const pending = pendingScreenshot.current;
       if (!pending) return;
 
       pendingScreenshot.current = null;
 
-      // Save screenshot to backend using the DB serviceInstanceId (not the agent serviceId)
       api
         .createScreenshot(workspaceId, {
           serviceInstanceId: pending.serviceInstanceId,
@@ -49,9 +45,7 @@ export function useScreenshot() {
           sourceTerminalNodeId: pending.sourceTerminalNodeId,
         })
         .then(() => {
-          console.log("[useScreenshot] Screenshot saved to backend");
           setIsCapturing(false);
-          // Invalidate queries so the new screenshot node and edge appear
           queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
           queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
           queryClient.invalidateQueries({ queryKey: ["screenshots", workspaceId] });

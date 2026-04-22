@@ -27,15 +27,15 @@ function buildConnection(path: string, workspaceId: string, collaborator: Collab
 
 function attachStatusEvents(name: string, connection: HubConnection): void {
   connection.onreconnecting(() => {
-    statusHandlers.forEach((h) => h(name, "reconnecting"));
+    for (const h of statusHandlers) h(name, "reconnecting");
   });
 
   connection.onreconnected(() => {
-    statusHandlers.forEach((h) => h(name, "connected"));
+    for (const h of statusHandlers) h(name, "connected");
   });
 
   connection.onclose(() => {
-    statusHandlers.forEach((h) => h(name, "disconnected"));
+    for (const h of statusHandlers) h(name, "disconnected");
   });
 }
 
@@ -129,13 +129,13 @@ export async function startAll(): Promise<void> {
     connections.map(async ({ name, conn }) => {
       if (!conn) return;
       if (conn.state === HubConnectionState.Disconnected) {
-        statusHandlers.forEach((h) => h(name, "connecting"));
+        for (const h of statusHandlers) h(name, "connecting");
         try {
           await conn.start();
-          statusHandlers.forEach((h) => h(name, "connected"));
+          for (const h of statusHandlers) h(name, "connected");
         } catch (err) {
           console.error(`Failed to start ${name} hub:`, err);
-          statusHandlers.forEach((h) => h(name, "disconnected"));
+          for (const h of statusHandlers) h(name, "disconnected");
         }
       }
     }),

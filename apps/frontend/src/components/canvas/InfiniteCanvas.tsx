@@ -160,7 +160,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
     [isMobile],
   );
 
-  const handleBackFromFullScreen = useCallback(() => {
+  const closeFullScreen = useCallback(() => {
     setFullScreenTerminal(null);
   }, []);
 
@@ -275,7 +275,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Infinite
           terminalId={fullScreenTerminal.terminalId}
           status={fullScreenTerminal.status}
           tags={fullScreenTerminal.tags}
-          onBack={handleBackFromFullScreen}
+          onBack={closeFullScreen}
           currentIndex={terminals.findIndex((t) => t.id === fullScreenTerminal.terminalId)}
           totalCount={terminals.length}
           onPrev={() => {

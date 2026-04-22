@@ -79,6 +79,29 @@ export interface EditorNodeData {
 
 type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData | HostNodeData | EditorNodeData;
 
+function buildFlowNode(cn: CanvasNode, type: string, data: AnyNodeData): Node<AnyNodeData> {
+  return {
+    id: cn.id,
+    type,
+    position: { x: cn.x, y: cn.y },
+    dragHandle: ".drag-handle",
+    data,
+    style: { width: cn.width, height: cn.height },
+    measured: { width: cn.width, height: cn.height },
+    zIndex: cn.zIndex,
+  };
+}
+
+function buildServiceNodeData(cn: CanvasNode, services: ServiceInstance[], label: string): HostNodeData | EditorNodeData {
+  const service = services.find((s) => s.id === cn.serviceInstanceId);
+  return {
+    serviceInstanceId: cn.serviceInstanceId!,
+    serviceId: service?.serviceId ?? "",
+    serviceName: service?.name ?? "Unknown",
+    label,
+  };
+}
+
 function canvasNodeToFlowNode(
   cn: CanvasNode,
   terminals: TerminalSession[],
@@ -86,112 +109,56 @@ function canvasNodeToFlowNode(
   screenshots: Screenshot[],
   services: ServiceInstance[],
 ): Node<AnyNodeData> {
-  if (cn.nodeType === "host" && cn.serviceInstanceId) {
-    const service = services.find((s) => s.id === cn.serviceInstanceId);
-    return {
-      id: cn.id,
-      type: "host",
-      position: { x: cn.x, y: cn.y },
-      dragHandle: ".drag-handle",
-      data: {
-        serviceInstanceId: cn.serviceInstanceId,
-        serviceId: service?.serviceId ?? "",
-        serviceName: service?.name ?? "Unknown",
-        label: "Host",
-      },
-      style: { width: cn.width, height: cn.height },
-      measured: { width: cn.width, height: cn.height },
-      zIndex: cn.zIndex,
-    };
-  }
+  switch (cn.nodeType) {
+    case "host":
+      if (cn.serviceInstanceId) {
+        return buildFlowNode(cn, "host", buildServiceNodeData(cn, services, "Host"));
+      }
+      break;
 
-  if (cn.nodeType === "editor" && cn.serviceInstanceId) {
-    const service = services.find((s) => s.id === cn.serviceInstanceId);
-    return {
-      id: cn.id,
-      type: "editor",
-      position: { x: cn.x, y: cn.y },
-      dragHandle: ".drag-handle",
-      data: {
-        serviceInstanceId: cn.serviceInstanceId,
-        serviceId: service?.serviceId ?? "",
-        serviceName: service?.name ?? "Unknown",
-        label: "Editor",
-      },
-      style: { width: cn.width, height: cn.height },
-      measured: { width: cn.width, height: cn.height },
-      zIndex: cn.zIndex,
-    };
-  }
+    case "editor":
+      if (cn.serviceInstanceId) {
+        return buildFlowNode(cn, "editor", buildServiceNodeData(cn, services, "Editor"));
+      }
+      break;
 
-  if (cn.nodeType === "note" && cn.noteId) {
-    const note = notes.find((n) => n.id === cn.noteId);
-    return {
-      id: cn.id,
-      type: "note",
-      position: { x: cn.x, y: cn.y },
-      dragHandle: ".drag-handle",
-      data: {
-        noteId: cn.noteId,
-        content: note?.content ?? "",
-        label: "Note",
-      },
-      style: {
-        width: cn.width,
-        height: cn.height,
-      },
-      measured: { width: cn.width, height: cn.height },
-      zIndex: cn.zIndex,
-    };
-  }
+    case "note":
+      if (cn.noteId) {
+        const note = notes.find((n) => n.id === cn.noteId);
+        return buildFlowNode(cn, "note", {
+          noteId: cn.noteId,
+          content: note?.content ?? "",
+          label: "Note",
+        });
+      }
+      break;
 
-  if (cn.nodeType === "screenshot" && cn.screenshotId) {
-    const shot = screenshots.find((s) => s.id === cn.screenshotId);
-    return {
-      id: cn.id,
-      type: "screenshot",
-      position: { x: cn.x, y: cn.y },
-      dragHandle: ".drag-handle",
-      data: {
-        screenshotId: cn.screenshotId,
-        imageData: shot?.imageData ?? "",
-        monitorIndex: shot?.monitorIndex ?? 0,
-        width: shot?.width ?? 0,
-        height: shot?.height ?? 0,
-        capturedAt: shot?.capturedAt ?? "",
-        label: "Screenshot",
-      },
-      style: {
-        width: cn.width,
-        height: cn.height,
-      },
-      measured: { width: cn.width, height: cn.height },
-      zIndex: cn.zIndex,
-    };
+    case "screenshot":
+      if (cn.screenshotId) {
+        const shot = screenshots.find((s) => s.id === cn.screenshotId);
+        return buildFlowNode(cn, "screenshot", {
+          screenshotId: cn.screenshotId,
+          imageData: shot?.imageData ?? "",
+          monitorIndex: shot?.monitorIndex ?? 0,
+          width: shot?.width ?? 0,
+          height: shot?.height ?? 0,
+          capturedAt: shot?.capturedAt ?? "",
+          label: "Screenshot",
+        });
+      }
+      break;
   }
 
   const terminal = terminals.find((t) => t.id === cn.terminalSessionId);
-  return {
-    id: cn.id,
-    type: "terminal",
-    position: { x: cn.x, y: cn.y },
-    dragHandle: ".drag-handle",
-    data: {
-      terminalId: cn.terminalSessionId ?? cn.id,
-      serviceId: terminal?.serviceId ?? null,
-      serviceInstanceId: terminal?.serviceInstanceId ?? null,
-      label: "Terminal",
-      tags: terminal?.tags ?? [],
-      status: terminal?.status ?? "active",
-      exitCode: terminal?.exitCode ?? null,
-    },
-    style: {
-      width: cn.width,
-      height: cn.height,
-    },
-    measured: { width: cn.width, height: cn.height },
-    zIndex: cn.zIndex,
-  };
+  return buildFlowNode(cn, "terminal", {
+    terminalId: cn.terminalSessionId ?? cn.id,
+    serviceId: terminal?.serviceId ?? null,
+    serviceInstanceId: terminal?.serviceInstanceId ?? null,
+    label: "Terminal",
+    tags: terminal?.tags ?? [],
+    status: terminal?.status ?? "active",
+    exitCode: terminal?.exitCode ?? null,
+  });
 }
 
 export function useCanvas() {
@@ -356,10 +323,6 @@ export function useCanvas() {
     [nodesQuery.data, addScreenShareStoreNode],
   );
 
-  const removeScreenShareNode = useCallback((sessionId: string) => {
-    removeScreenShareStoreNode(sessionId);
-  }, [removeScreenShareStoreNode]);
-
   const nodes: Node<AnyNodeData>[] = useMemo(
     () => [
       ...(nodesQuery.data?.nodes ?? []).map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots, services)),
@@ -378,8 +341,6 @@ export function useCanvas() {
       style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 },
     }));
 
-    // Add ephemeral edges for screen share nodes
-    // The stream nodes track their source in the store
     const streamEdges: Edge[] = screenShareNodes
       .filter((n) => n.data.sourceTerminalNodeId)
       .map((n): Edge => ({
@@ -441,7 +402,7 @@ export function useCanvas() {
         },
       );
     },
-    [queryClient, updateMutation, workspaceId],
+    [queryClient, updateMutation, workspaceId, terminals, notes, screenshots, services],
   );
 
   return {
@@ -452,7 +413,7 @@ export function useCanvas() {
     deleteCanvasNode: deleteMutation.mutateAsync,
     createEditorNode: createEditorMutation.mutateAsync,
     addScreenShareNode,
-    removeScreenShareNode,
+    removeScreenShareNode: removeScreenShareStoreNode,
     isLoading: nodesQuery.isLoading,
   };
 }

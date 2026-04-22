@@ -137,26 +137,15 @@ public class ServiceRegistry
     {
         if (_terminalToService.TryGetValue(terminalId, out var serviceId))
         {
-            return GetService(serviceId)?.ConnectionId;
+            return GetTerminalHubConnection(serviceId);
         }
 
         return null;
     }
 
-    public string? GetConnectionForService(string serviceInstanceId)
-    {
-        return GetService(serviceInstanceId)?.ConnectionId;
-    }
-
     public ServiceInstanceInfo? GetService(string serviceInstanceId)
     {
         _byServiceInstanceId.TryGetValue(serviceInstanceId, out var info);
-        return info;
-    }
-
-    public ServiceInstanceInfo? GetServiceByConnectionId(string connectionId)
-    {
-        _byConnectionId.TryGetValue(connectionId, out var info);
         return info;
     }
 
@@ -168,8 +157,4 @@ public class ServiceRegistry
             .AsReadOnly();
     }
 
-    public bool IsServiceOnline(string serviceInstanceId)
-    {
-        return _byServiceInstanceId.ContainsKey(serviceInstanceId);
-    }
 }

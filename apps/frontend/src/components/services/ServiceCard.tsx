@@ -1,6 +1,7 @@
 import { Settings, Trash2, Clock, Terminal, FolderOpen, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/format-time";
 import type { ServiceInstance } from "@/lib/api-client";
 
 interface ServiceCardProps {
@@ -8,24 +9,6 @@ interface ServiceCardProps {
   onEdit: (service: ServiceInstance) => void;
   onDelete: (service: ServiceInstance) => void;
   onShutdown: (service: ServiceInstance) => void;
-}
-
-function formatRelativeTime(isoString: string | null): string {
-  if (!isoString) return "Never";
-
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-
-  if (diffSec < 60) return "Just now";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? "s" : ""} ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hour${diffHr !== 1 ? "s" : ""} ago`;
-  const diffDays = Math.floor(diffHr / 24);
-  if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
-  return date.toLocaleDateString();
 }
 
 export function ServiceCard({ service, onEdit, onDelete, onShutdown }: ServiceCardProps) {

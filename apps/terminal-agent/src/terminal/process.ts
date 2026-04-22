@@ -17,10 +17,7 @@ export class TerminalProcess {
   ) {
     this.id = id;
 
-    const env: Record<string, string> = { ...process.env } as Record<
-      string,
-      string
-    >;
+    const env = { ...process.env } as Record<string, string>;
 
     // Set TERM for Unix systems so terminal apps work correctly
     if (process.platform !== "win32") {

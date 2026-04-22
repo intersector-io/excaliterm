@@ -41,9 +41,7 @@ function EditorNodeComponent({ id, data, selected }: NodeProps<EditorNodeType>) 
   } = useFiles(data.serviceId);
 
   const handleSave = useCallback(
-    async (path: string, content: string) => {
-      await writeFile(path, content);
-    },
+    (path: string, content: string) => writeFile(path, content),
     [writeFile],
   );
 

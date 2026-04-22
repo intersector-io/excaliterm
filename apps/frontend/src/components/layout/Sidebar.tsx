@@ -1,9 +1,11 @@
-import { Link2, Check } from "lucide-react";
 import {
+  Link2,
+  Check,
   LayoutDashboard,
   MessageSquare,
 } from "lucide-react";
 import { useState, useCallback } from "react";
+import { copyToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -42,13 +44,9 @@ export function Sidebar({
   ];
 
   const handleShare = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback
-    }
+    await copyToClipboard(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, []);
 
   return (

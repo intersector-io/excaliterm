@@ -1,4 +1,5 @@
 import { TerminalProcess } from "./process.js";
+import { extractErrorMessage } from "../utils.js";
 
 export class TerminalManager {
   private readonly terminals = new Map<string, TerminalProcess>();
@@ -43,7 +44,7 @@ export class TerminalManager {
       this.onCreated?.(id);
       return terminal;
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = extractErrorMessage(err);
       console.error(`[TerminalManager] Failed to create terminal ${id}: ${message}`);
       this.onError?.(id, message);
       throw err;

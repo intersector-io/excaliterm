@@ -7,6 +7,23 @@ interface CopyButtonProps {
   variant?: "ghost" | "plain";
 }
 
+function CopyButtonContent({ copied }: { copied: boolean }) {
+  if (copied) {
+    return (
+      <>
+        <Check className="h-3 w-3 text-accent-green" />
+        Copied
+      </>
+    );
+  }
+  return (
+    <>
+      <Copy className="h-3 w-3" />
+      Copy
+    </>
+  );
+}
+
 export function CopyButton({ copied, onClick, variant = "ghost" }: CopyButtonProps) {
   if (variant === "plain") {
     return (
@@ -14,17 +31,7 @@ export function CopyButton({ copied, onClick, variant = "ghost" }: CopyButtonPro
         onClick={onClick}
         className="flex h-6 items-center gap-1 rounded px-2 text-caption text-muted-foreground transition-colors hover:text-foreground"
       >
-        {copied ? (
-          <>
-            <Check className="h-3 w-3 text-accent-green" />
-            Copied
-          </>
-        ) : (
-          <>
-            <Copy className="h-3 w-3" />
-            Copy
-          </>
-        )}
+        <CopyButtonContent copied={copied} />
       </button>
     );
   }
@@ -36,17 +43,7 @@ export function CopyButton({ copied, onClick, variant = "ghost" }: CopyButtonPro
       className="h-6 gap-1 px-2 text-caption"
       onClick={onClick}
     >
-      {copied ? (
-        <>
-          <Check className="h-3 w-3 text-accent-green" />
-          Copied
-        </>
-      ) : (
-        <>
-          <Copy className="h-3 w-3" />
-          Copy
-        </>
-      )}
+      <CopyButtonContent copied={copied} />
     </Button>
   );
 }

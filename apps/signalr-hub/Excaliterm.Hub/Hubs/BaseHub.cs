@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Excaliterm.Hub.Auth;
+using Excaliterm.Hub.Services;
 
 namespace Excaliterm.Hub.Hubs;
 
@@ -20,7 +21,9 @@ public abstract class BaseHub : Microsoft.AspNetCore.SignalR.Hub
 
     protected string? GetUserName() => Context.Items["UserName"] as string;
 
-    protected string WorkspaceGroup(string workspaceId) => $"workspace:{workspaceId}";
+    protected string WorkspaceGroup(string workspaceId) => FormatWorkspaceGroup(workspaceId);
+
+    public static string FormatWorkspaceGroup(string workspaceId) => $"workspace:{workspaceId}";
 
     protected bool IsServiceConnection() => Context.Items.ContainsKey("IsService");
 
@@ -85,6 +88,48 @@ public abstract class BaseHub : Microsoft.AspNetCore.SignalR.Hub
 
         Logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
         await base.OnDisconnectedAsync(exception);
+    }
+
+    /// <summary>
+    /// Shared service registration flow: validates API key, sets context items,
+    /// registers in ServiceRegistry, joins workspace group, and acknowledges.
+    /// Returns false (and aborts the connection) if validation fails.
+    /// </summary>
+    protected async Task<bool> RegisterServiceAsync(
+        string serviceId,
+        string apiKey,
+        string hubType,
+        ApiKeyValidator apiKeyValidator,
+        ServiceRegistry serviceRegistry)
+    {
+        var httpContext = Context.GetHttpContext();
+        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
+
+        var isValid = await apiKeyValidator.ValidateAsync(workspaceId, apiKey);
+        if (!isValid)
+        {
+            Logger.LogWarning(
+                "Service registration rejected: invalid API key from {ConnectionId} for workspace {WorkspaceId}",
+                Context.ConnectionId, workspaceId
+            );
+            Context.Abort();
+            return false;
+        }
+
+        Context.Items["IsService"] = true;
+        Context.Items["ServiceId"] = serviceId;
+        Context.Items["WorkspaceId"] = workspaceId;
+
+        serviceRegistry.Register(Context.ConnectionId, serviceId, workspaceId, hubType);
+        await Groups.AddToGroupAsync(Context.ConnectionId, WorkspaceGroup(workspaceId));
+
+        Logger.LogInformation(
+            "Service registered: {ServiceId} on connection {ConnectionId} for workspace {WorkspaceId} (hub={HubType})",
+            serviceId, Context.ConnectionId, workspaceId, hubType
+        );
+
+        await Clients.Caller.SendAsync("ServiceRegistered", serviceId);
+        return true;
     }
 
     private static string SanitizeDisplayName(string? displayName)

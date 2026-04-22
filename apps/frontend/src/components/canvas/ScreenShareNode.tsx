@@ -1,7 +1,7 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { type NodeProps, NodeResizer, Handle, Position } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
-import { Monitor, X, Square, Play, Pause, Maximize2 } from "lucide-react";
+import { Monitor, X, Play, Pause, Maximize2 } from "lucide-react";
 import { useCanvas, type ScreenShareNodeData } from "@/hooks/use-canvas";
 import { useScreenShare } from "@/hooks/use-screen-share";
 import { useScreenShareStore } from "@/stores/screen-share-store";
@@ -33,21 +33,22 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
     contentRef.current?.requestFullscreen?.().catch(() => {});
   }, []);
 
-  const statusColor = isStreaming
-    ? paused
-      ? "bg-accent-amber"
-      : "bg-accent-green animate-pulse"
-    : session
-      ? "bg-accent-amber animate-pulse"
-      : "bg-accent-red";
+  function getStreamStatusColor(): string {
+    if (isStreaming && paused) return "bg-accent-amber";
+    if (isStreaming) return "bg-accent-green animate-pulse";
+    if (session) return "bg-accent-amber animate-pulse";
+    return "bg-accent-red";
+  }
 
-  const statusLabel = isStreaming
-    ? paused
-      ? "Paused"
-      : "Live"
-    : session
-      ? "Buffering"
-      : "Stopped";
+  function getStreamStatusLabel(): string {
+    if (isStreaming && paused) return "Paused";
+    if (isStreaming) return "Live";
+    if (session) return "Buffering";
+    return "Stopped";
+  }
+
+  const statusColor = getStreamStatusColor();
+  const statusLabel = getStreamStatusLabel();
 
   const frame = paused ? null : session?.currentFrame;
 
@@ -107,14 +108,7 @@ function ScreenShareNodeComponent({ data, selected }: NodeProps<ScreenShareNodeT
             <button
               onClick={handleClose}
               className="nodrag nopan p-1.5 rounded-md hover:bg-red-500/20 transition-colors text-white/40 hover:text-red-400"
-              title="Stop stream"
-            >
-              <Square className="h-3 w-3" />
-            </button>
-            <button
-              onClick={handleClose}
-              className="nodrag nopan p-1.5 rounded-md hover:bg-red-500/20 transition-colors text-white/40 hover:text-red-400"
-              title="Close"
+              title="Stop and close"
             >
               <X className="h-3.5 w-3.5" />
             </button>

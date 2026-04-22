@@ -179,99 +179,66 @@ export function ServicesView() {
 
       {/* Delete confirmation dialog */}
       {deletingService && (
-        <DeleteConfirmDialog
-          serviceName={deletingService.name}
+        <ConfirmDialog
+          title="Delete Service"
+          description={`Are you sure you want to delete "${deletingService.name}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          loadingLabel="Deleting..."
           open={!!deletingService}
           onOpenChange={(open) => {
             if (!open) setDeletingService(null);
           }}
           onConfirm={confirmDelete}
-          isDeleting={isDeleting}
+          isLoading={isDeleting}
         />
       )}
 
       {/* Shutdown confirmation dialog */}
       {shuttingDownService && (
-        <ShutdownConfirmDialog
-          serviceName={shuttingDownService.name}
+        <ConfirmDialog
+          title="Shutdown Host"
+          description={`This will shut down the remote host machine running "${shuttingDownService.name}". All active terminals and screen shares on this host will be terminated. This action cannot be undone remotely.`}
+          confirmLabel="Shutdown"
+          loadingLabel="Shutting down..."
           open={!!shuttingDownService}
           onOpenChange={(open) => {
             if (!open) setShuttingDownService(null);
           }}
           onConfirm={confirmShutdown}
-          isShuttingDown={isShuttingDown}
+          isLoading={isShuttingDown}
         />
       )}
     </div>
   );
 }
 
-function DeleteConfirmDialog({
-  serviceName,
-  open,
-  onOpenChange,
-  onConfirm,
-  isDeleting,
-}: {
-  serviceName: string;
+interface ConfirmDialogProps {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  loadingLabel: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => Promise<void>;
-  isDeleting: boolean;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Delete Service</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete "{serviceName}"? This action
-            cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={isDeleting}
-          >
-            {isDeleting ? "Deleting..." : "Delete"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  isLoading: boolean;
 }
 
-function ShutdownConfirmDialog({
-  serviceName,
+function ConfirmDialog({
+  title,
+  description,
+  confirmLabel,
+  loadingLabel,
   open,
   onOpenChange,
   onConfirm,
-  isShuttingDown,
-}: {
-  serviceName: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => Promise<void>;
-  isShuttingDown: boolean;
-}) {
+  isLoading,
+}: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Shutdown Host</DialogTitle>
-          <DialogDescription>
-            This will shut down the remote host machine running "{serviceName}".
-            All active terminals and screen shares on this host will be
-            terminated. This action cannot be undone remotely.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button
@@ -283,9 +250,9 @@ function ShutdownConfirmDialog({
           <Button
             variant="destructive"
             onClick={onConfirm}
-            disabled={isShuttingDown}
+            disabled={isLoading}
           >
-            {isShuttingDown ? "Shutting down..." : "Shutdown"}
+            {isLoading ? loadingLabel : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -32,19 +32,12 @@ export function MonitorPickerDialog({
 }: MonitorPickerDialogProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Auto-select first monitor
+  // Reset selection when monitors change
   useEffect(() => {
     if (monitors.length > 0) {
       setSelectedIndex(0);
     }
   }, [monitors]);
-
-  // Auto-select if only one monitor
-  useEffect(() => {
-    if (monitors.length === 1 && !isLoadingMonitors) {
-      setSelectedIndex(0);
-    }
-  }, [monitors, isLoadingMonitors]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

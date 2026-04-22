@@ -3,6 +3,8 @@ import type {
   CreateTerminalResponse,
   CreateScreenshotRequest,
   CreateScreenshotResponse,
+  CreateEditorNodeRequest,
+  CreateEditorNodeResponse,
   ListTerminalsResponse,
   ListCanvasNodesResponse,
   ListCanvasEdgesResponse,
@@ -227,8 +229,6 @@ export function deleteServiceApi(workspaceId: string, id: string): Promise<{ suc
 
 // ─── Editor Nodes ────────────────────────────────────────────────────────
 
-import type { CreateEditorNodeRequest, CreateEditorNodeResponse } from "@excaliterm/shared-types";
-
 export function createEditorNode(
   workspaceId: string,
   data: CreateEditorNodeRequest,
@@ -259,4 +259,3 @@ export function getChatHistory(
 ): Promise<ChatHistoryResponse> {
   return request(`/w/${workspaceId}/chat?limit=${limit}&offset=${offset}`);
 }
-

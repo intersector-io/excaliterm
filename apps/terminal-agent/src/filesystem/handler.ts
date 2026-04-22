@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { PathValidator } from "./validator.js";
@@ -18,6 +17,10 @@ export interface FileContent {
   encoding: string;
 }
 
+function compareByName(a: FileEntry, b: FileEntry): number {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+}
+
 export class FileSystemHandler {
   private readonly validator: PathValidator;
 
@@ -34,7 +37,6 @@ export class FileSystemHandler {
     }
 
     const dirents = await fsp.readdir(validatedPath, { withFileTypes: true });
-    const entries: FileEntry[] = [];
 
     // Collect directories first, then files, both sorted alphabetically
     const dirs: FileEntry[] = [];
@@ -44,15 +46,16 @@ export class FileSystemHandler {
       const fullPath = path.join(validatedPath, dirent.name);
       try {
         const entryStat = await fsp.stat(fullPath);
+        const isDir = dirent.isDirectory();
         const entry: FileEntry = {
           name: dirent.name,
           path: fullPath,
-          isDirectory: dirent.isDirectory(),
-          size: dirent.isDirectory() ? null : entryStat.size,
+          isDirectory: isDir,
+          size: isDir ? null : entryStat.size,
           modifiedAt: new Date(entryStat.mtimeMs).toISOString(),
         };
 
-        if (dirent.isDirectory()) {
+        if (isDir) {
           dirs.push(entry);
         } else {
           files.push(entry);
@@ -62,11 +65,10 @@ export class FileSystemHandler {
       }
     }
 
-    dirs.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    dirs.sort(compareByName);
+    files.sort(compareByName);
 
-    entries.push(...dirs, ...files);
-
+    const entries = [...dirs, ...files];
     console.log(`[FileSystem] Listed directory ${validatedPath}: ${entries.length} entries`);
     return entries;
   }

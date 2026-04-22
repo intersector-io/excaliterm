@@ -147,13 +147,8 @@ export interface WriteFileParams {
   content: string;
 }
 
-export interface FileEntryDto {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  size: number | null;
-  modifiedAt: string | null;
-}
+/** Re-export FileEntry as FileEntryDto for SignalR protocol compatibility */
+export type FileEntryDto = import("./models.js").FileEntry;
 
 export interface DirectoryListingEvent {
   serviceId: string;

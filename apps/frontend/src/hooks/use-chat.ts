@@ -15,6 +15,17 @@ interface SignalRChatMessage {
   timestamp: number;
 }
 
+interface ApiChatMessage {
+  id: string;
+  displayName: string;
+  content: string;
+  createdAt: string;
+}
+
+function toMessageItem(m: ApiChatMessage): ChatMessageItem {
+  return { id: m.id, displayName: m.displayName, content: m.content, createdAt: m.createdAt };
+}
+
 export function useChat(isActive: boolean) {
   const { workspaceId } = useWorkspace();
   const {
@@ -38,13 +49,7 @@ export function useChat(isActive: boolean) {
 
   useEffect(() => {
     if (historyQuery.data) {
-      const items: ChatMessageItem[] = historyQuery.data.messages.map((m) => ({
-        id: m.id,
-        displayName: m.displayName,
-        content: m.content,
-        createdAt: m.createdAt,
-      }));
-      setMessages(items);
+      setMessages(historyQuery.data.messages.map(toMessageItem));
       setHasMore(historyQuery.data.messages.length >= PAGE_SIZE);
     }
   }, [historyQuery.data, setMessages]);
@@ -94,13 +99,7 @@ export function useChat(isActive: boolean) {
     try {
       const offset = messages.length;
       const data = await api.getChatHistory(workspaceId, PAGE_SIZE, offset);
-      const items: ChatMessageItem[] = data.messages.map((m) => ({
-        id: m.id,
-        displayName: m.displayName,
-        content: m.content,
-        createdAt: m.createdAt,
-      }));
-      appendOlderMessages(items);
+      appendOlderMessages(data.messages.map(toMessageItem));
       setHasMore(data.messages.length >= PAGE_SIZE);
     } finally {
       setLoadingOlder(false);

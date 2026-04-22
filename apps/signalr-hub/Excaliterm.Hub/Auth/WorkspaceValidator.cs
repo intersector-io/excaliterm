@@ -7,6 +7,7 @@ public class WorkspaceValidator
     private readonly HttpClient _httpClient;
     private readonly ILogger<WorkspaceValidator> _logger;
     private readonly ConcurrentDictionary<string, CachedWorkspace> _cache = new();
+    private readonly Timer _evictionTimer;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
 
@@ -22,6 +23,7 @@ public class WorkspaceValidator
         );
         _httpClient.Timeout = RequestTimeout;
         _logger = logger;
+        _evictionTimer = new Timer(_ => EvictExpiredEntries(), null, CacheTtl, CacheTtl);
     }
 
     public async Task<bool> ValidateAsync(string? workspaceId)
@@ -39,7 +41,6 @@ public class WorkspaceValidator
             var exists = response.IsSuccessStatusCode;
 
             _cache[workspaceId] = new CachedWorkspace(exists, DateTime.UtcNow.Add(CacheTtl));
-            EvictExpiredEntries();
 
             return exists;
         }

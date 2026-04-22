@@ -11,18 +11,26 @@ function generateId(length = 12): string {
   return Array.from(bytes, (b) => chars[b % chars.length]).join("");
 }
 
+function toWorkspaceResponse(ws: typeof schema.workspace.$inferSelect) {
+  return {
+    id: ws.id,
+    name: ws.name,
+    apiKey: ws.apiKey,
+    createdAt: ws.createdAt.toISOString(),
+    lastAccessedAt: ws.lastAccessedAt.toISOString(),
+  };
+}
+
 // POST /api/workspaces - Create a new workspace
 workspaces.post("/", async (c) => {
   const db = getDb();
   const id = generateId();
   const now = new Date();
 
-  const apiKey = crypto.randomUUID();
-
   await db.insert(schema.workspace).values({
     id,
     name: "Untitled workspace",
-    apiKey,
+    apiKey: crypto.randomUUID(),
     createdAt: now,
     lastAccessedAt: now,
   });
@@ -32,16 +40,7 @@ workspaces.post("/", async (c) => {
     .from(schema.workspace)
     .where(eq(schema.workspace.id, id));
 
-  return c.json(
-    {
-      id: workspace.id,
-      name: workspace.name,
-      apiKey: workspace.apiKey,
-      createdAt: workspace.createdAt.toISOString(),
-      lastAccessedAt: workspace.lastAccessedAt.toISOString(),
-    },
-    201,
-  );
+  return c.json(toWorkspaceResponse(workspace), 201);
 });
 
 // GET /api/workspaces/:id - Get workspace info
@@ -58,19 +57,12 @@ workspaces.get("/:id", async (c) => {
     throw new HTTPException(404, { message: "Workspace not found" });
   }
 
-  // Update last accessed
   await db
     .update(schema.workspace)
     .set({ lastAccessedAt: new Date() })
     .where(eq(schema.workspace.id, id));
 
-  return c.json({
-    id: workspace.id,
-    name: workspace.name,
-    apiKey: workspace.apiKey,
-    createdAt: workspace.createdAt.toISOString(),
-    lastAccessedAt: workspace.lastAccessedAt.toISOString(),
-  });
+  return c.json(toWorkspaceResponse(workspace));
 });
 
 export { workspaces };

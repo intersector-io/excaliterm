@@ -101,7 +101,7 @@ export function loadConfig(): Config {
     workspaceId:
       cli["workspace-id"] ?? process.env.WORKSPACE_ID ?? "00000000-0000-0000-0000-000000000000",
     whitelistedPaths,
-    shell: shellOverride && shellOverride.length > 0 ? shellOverride : detectedShell.shell,
-    shellArgs: shellOverride && shellOverride.length > 0 ? [] : detectedShell.shellArgs,
+    shell: shellOverride ? shellOverride : detectedShell.shell,
+    shellArgs: shellOverride ? [] : detectedShell.shellArgs,
   };
 }

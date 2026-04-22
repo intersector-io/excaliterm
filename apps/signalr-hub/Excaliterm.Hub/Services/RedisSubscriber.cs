@@ -56,7 +56,7 @@ public class RedisSubscriber : IHostedService
         {
             try
             {
-                _redis = await ConnectionMultiplexer.ConnectAsync(BuildRedisOptions(connectionString));
+                _redis = await ConnectionMultiplexer.ConnectAsync(RedisOptionsBuilder.Build(connectionString));
                 _subscriber = _redis.GetSubscriber();
 
                 // Subscribe to terminal commands from the Node.js backend
@@ -128,42 +128,6 @@ public class RedisSubscriber : IHostedService
         _logger.LogDebug("Published service event: {Event} for {ServiceId}", eventName, serviceInstanceId);
     }
 
-    private static ConfigurationOptions BuildRedisOptions(string connectionString)
-    {
-        // Normalize: add scheme if missing but has user:pass@host format
-        if (!connectionString.StartsWith("redis://") && !connectionString.StartsWith("rediss://")
-            && connectionString.Contains('@'))
-        {
-            connectionString = "redis://" + connectionString;
-        }
-
-        if (connectionString.StartsWith("redis://") || connectionString.StartsWith("rediss://"))
-        {
-            var uri = new Uri(connectionString);
-            var options = new ConfigurationOptions
-            {
-                EndPoints = { { uri.Host, uri.Port > 0 ? uri.Port : 6379 } },
-                AbortOnConnectFail = false,
-                ConnectRetry = 5,
-                ReconnectRetryPolicy = new ExponentialRetry(5_000),
-                Ssl = uri.Scheme == "rediss",
-            };
-            if (!string.IsNullOrEmpty(uri.UserInfo))
-            {
-                var parts = uri.UserInfo.Split(':', 2);
-                if (parts.Length == 2)
-                    options.Password = Uri.UnescapeDataString(parts[1]);
-            }
-            return options;
-        }
-
-        var parsed = ConfigurationOptions.Parse(connectionString, true);
-        parsed.AbortOnConnectFail = false;
-        parsed.ConnectRetry = 5;
-        parsed.ReconnectRetryPolicy = new ExponentialRetry(5_000);
-        return parsed;
-    }
-
     // ─── Terminal commands ──────────────────────────────────────────────────────
 
     private async Task HandleTerminalCommand(string message)
@@ -218,7 +182,7 @@ public class RedisSubscriber : IHostedService
                 return;
             }
 
-            _logger.LogWarning(
+            _logger.LogDebug(
                 "Routing terminal command {Command} for terminal {TerminalId} to service {ServiceId} on connection {ConnectionId}",
                 command.Command, command.TerminalId, targetServiceId, targetConnectionId
             );
@@ -278,7 +242,7 @@ public class RedisSubscriber : IHostedService
             var update = JsonSerializer.Deserialize<RedisCanvasUpdate>(message, JsonOptions);
             if (update is null) return;
 
-            var group = $"workspace:{update.WorkspaceId}";
+            var group = BaseHub.FormatWorkspaceGroup(update.WorkspaceId);
 
             switch (update.Action)
             {
@@ -326,7 +290,7 @@ public class RedisSubscriber : IHostedService
             var chatMsg = JsonSerializer.Deserialize<RedisChatMessage>(message, JsonOptions);
             if (chatMsg is null) return;
 
-            var group = $"workspace:{chatMsg.WorkspaceId}";
+            var group = BaseHub.FormatWorkspaceGroup(chatMsg.WorkspaceId);
             await _chatHub.Clients.Group(group).SendAsync("ReceiveMessage", chatMsg.Message);
         }
         catch (Exception ex)

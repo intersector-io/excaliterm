@@ -5,6 +5,25 @@ import type { TerminalStatus } from "@excaliterm/shared-types";
 import { TerminalView } from "./TerminalView";
 import { getTagColor } from "@/components/canvas/TagEditor";
 
+function getLockButtonStyle(lockedBySelf: boolean, lockedByOther: boolean): string {
+  if (lockedBySelf) return "bg-accent-cyan/15 text-accent-cyan";
+  if (lockedByOther) return "bg-secondary text-muted-foreground";
+  return "bg-secondary text-foreground";
+}
+
+function getStatusBadgeStyle(status: TerminalStatus): string {
+  switch (status) {
+    case "active":
+      return "bg-accent-green/20 text-accent-green";
+    case "error":
+      return "bg-accent-red/20 text-accent-red";
+    case "exited":
+      return "bg-muted text-muted-foreground";
+    default:
+      return "bg-accent-amber/20 text-accent-amber";
+  }
+}
+
 interface TerminalFullScreenProps {
   terminalId: string;
   status: TerminalStatus;
@@ -84,13 +103,7 @@ export function TerminalFullScreen({
               }
             }}
             disabled={lockedByOther}
-            className={`ml-auto flex h-8 items-center gap-1 rounded-md px-2 text-caption ${
-              lockedByCurrentCollaborator
-                ? "bg-accent-cyan/15 text-accent-cyan"
-                : lockedByOther
-                  ? "bg-secondary text-muted-foreground"
-                  : "bg-secondary text-foreground"
-            }`}
+            className={`ml-auto flex h-8 items-center gap-1 rounded-md px-2 text-caption ${getLockButtonStyle(lockedByCurrentCollaborator, lockedByOther)}`}
           >
             {lockedByCurrentCollaborator ? (
               <LockOpen className="h-3.5 w-3.5" />
@@ -101,15 +114,7 @@ export function TerminalFullScreen({
           </button>
         )}
         <span
-          className={`rounded-full px-2 py-0.5 text-caption font-semibold uppercase tracking-wider ${
-            status === "active"
-              ? "bg-accent-green/20 text-accent-green"
-              : status === "error"
-                ? "bg-accent-red/20 text-accent-red"
-                : status === "exited"
-                  ? "bg-muted text-muted-foreground"
-                  : "bg-accent-amber/20 text-accent-amber"
-          }`}
+          className={`rounded-full px-2 py-0.5 text-caption font-semibold uppercase tracking-wider ${getStatusBadgeStyle(status)}`}
         >
           {status}
         </span>

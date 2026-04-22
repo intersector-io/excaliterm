@@ -1,7 +1,8 @@
+import { exec } from "node:child_process";
 import * as signalR from "@microsoft/signalr";
-import { exec } from "child_process";
 import type { Config } from "../config.js";
 import type { TerminalManager } from "../terminal/manager.js";
+import { extractErrorMessage } from "../utils.js";
 
 export class TerminalHubConnection {
   private hub: signalR.HubConnection;
@@ -59,10 +60,8 @@ export class TerminalHubConnection {
         try {
           this.manager.createTerminal(terminalId, cols, rows);
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          console.error(
-            `[TerminalHub] Failed to create terminal ${terminalId}: ${message}`
-          );
+          const message = extractErrorMessage(err);
+          console.error(`[TerminalHub] Failed to create terminal ${terminalId}: ${message}`);
           await this.sendTerminalError(terminalId, message);
         }
       }

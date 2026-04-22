@@ -14,6 +14,12 @@ import { buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
 import { useCopyWithFeedback } from "@/hooks/use-copy";
 import type { ServiceInstance } from "@/lib/api-client";
 
+function getDeleteButtonLabel(confirmDelete: boolean, isDeleting: boolean): string {
+  if (!confirmDelete) return "Delete this service";
+  if (isDeleting) return "Deleting...";
+  return "Click again to confirm deletion";
+}
+
 interface ServiceConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -157,11 +163,7 @@ export function ServiceConfigDialog({
             onClick={handleDelete}
             disabled={isDeleting}
           >
-            {confirmDelete
-              ? isDeleting
-                ? "Deleting..."
-                : "Click again to confirm deletion"
-              : "Delete this service"}
+            {getDeleteButtonLabel(confirmDelete, isDeleting)}
           </Button>
         </DialogFooter>
       </DialogContent>

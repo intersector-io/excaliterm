@@ -1,13 +1,13 @@
-import { ScreenshotHandler } from "../screenshot/handler.js";
+import type { ScreenshotHandler } from "../screenshot/handler.js";
 
 export class ScreenShareSession {
   readonly sessionId: string;
   readonly monitorIndex: number;
 
   private captureInterval: ReturnType<typeof setInterval> | null = null;
-  private screenshotHandler: ScreenshotHandler;
-  private onFrame: (imageBase64: string, width: number, height: number) => void;
-  private fps: number;
+  private readonly screenshotHandler: ScreenshotHandler;
+  private readonly onFrame: (imageBase64: string, width: number, height: number) => void;
+  private readonly fps: number;
   private capturing = false;
 
   constructor(

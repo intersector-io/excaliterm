@@ -147,38 +147,10 @@ public class TerminalHub : BaseHub
 
     public async Task RegisterService(string serviceId, string apiKey)
     {
-        // Extract workspaceId from the SignalR query string
-        var httpContext = Context.GetHttpContext();
-        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString() ?? "default";
-
-        // Validate the API key against the workspace's stored key
-        var isValid = await _apiKeyValidator.ValidateAsync(workspaceId, apiKey);
-        if (!isValid)
-        {
-            Logger.LogWarning(
-                "Service registration rejected: invalid API key from {ConnectionId} for workspace {WorkspaceId}",
-                Context.ConnectionId, workspaceId
-            );
-            Context.Abort();
+        if (!await RegisterServiceAsync(serviceId, apiKey, "terminal", _apiKeyValidator, _serviceRegistry))
             return;
-        }
 
-        Context.Items["IsService"] = true;
-        Context.Items["ServiceId"] = serviceId;
-        Context.Items["WorkspaceId"] = workspaceId;
-
-        _serviceRegistry.Register(Context.ConnectionId, serviceId, workspaceId, "terminal");
-
-        // Add the service to the workspace group so it receives workspace broadcasts
-        await Groups.AddToGroupAsync(Context.ConnectionId, WorkspaceGroup(workspaceId));
-
-        Logger.LogInformation(
-            "Service registered: {ServiceId} on connection {ConnectionId} for workspace {WorkspaceId}",
-            serviceId, Context.ConnectionId, workspaceId
-        );
-
-        // Acknowledge registration
-        await Clients.Caller.SendAsync("ServiceRegistered", serviceId);
+        var workspaceId = GetWorkspaceId() ?? "default";
 
         // Notify the workspace group that the service is online
         await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync("ServiceOnline", serviceId);
@@ -303,6 +275,25 @@ public class TerminalHub : BaseHub
         await Clients.Caller.SendAsync("ShutdownInitiated", new ShutdownInitiatedMessage(serviceId));
     }
 
+    // ─── Helpers ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Checks if a terminal is locked by someone other than the given client.
+    /// Sends a TerminalError to the caller if locked. Returns true if blocked.
+    /// </summary>
+    private async Task<bool> IsLockedByOtherAsync(string terminalId, string clientId)
+    {
+        var existingLock = _collaborationRegistry.GetLock(terminalId);
+        if (existingLock is null || existingLock.ClientId == clientId)
+            return false;
+
+        await Clients.Caller.SendAsync(
+            "TerminalError",
+            new TerminalErrorMessage(terminalId, $"Terminal is locked by {existingLock.DisplayName}")
+        );
+        return true;
+    }
+
     // ─── Client → Server methods (input routing) ────────────────────────────────
 
     public async Task TerminalInput(string terminalId, string data)
@@ -312,18 +303,7 @@ public class TerminalHub : BaseHub
         var displayName = GetUserName();
         if (workspaceId is null || clientId is null || displayName is null) return;
 
-        var existingLock = _collaborationRegistry.GetLock(terminalId);
-        if (existingLock is not null && existingLock.ClientId != clientId)
-        {
-            await Clients.Caller.SendAsync(
-                "TerminalError",
-                new TerminalErrorMessage(
-                    terminalId,
-                    $"Terminal is locked by {existingLock.DisplayName}"
-                )
-            );
-            return;
-        }
+        if (await IsLockedByOtherAsync(terminalId, clientId)) return;
 
         // Route input to the service connection that owns this terminal
         var connectionId = _serviceRegistry.GetConnectionForTerminal(terminalId);
@@ -360,18 +340,7 @@ public class TerminalHub : BaseHub
         var clientId = GetUserId();
         if (workspaceId is null || clientId is null) return;
 
-        var existingLock = _collaborationRegistry.GetLock(terminalId);
-        if (existingLock is not null && existingLock.ClientId != clientId)
-        {
-            await Clients.Caller.SendAsync(
-                "TerminalError",
-                new TerminalErrorMessage(
-                    terminalId,
-                    $"Terminal is locked by {existingLock.DisplayName}"
-                )
-            );
-            return;
-        }
+        if (await IsLockedByOtherAsync(terminalId, clientId)) return;
 
         var connectionId = _serviceRegistry.GetConnectionForTerminal(terminalId);
         if (connectionId is null)

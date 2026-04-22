@@ -10,6 +10,7 @@ import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { useScreenShare } from "@/hooks/use-screen-share";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
 import { TagEditor } from "./TagEditor";
 import { MonitorPickerDialog } from "./MonitorPickerDialog";
 import {
@@ -128,21 +129,8 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
     [data.serviceId, id, monitors, startScreenShare, addScreenShareNode],
   );
 
-  const statusColor =
-    data.status === "active"
-      ? "bg-accent-green"
-      : data.status === "error"
-        ? "bg-accent-red"
-        : "bg-accent-amber";
-
-  const statusLabel =
-    data.status === "active"
-      ? "Live"
-      : data.status === "disconnected"
-        ? "Offline"
-        : data.status === "error"
-          ? "Error"
-          : "Exited";
+  const statusColor = getStatusDotColor(data.status);
+  const statusLabel = getStatusLabel(data.status);
 
   const firstActiveTyper = activeTypers[0] ?? null;
 

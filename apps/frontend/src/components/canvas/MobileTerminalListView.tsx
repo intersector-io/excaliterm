@@ -15,6 +15,7 @@ import { useNotes } from "@/hooks/use-notes";
 import { useServices } from "@/hooks/use-services";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
+import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
 import { MobileMediaSection } from "./MobileMediaViewer";
 import * as api from "@/lib/api-client";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
@@ -167,33 +168,8 @@ export function MobileTerminalListView() {
     }
   }
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-accent-green";
-      case "error":
-        return "bg-accent-red";
-      case "disconnected":
-        return "bg-accent-amber";
-      default:
-        return "bg-muted-foreground/40";
-    }
-  };
-
-  const statusLabel = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Live";
-      case "error":
-        return "Error";
-      case "disconnected":
-        return "Offline";
-      case "exited":
-        return "Exited";
-      default:
-        return status;
-    }
-  };
+  const statusColor = getStatusDotColor;
+  const statusLabel = getStatusLabel;
 
   return (
     <div className="flex h-full flex-col">

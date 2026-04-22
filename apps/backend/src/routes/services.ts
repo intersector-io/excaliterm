@@ -1,11 +1,23 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { v4 as uuidv4 } from "uuid";
 import { eq, and } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
 import type { WorkspaceVariables } from "../middleware/workspace.js";
 
 const services = new Hono<{ Variables: WorkspaceVariables }>();
+
+function toServiceResponse(s: typeof schema.serviceInstance.$inferSelect) {
+  return {
+    id: s.id,
+    serviceId: s.serviceId,
+    name: s.name,
+    whitelistedPaths: s.whitelistedPaths,
+    status: s.status,
+    lastSeen: s.lastSeen?.toISOString() ?? null,
+    createdAt: s.createdAt.toISOString(),
+    updatedAt: s.updatedAt.toISOString(),
+  };
+}
 
 // GET / - List workspace's service instances
 services.get("/", async (c) => {
@@ -17,18 +29,7 @@ services.get("/", async (c) => {
     .from(schema.serviceInstance)
     .where(eq(schema.serviceInstance.workspaceId, workspaceId));
 
-  return c.json({
-    services: rows.map((s) => ({
-      id: s.id,
-      serviceId: s.serviceId,
-      name: s.name,
-      whitelistedPaths: s.whitelistedPaths,
-      status: s.status,
-      lastSeen: s.lastSeen?.toISOString() ?? null,
-      createdAt: s.createdAt.toISOString(),
-      updatedAt: s.updatedAt.toISOString(),
-    })),
-  });
+  return c.json({ services: rows.map(toServiceResponse) });
 });
 
 // POST / - Register new service
@@ -41,8 +42,8 @@ services.post("/", async (c) => {
     throw new HTTPException(400, { message: "name is required" });
   }
 
-  const id = uuidv4();
-  const serviceId = uuidv4();
+  const id = crypto.randomUUID();
+  const serviceId = crypto.randomUUID();
   const now = new Date();
 
   await db.insert(schema.serviceInstance).values({
@@ -62,21 +63,7 @@ services.post("/", async (c) => {
     .from(schema.serviceInstance)
     .where(eq(schema.serviceInstance.id, id));
 
-  return c.json(
-    {
-      service: {
-        id: service.id,
-        serviceId: service.serviceId,
-        name: service.name,
-        whitelistedPaths: service.whitelistedPaths,
-        status: service.status,
-        lastSeen: service.lastSeen?.toISOString() ?? null,
-        createdAt: service.createdAt.toISOString(),
-        updatedAt: service.updatedAt.toISOString(),
-      },
-    },
-    201,
-  );
+  return c.json({ service: toServiceResponse(service) }, 201);
 });
 
 // PATCH /:id - Update service
@@ -114,18 +101,7 @@ services.patch("/:id", async (c) => {
     .from(schema.serviceInstance)
     .where(eq(schema.serviceInstance.id, serviceId));
 
-  return c.json({
-    service: {
-      id: updated.id,
-      serviceId: updated.serviceId,
-      name: updated.name,
-      whitelistedPaths: updated.whitelistedPaths,
-      status: updated.status,
-      lastSeen: updated.lastSeen?.toISOString() ?? null,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    },
-  });
+  return c.json({ service: toServiceResponse(updated) });
 });
 
 // DELETE /:id - Delete service

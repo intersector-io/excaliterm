@@ -8,6 +8,12 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 
+function getSelectorLabel(isLoading: boolean, selectedName?: string): string {
+  if (isLoading) return "Loading...";
+  if (selectedName) return selectedName;
+  return "Select a service";
+}
+
 interface ServiceSelectorProps {
   selectedServiceId: string | null;
   onSelect: (serviceId: string) => void;
@@ -29,11 +35,7 @@ export function ServiceSelector({ selectedServiceId, onSelect }: ServiceSelector
         >
           <Server className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="flex-1 truncate text-left">
-            {isLoading
-              ? "Loading..."
-              : selected
-                ? selected.name
-                : "Select a service"}
+            {getSelectorLabel(isLoading, selected?.name)}
           </span>
           {selected && (
             <span

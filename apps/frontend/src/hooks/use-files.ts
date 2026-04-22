@@ -8,6 +8,28 @@ import type {
   FileErrorEvent,
 } from "@excaliterm/shared-types";
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+interface PendingCallbacks<T = void> {
+  resolve: (value: T) => void;
+  reject: (err: Error) => void;
+}
+
+function createPendingPromise<T>(
+  pendingMap: React.RefObject<Map<string, PendingCallbacks<T>>>,
+  key: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    pendingMap.current.set(key, { resolve, reject });
+    setTimeout(() => {
+      if (pendingMap.current.has(key)) {
+        pendingMap.current.delete(key);
+        reject(new Error("Request timed out"));
+      }
+    }, REQUEST_TIMEOUT_MS);
+  });
+}
+
 interface UseFilesReturn {
   entries: FileEntryDto[];
   currentPath: string;
@@ -24,26 +46,14 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Track pending operations for promise resolution
-  const pendingReadRef = useRef<Map<string, {
-    resolve: (content: string) => void;
-    reject: (err: Error) => void;
-  }>>(new Map());
-
-  const pendingWriteRef = useRef<Map<string, {
-    resolve: () => void;
-    reject: (err: Error) => void;
-  }>>(new Map());
-
-  const pendingListRef = useRef<Map<string, {
-    resolve: (entries: FileEntryDto[]) => void;
-    reject: (err: Error) => void;
-  }>>(new Map());
+  const pendingReadRef = useRef<Map<string, PendingCallbacks<string>>>(new Map());
+  const pendingWriteRef = useRef<Map<string, PendingCallbacks>>(new Map());
+  const pendingListRef = useRef<Map<string, PendingCallbacks<FileEntryDto[]>>>(new Map());
 
   useEffect(() => {
     if (!serviceId) return;
 
-    const handleDirectoryListing = (event: DirectoryListingEvent) => {
+    function handleDirectoryListing(event: DirectoryListingEvent) {
       if (event.serviceId !== serviceId) return;
 
       setEntries(event.entries);
@@ -55,9 +65,9 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
         pending.resolve(event.entries);
         pendingListRef.current.delete(event.path);
       }
-    };
+    }
 
-    const handleFileContent = (event: FileContentEvent) => {
+    function handleFileContent(event: FileContentEvent) {
       if (event.serviceId !== serviceId) return;
 
       const pendingRead = pendingReadRef.current.get(event.path);
@@ -72,35 +82,27 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
         pendingWrite.resolve();
         pendingWriteRef.current.delete(event.path);
       }
-    };
+    }
 
-    const handleFileError = (event: FileErrorEvent) => {
+    function rejectPending<T>(map: Map<string, PendingCallbacks<T>>, key: string, error: Error) {
+      const pending = map.get(key);
+      if (pending) {
+        pending.reject(error);
+        map.delete(key);
+      }
+    }
+
+    function handleFileError(event: FileErrorEvent) {
       if (event.serviceId !== serviceId) return;
 
       setError(event.error);
       setLoading(false);
 
-      // Reject any pending read
-      const pendingRead = pendingReadRef.current.get(event.path);
-      if (pendingRead) {
-        pendingRead.reject(new Error(event.error));
-        pendingReadRef.current.delete(event.path);
-      }
-
-      // Reject any pending write
-      const pendingWrite = pendingWriteRef.current.get(event.path);
-      if (pendingWrite) {
-        pendingWrite.reject(new Error(event.error));
-        pendingWriteRef.current.delete(event.path);
-      }
-
-      // Reject any pending list
-      const pendingList = pendingListRef.current.get(event.path);
-      if (pendingList) {
-        pendingList.reject(new Error(event.error));
-        pendingListRef.current.delete(event.path);
-      }
-    };
+      const error = new Error(event.error);
+      rejectPending(pendingReadRef.current, event.path, error);
+      rejectPending(pendingWriteRef.current, event.path, error);
+      rejectPending(pendingListRef.current, event.path, error);
+    }
 
     const fileHub = getFileHub();
     fileHub.on("DirectoryListing", handleDirectoryListing);
@@ -130,17 +132,7 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
       try {
         await ensureConnected();
 
-        const promise = new Promise<FileEntryDto[]>((resolve, reject) => {
-          pendingListRef.current.set(path, { resolve, reject });
-          // Timeout after 15 seconds
-          setTimeout(() => {
-            if (pendingListRef.current.has(path)) {
-              pendingListRef.current.delete(path);
-              reject(new Error("Request timed out"));
-            }
-          }, 15_000);
-        });
-
+        const promise = createPendingPromise(pendingListRef, path);
         await getFileHub().invoke("ListDirectory", serviceId, path);
         await promise;
       } catch (err) {
@@ -158,16 +150,7 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
 
       await ensureConnected();
 
-      const promise = new Promise<string>((resolve, reject) => {
-        pendingReadRef.current.set(path, { resolve, reject });
-        setTimeout(() => {
-          if (pendingReadRef.current.has(path)) {
-            pendingReadRef.current.delete(path);
-            reject(new Error("Request timed out"));
-          }
-        }, 15_000);
-      });
-
+      const promise = createPendingPromise(pendingReadRef, path);
       await getFileHub().invoke("ReadFile", serviceId, path);
       return promise;
     },
@@ -180,16 +163,7 @@ export function useFiles(serviceId: string | null): UseFilesReturn {
 
       await ensureConnected();
 
-      const promise = new Promise<void>((resolve, reject) => {
-        pendingWriteRef.current.set(path, { resolve, reject });
-        setTimeout(() => {
-          if (pendingWriteRef.current.has(path)) {
-            pendingWriteRef.current.delete(path);
-            reject(new Error("Request timed out"));
-          }
-        }, 15_000);
-      });
-
+      const promise = createPendingPromise(pendingWriteRef, path);
       await getFileHub().invoke("WriteFile", serviceId, path, content);
       return promise;
     },

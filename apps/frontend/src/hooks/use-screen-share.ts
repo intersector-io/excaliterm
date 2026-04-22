@@ -22,7 +22,6 @@ export function useScreenShare() {
       if (!pending) return;
       pendingStart.current = null;
 
-      // Register session in the store
       useScreenShareStore.getState().addSession(event.sessionId, event.serviceId, pending.monitorIndex);
 
       pending.resolve({

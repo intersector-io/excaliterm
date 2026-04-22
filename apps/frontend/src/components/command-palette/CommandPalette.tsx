@@ -9,6 +9,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
 import { useServices } from "@/hooks/use-services";
@@ -114,12 +115,8 @@ export function CommandPalette({
         icon: Link2,
         keywords: ["share", "copy", "link", "workspace", "url"],
         action: async () => {
-          try {
-            await navigator.clipboard.writeText(window.location.href);
-            toast.success("Workspace link copied");
-          } catch {
-            // Fallback
-          }
+          await copyToClipboard(window.location.href);
+          toast.success("Workspace link copied");
         },
       },
     ],

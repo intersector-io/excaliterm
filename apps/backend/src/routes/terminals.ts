@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { v4 as uuidv4 } from "uuid";
 import { eq, and, desc, count } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
 import { publish } from "../lib/redis.js";
@@ -21,6 +20,31 @@ function parseTags(raw: string | null | undefined): string[] {
 
 function serializeTags(tags: string[]): string {
   return tags.map((t) => t.trim()).filter(Boolean).join(",");
+}
+
+async function publishTerminalDestroy(
+  db: ReturnType<typeof getDb>,
+  terminal: typeof schema.terminalSession.$inferSelect,
+  workspaceId: string,
+): Promise<void> {
+  let targetServiceId: string | undefined;
+
+  if (terminal.serviceInstanceId) {
+    const [service] = await db
+      .select({ serviceId: schema.serviceInstance.serviceId })
+      .from(schema.serviceInstance)
+      .where(eq(schema.serviceInstance.id, terminal.serviceInstanceId));
+    targetServiceId = service?.serviceId;
+  }
+
+  await publish("terminal:commands", {
+    command: "terminal:destroy",
+    terminalId: terminal.id,
+    serviceInstanceId: targetServiceId,
+    workspaceId,
+  }).catch(
+    (err) => console.error("[redis] Failed to publish terminal:destroy:", err.message),
+  );
 }
 
 // POST / - Create a terminal session
@@ -93,8 +117,8 @@ terminals.post("/", async (c) => {
     targetService = autoService;
   }
 
-  const terminalId = uuidv4();
-  const nodeId = uuidv4();
+  const terminalId = crypto.randomUUID();
+  const nodeId = crypto.randomUUID();
   const now = new Date();
 
   await db.insert(schema.terminalSession).values({
@@ -135,7 +159,7 @@ terminals.post("/", async (c) => {
 
   if (hostNode) {
     await db.insert(schema.canvasEdge).values({
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       workspaceId,
       sourceNodeId: nodeId,
       targetNodeId: hostNode.id,
@@ -295,25 +319,7 @@ terminals.delete("/:id", async (c) => {
   }
 
   if (terminal.status === "active") {
-    let targetServiceId: string | undefined;
-
-    if (terminal.serviceInstanceId) {
-      const [service] = await db
-        .select({ serviceId: schema.serviceInstance.serviceId })
-        .from(schema.serviceInstance)
-        .where(eq(schema.serviceInstance.id, terminal.serviceInstanceId));
-
-      targetServiceId = service?.serviceId;
-    }
-
-    await publish("terminal:commands", {
-      command: "terminal:destroy",
-      terminalId,
-      serviceInstanceId: targetServiceId,
-      workspaceId,
-    }).catch(
-      (err) => console.error("[redis] Failed to publish terminal:destroy:", err.message),
-    );
+    await publishTerminalDestroy(db, terminal, workspaceId);
   }
 
   await db
@@ -340,24 +346,7 @@ terminals.delete("/", async (c) => {
     );
 
   for (const terminal of activeTerminals) {
-    let targetServiceId: string | undefined;
-
-    if (terminal.serviceInstanceId) {
-      const [service] = await db
-        .select({ serviceId: schema.serviceInstance.serviceId })
-        .from(schema.serviceInstance)
-        .where(eq(schema.serviceInstance.id, terminal.serviceInstanceId));
-      targetServiceId = service?.serviceId;
-    }
-
-    await publish("terminal:commands", {
-      command: "terminal:destroy",
-      terminalId: terminal.id,
-      serviceInstanceId: targetServiceId,
-      workspaceId,
-    }).catch(
-      (err) => console.error("[redis] Failed to publish terminal:destroy:", err.message),
-    );
+    await publishTerminalDestroy(db, terminal, workspaceId);
   }
 
   // Mark all active terminals as exited

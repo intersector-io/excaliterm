@@ -140,11 +140,4 @@ export function getDb() {
   return _db;
 }
 
-export function getSqlite(): Database.Database {
-  if (!_sqlite) {
-    throw new Error("Database not initialized. Call initializeDb() first.");
-  }
-  return _sqlite;
-}
-
 export { schema };

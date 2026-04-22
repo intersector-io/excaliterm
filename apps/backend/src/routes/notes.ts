@@ -1,11 +1,20 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { v4 as uuidv4 } from "uuid";
 import { eq, and } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
 import type { WorkspaceVariables } from "../middleware/workspace.js";
+import { toCanvasNodeResponse } from "../lib/mappers.js";
 
 const notes = new Hono<{ Variables: WorkspaceVariables }>();
+
+function toNoteResponse(n: typeof schema.note.$inferSelect) {
+  return {
+    id: n.id,
+    content: n.content,
+    createdAt: n.createdAt.toISOString(),
+    updatedAt: n.updatedAt.toISOString(),
+  };
+}
 
 // GET / - List workspace's notes
 notes.get("/", async (c) => {
@@ -17,14 +26,7 @@ notes.get("/", async (c) => {
     .from(schema.note)
     .where(eq(schema.note.workspaceId, workspaceId));
 
-  return c.json({
-    notes: rows.map((n) => ({
-      id: n.id,
-      content: n.content,
-      createdAt: n.createdAt.toISOString(),
-      updatedAt: n.updatedAt.toISOString(),
-    })),
-  });
+  return c.json({ notes: rows.map(toNoteResponse) });
 });
 
 // POST / - Create note (also creates canvas_node with nodeType='note')
@@ -33,8 +35,8 @@ notes.post("/", async (c) => {
   const body = (await c.req.json<{ content?: string; x?: number; y?: number }>().catch(() => ({}))) as { content?: string; x?: number; y?: number };
   const db = getDb();
 
-  const noteId = uuidv4();
-  const nodeId = uuidv4();
+  const noteId = crypto.randomUUID();
+  const nodeId = crypto.randomUUID();
   const now = new Date();
 
   await db.insert(schema.note).values({
@@ -71,25 +73,8 @@ notes.post("/", async (c) => {
 
   return c.json(
     {
-      note: {
-        id: created.id,
-        content: created.content,
-        createdAt: created.createdAt.toISOString(),
-        updatedAt: created.updatedAt.toISOString(),
-      },
-      canvasNode: {
-        id: canvasNode.id,
-        terminalSessionId: canvasNode.terminalSessionId,
-        nodeType: canvasNode.nodeType,
-        noteId: canvasNode.noteId,
-        x: canvasNode.x,
-        y: canvasNode.y,
-        width: canvasNode.width,
-        height: canvasNode.height,
-        zIndex: canvasNode.zIndex,
-        createdAt: canvasNode.createdAt.toISOString(),
-        updatedAt: canvasNode.updatedAt.toISOString(),
-      },
+      note: toNoteResponse(created),
+      canvasNode: toCanvasNodeResponse(canvasNode),
     },
     201,
   );
@@ -129,14 +114,7 @@ notes.patch("/:id", async (c) => {
     .from(schema.note)
     .where(eq(schema.note.id, noteId));
 
-  return c.json({
-    note: {
-      id: updated.id,
-      content: updated.content,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    },
-  });
+  return c.json({ note: toNoteResponse(updated) });
 });
 
 // DELETE /:id - Delete note + its canvas_node

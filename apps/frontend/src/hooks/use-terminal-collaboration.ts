@@ -25,23 +25,23 @@ export function useInitializeTerminalCollaboration() {
   useEffect(() => {
     const terminalHub = getTerminalHub();
 
-    const handleSnapshot = (event: CollaborationStateEvent) => {
+    function handleSnapshot(event: CollaborationStateEvent) {
       setSnapshot(event);
-    };
+    }
 
-    const handleCollaboratorJoined = (event: CollaboratorJoinedEvent) => {
+    function handleCollaboratorJoined(event: CollaboratorJoinedEvent) {
       collaboratorJoined(event.collaborator);
-    };
+    }
 
-    const handleCollaboratorLeft = (event: CollaboratorLeftEvent) => {
+    function handleCollaboratorLeft(event: CollaboratorLeftEvent) {
       collaboratorLeft(event.clientId);
-    };
+    }
 
-    const handleTerminalLockChanged = (event: TerminalLockChangedEvent) => {
+    function handleTerminalLockChanged(event: TerminalLockChangedEvent) {
       setTerminalLock(event);
-    };
+    }
 
-    const handleTerminalTyping = (event: TerminalTypingEvent) => {
+    function handleTerminalTyping(event: TerminalTypingEvent) {
       markTyping(event);
 
       const key = `${event.terminalId}:${event.clientId}`;
@@ -56,11 +56,11 @@ export function useInitializeTerminalCollaboration() {
       }, TYPING_TTL_MS);
 
       typingTimeoutsRef.current.set(key, timeout);
-    };
+    }
 
-    const handleTerminalCleared = (event: { terminalId: string }) => {
+    function handleTerminalCleared(event: { terminalId: string }) {
       clearTerminalState(event.terminalId);
-    };
+    }
 
     terminalHub.on("CollaborationState", handleSnapshot);
     terminalHub.on("CollaboratorJoined", handleCollaboratorJoined);

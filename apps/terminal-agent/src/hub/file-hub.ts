@@ -1,19 +1,20 @@
 import * as signalR from "@microsoft/signalr";
 import type { Config } from "../config.js";
 import type { FileSystemHandler } from "../filesystem/handler.js";
-import type { ScreenshotHandler } from "../screenshot/handler.js";
 import type { ScreenShareManager } from "../screen-share/manager.js";
+import type { ScreenshotHandler } from "../screenshot/handler.js";
+import { extractErrorMessage } from "../utils.js";
 
 interface DirectoryListingResponse {
   serviceId: string;
   path: string;
-    entries: {
-      name: string;
-      path: string;
-      isDirectory: boolean;
-      size: number | null;
-      modifiedAt: string | null;
-    }[];
+  entries: {
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    size: number | null;
+    modifiedAt: string | null;
+  }[];
 }
 
 interface FileContentResponse {
@@ -96,7 +97,7 @@ export class FileHubConnection {
             response
           );
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = extractErrorMessage(err);
           console.error(`[FileHub] Failed to list directory ${dirPath}: ${message}`);
           const error: FileErrorResponse = {
             serviceId,
@@ -131,7 +132,7 @@ export class FileHubConnection {
             response
           );
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = extractErrorMessage(err);
           console.error(`[FileHub] Failed to read file ${filePath}: ${message}`);
           const error: FileErrorResponse = {
             serviceId,
@@ -171,7 +172,7 @@ export class FileHubConnection {
             response
           );
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = extractErrorMessage(err);
           console.error(`[FileHub] Failed to write file ${filePath}: ${message}`);
           const error: FileErrorResponse = {
             serviceId,
@@ -200,7 +201,7 @@ export class FileHubConnection {
             monitors,
           });
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = extractErrorMessage(err);
           console.error(`[FileHub] Failed to list monitors: ${message}`);
           await this.hub.invoke("FileErrorResponse", callerConnectionId, {
             serviceId,
@@ -225,7 +226,7 @@ export class FileHubConnection {
             height: result.height,
           });
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = extractErrorMessage(err);
           console.error(`[FileHub] Failed to capture screenshot: ${message}`);
           await this.hub.invoke("FileErrorResponse", callerConnectionId, {
             serviceId,
@@ -280,7 +281,7 @@ export class FileHubConnection {
             type: "session-created",
           });
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = extractErrorMessage(err);
           console.error(`[FileHub] Failed to start screen share: ${message}`);
           await this.hub.invoke("FileErrorResponse", callerConnectionId, {
             serviceId,

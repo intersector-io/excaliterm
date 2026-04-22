@@ -2,31 +2,11 @@ import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import { formatRelativeTime } from "@/lib/format-time";
 import type { ChatMessageItem } from "@/stores/chat-store";
 
 interface ChatMessageProps {
   message: ChatMessageItem;
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
-
-  if (diffSec < 60) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay === 1) return "yesterday";
-  if (diffDay < 7) return `${diffDay}d ago`;
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function getInitials(name: string): string {
@@ -45,12 +25,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
   return (
     <div className="group flex gap-2.5 px-3 py-1.5">
-      {/* Avatar */}
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-caption font-semibold text-secondary-foreground mt-0.5">
         {initials}
       </div>
 
-      {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <span className="text-xs font-semibold text-foreground">

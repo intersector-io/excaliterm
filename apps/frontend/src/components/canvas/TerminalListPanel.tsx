@@ -5,6 +5,7 @@ import { useTerminals } from "@/hooks/use-terminal";
 import { useCanvas } from "@/hooks/use-canvas";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { getStatusTextColor, getStatusLabel } from "@/lib/terminal-status";
 import { TagChips, getTagColor } from "./TagEditor";
 
 interface TerminalListPanelProps {
@@ -73,33 +74,8 @@ export function TerminalListPanel({
 
   if (!open) return null;
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "text-accent-green";
-      case "error":
-        return "text-accent-red";
-      case "disconnected":
-        return "text-accent-amber";
-      default:
-        return "text-muted-foreground";
-    }
-  };
-
-  const statusLabel = (status: string) => {
-    switch (status) {
-      case "active":
-        return "Live";
-      case "error":
-        return "Error";
-      case "disconnected":
-        return "Offline";
-      case "exited":
-        return "Exited";
-      default:
-        return status;
-    }
-  };
+  const statusColor = getStatusTextColor;
+  const statusLabel = getStatusLabel;
 
   return (
     <>

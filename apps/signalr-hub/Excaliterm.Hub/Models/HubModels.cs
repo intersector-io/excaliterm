@@ -2,10 +2,6 @@ namespace Excaliterm.Hub.Models;
 
 // ─── Terminal Hub ────────────────────────────────────────────────────────────
 
-public record TerminalInputRequest(string TerminalId, string Data);
-
-public record TerminalResizeRequest(string TerminalId, int Cols, int Rows);
-
 public record TerminalOutputMessage(string TerminalId, string Data);
 
 public record TerminalCreatedMessage(string TerminalId);
@@ -66,15 +62,7 @@ public record ChatMessageDto(
     long Timestamp
 );
 
-public record SendMessageRequest(string Content);
-
 // ─── File Hub ────────────────────────────────────────────────────────────────
-
-public record ListDirectoryRequest(string ServiceId, string Path);
-
-public record ReadFileRequest(string ServiceId, string Path);
-
-public record WriteFileRequest(string ServiceId, string Path, string Content);
 
 public record FileEntryDto(
     string Name,
@@ -100,17 +88,9 @@ public record ScreenshotCapturedMessage(string ServiceId, string ImageBase64, in
 
 public record ScreenShareFrameMessage(string ServiceId, string SessionId, string ImageBase64, int Width, int Height);
 
-public record ScreenShareSessionMessage(string ServiceId, string SessionId, int MonitorIndex);
-
 public record WebRtcOfferMessage(string ServiceId, string SessionId, string Sdp, string Type);
 
-public record WebRtcAnswerMessage(string ServiceId, string SessionId, string Sdp, string Type);
-
 public record WebRtcIceCandidateMessage(string ServiceId, string SessionId, string Candidate, string? SdpMid, int? SdpMLineIndex);
-
-// ─── Auth ────────────────────────────────────────────────────────────────────
-
-public record ValidatedSession(string UserId, string WorkspaceId, string UserName, string? Email);
 
 // ─── Service Registry ────────────────────────────────────────────────────────
 
@@ -161,6 +141,3 @@ public record RedisServiceEvent(
     long Timestamp
 );
 
-// ─── Service Registration ───────────────────────────────────────────────────
-
-public record RegisterServiceRequest(string ServiceId, string ApiKey);

@@ -18,6 +18,16 @@ function isCodeFile(name: string): boolean {
   return CODE_EXTENSIONS.has(name.slice(lastDot).toLowerCase());
 }
 
+function getFileIcon(name: string, isDirectory: boolean, isExpanded: boolean) {
+  if (isDirectory) {
+    return { icon: isExpanded ? FolderOpen : Folder, color: "text-accent-amber" };
+  }
+  if (isCodeFile(name)) {
+    return { icon: FileCode, color: "text-accent-blue" };
+  }
+  return { icon: File, color: "text-muted-foreground" };
+}
+
 interface FileTreeItemProps {
   name: string;
   path: string;
@@ -46,19 +56,7 @@ export function FileTreeItem({
     }
   };
 
-  const Icon = isDirectory
-    ? isExpanded
-      ? FolderOpen
-      : Folder
-    : isCodeFile(name)
-      ? FileCode
-      : File;
-
-  const iconColor = isDirectory
-    ? "text-accent-amber"
-    : isCodeFile(name)
-      ? "text-accent-blue"
-      : "text-muted-foreground";
+  const { icon: Icon, color: iconColor } = getFileIcon(name, isDirectory, isExpanded);
 
   return (
     <button
