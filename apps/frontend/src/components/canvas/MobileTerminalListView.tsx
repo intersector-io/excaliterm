@@ -11,6 +11,8 @@ import {
   Tag,
   Server,
   Layers,
+  MoreHorizontal,
+  Trash2,
 } from "lucide-react";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
@@ -31,7 +33,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { TagEditor } from "./TagEditor";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 
 const ALL_STATUSES: TerminalStatus[] = [
@@ -48,7 +52,7 @@ const GROUP_MODE_ICONS: Record<GroupMode, typeof Layers> = {
 };
 
 export function MobileTerminalListView() {
-  const { terminals, createTerminal, isCreating } = useTerminals();
+  const { terminals, createTerminal, updateTerminal, deleteTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { services, onlineCount } = useServices();
   const { collaborator, workspaceId } = useWorkspace();
@@ -396,6 +400,10 @@ export function MobileTerminalListView() {
                         terminal.tags,
                       )
                     }
+                    onTagsChange={(tags) =>
+                      updateTerminal({ id: terminal.id, data: { tags } })
+                    }
+                    onDismiss={() => deleteTerminal(terminal.id)}
                   />
                 ))}
               </div>
@@ -502,6 +510,8 @@ function TerminalCard({
   statusColor,
   statusLabel,
   onTap,
+  onTagsChange,
+  onDismiss,
 }: Readonly<{
   terminalId: string;
   status: string;
@@ -510,65 +520,100 @@ function TerminalCard({
   statusColor: string;
   statusLabel: string;
   onTap: () => void;
+  onTagsChange: (tags: string[]) => void;
+  onDismiss: () => void;
 }>) {
+  const [showTagEditor, setShowTagEditor] = useState(false);
+
   return (
-    <button
-      onClick={onTap}
-      className={`flex w-full items-center gap-3 rounded-xl border border-border-default border-l-[3px] bg-surface-raised/60 px-4 py-3 text-left transition-all active:scale-[0.98] active:bg-surface-raised ${
+    <div
+      className={`rounded-xl border border-border-default border-l-[3px] bg-surface-raised/60 transition-all ${
         (tags ?? []).length > 0 ? getTagBorderColor(tags![0]!) : "border-l-border-subtle"
       }`}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-sunken/50">
-        <Terminal className="h-4.5 w-4.5 text-muted-foreground" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate font-mono text-body-sm font-medium text-foreground">
-            {terminalId.slice(0, 8)}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <div
-              className={`h-2 w-2 rounded-full ${statusColor} ${status === "active" ? "animate-pulse" : ""}`}
-            />
-            <span className="text-caption text-muted-foreground">
-              {statusLabel}
-            </span>
+      {/* Main card row */}
+      <div className="flex w-full items-center gap-3 px-4 py-3">
+        <button
+          onClick={onTap}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left active:opacity-80"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-sunken/50">
+            <Terminal className="h-4.5 w-4.5 text-muted-foreground" />
           </div>
-        </div>
-        {(tags ?? []).length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {tags!.map((tag) => (
-              <span
-                key={tag}
-                className={`rounded-full border px-1.5 py-0 text-caption font-medium ${getTagColor(tag)}`}
-              >
-                {tag}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="truncate font-mono text-body-sm font-medium text-foreground">
+                {terminalId.slice(0, 8)}
               </span>
-            ))}
+              <div className="flex items-center gap-1.5">
+                <div
+                  className={`h-2 w-2 rounded-full ${statusColor} ${status === "active" ? "animate-pulse" : ""}`}
+                />
+                <span className="text-caption text-muted-foreground">
+                  {statusLabel}
+                </span>
+              </div>
+            </div>
+            {(tags ?? []).length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {tags!.map((tag) => (
+                  <span
+                    key={tag}
+                    className={`rounded-full border px-1.5 py-0 text-caption font-medium ${getTagColor(tag)}`}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            {exitCode !== null && exitCode !== undefined && (
+              <span className="mt-0.5 text-caption text-muted-foreground/60">
+                exit {exitCode}
+              </span>
+            )}
           </div>
-        )}
-        {exitCode !== null && exitCode !== undefined && (
-          <span className="mt-0.5 text-caption text-muted-foreground/60">
-            exit {exitCode}
-          </span>
-        )}
-      </div>
-      <ChevronIcon />
-    </button>
-  );
-}
+        </button>
 
-function ChevronIcon() {
-  return (
-    <svg
-      className="h-4 w-4 shrink-0 text-muted-foreground/40"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
+        {/* Overflow menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground/40 transition-colors active:bg-surface-raised active:text-muted-foreground"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShowTagEditor((v) => !v)}>
+              <Tag className="h-3.5 w-3.5" />
+              <span>Edit Tags</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                onDismiss();
+                toast.success(status === "active" ? "Terminal closed" : "Terminal dismissed");
+              }}
+              className="text-accent-red focus:text-accent-red"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>{status === "active" ? "Close Terminal" : "Dismiss"}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Inline tag editor */}
+      {showTagEditor && (
+        <div className="border-t border-border-subtle/50 px-4 py-2">
+          <TagEditor
+            tags={tags ?? []}
+            onTagsChange={onTagsChange}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
