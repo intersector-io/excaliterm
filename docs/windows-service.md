@@ -22,7 +22,10 @@ The terminal agent is a Node.js process that:
 Platform notes:
 
 - On Windows, the default shell is `powershell.exe -NoLogo -NoProfile`
-- On non-Windows systems, the default shell is the current `SHELL` or `/bin/bash`
+- On macOS/Linux, the default shell is the current `SHELL` or `/bin/bash`
+- Screenshots and screen sharing work on all platforms via the `screenshot-desktop` library
+- On Linux, screenshot capture requires one of: `scrot`, `ImageMagick` (`import`), or `xfce4-screenshooter`
+- On macOS, screenshot capture uses the built-in `screencapture` command (no extra install needed)
 
 ## Configuration
 

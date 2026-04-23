@@ -57,6 +57,7 @@ Key responsibilities:
 - Create, resize, write to, and destroy terminal sessions
 - Stream terminal output back to the hub
 - Read and write files within its configured whitelist
+- Capture screenshots and stream screen shares via the `screenshot-desktop` library (cross-platform: Windows, macOS, Linux)
 
 ### Redis
 

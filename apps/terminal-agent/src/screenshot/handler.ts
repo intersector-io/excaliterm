@@ -1,7 +1,4 @@
-import { execFile } from "node:child_process";
-import { readFile, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import screenshot from "screenshot-desktop";
 
 export interface MonitorInfo {
   index: number;
@@ -10,12 +7,57 @@ export interface MonitorInfo {
   height: number;
 }
 
-export class ScreenshotHandler {
-  async listMonitors(): Promise<MonitorInfo[]> {
-    if (process.platform === "win32") {
-      return this.listMonitorsWindows();
+const FALLBACK_MONITOR: MonitorInfo = { index: 0, name: "Primary Display", width: 0, height: 0 };
+
+function parseJpegDimensions(buf: Buffer): { width: number; height: number } {
+  let offset = 2;
+  while (offset < buf.length) {
+    const marker = buf.readUInt16BE(offset);
+    offset += 2;
+    if (marker >= 0xffc0 && marker <= 0xffc3) {
+      return {
+        height: buf.readUInt16BE(offset + 3),
+        width: buf.readUInt16BE(offset + 5),
+      };
     }
-    return [{ index: 0, name: "Primary Display", width: 0, height: 0 }];
+    offset += buf.readUInt16BE(offset);
+  }
+  return { width: 0, height: 0 };
+}
+
+export class ScreenshotHandler {
+  private displayCache: Awaited<ReturnType<typeof screenshot.listDisplays>> | null = null;
+  private displayCacheTime = 0;
+  private readonly displayCacheTtlMs = 30_000;
+  private readonly loggedMonitors = new Set<number>();
+  private readonly dimensionCache = new Map<number, { width: number; height: number }>();
+
+  private async getDisplays() {
+    const now = Date.now();
+    if (this.displayCache && now - this.displayCacheTime < this.displayCacheTtlMs) {
+      return this.displayCache;
+    }
+    this.displayCache = await screenshot.listDisplays();
+    this.displayCacheTime = now;
+    return this.displayCache;
+  }
+
+  async listMonitors(): Promise<MonitorInfo[]> {
+    try {
+      const displays = await this.getDisplays();
+      if (displays.length === 0) {
+        return [FALLBACK_MONITOR];
+      }
+      return displays.map((d, i) => ({
+        index: i,
+        name: d.name || `Display ${i + 1}`,
+        width: 0,
+        height: 0,
+      }));
+    } catch (err) {
+      console.error("[Screenshot] Failed to list monitors:", (err as Error).message);
+      return [FALLBACK_MONITOR];
+    }
   }
 
   async captureMonitor(monitorIndex: number): Promise<{
@@ -23,95 +65,30 @@ export class ScreenshotHandler {
     width: number;
     height: number;
   }> {
-    if (process.platform === "win32") {
-      return this.captureWindows(monitorIndex);
+    const displays = await this.getDisplays();
+    const display = displays[monitorIndex] ?? displays[0];
+    if (!display) {
+      throw new Error("No displays found");
     }
-    throw new Error("Screenshot not supported on this platform yet");
-  }
+    const imgBuffer = await screenshot({ screen: display.id, format: "jpg" });
 
-  private listMonitorsWindows(): Promise<MonitorInfo[]> {
-    const script = [
-      "Add-Type -AssemblyName System.Windows.Forms",
-      '[System.Windows.Forms.Screen]::AllScreens | ForEach-Object { "$($_.DeviceName)|$($_.Bounds.Width)|$($_.Bounds.Height)|$($_.Primary)" }',
-    ].join("; ");
+    let dims = this.dimensionCache.get(monitorIndex);
+    if (!dims) {
+      dims = parseJpegDimensions(imgBuffer);
+      if (dims.width > 0 && dims.height > 0) {
+        this.dimensionCache.set(monitorIndex, dims);
+      }
+    }
 
-    return new Promise((resolve) => {
-      execFile("powershell.exe", ["-NoProfile", "-Command", script], (err, stdout) => {
-        if (err) {
-          console.error("[Screenshot] Failed to list monitors:", err.message);
-          resolve([{ index: 0, name: "Primary Display", width: 0, height: 0 }]);
-          return;
-        }
-        const monitors = stdout
-          .trim()
-          .split(/\r?\n/)
-          .filter(Boolean)
-          .map((line, i) => {
-            const [name, w, h, primary] = line.trim().split("|");
-            return {
-              index: i,
-              name: primary === "True" ? `${name} (Primary)` : name,
-              width: Number.parseInt(w) || 0,
-              height: Number.parseInt(h) || 0,
-            };
-          });
-        resolve(monitors.length > 0 ? monitors : [{ index: 0, name: "Primary Display", width: 0, height: 0 }]);
-      });
-    });
-  }
+    if (!this.loggedMonitors.has(monitorIndex)) {
+      this.loggedMonitors.add(monitorIndex);
+      console.log(`[Screenshot] Captured monitor ${monitorIndex}: ${imgBuffer.length} bytes (${Math.round(imgBuffer.length / 1024)}KB), ${dims.width}x${dims.height}`);
+    }
 
-  private captureWindows(monitorIndex: number): Promise<{
-    imageBase64: string;
-    width: number;
-    height: number;
-  }> {
-    const tmpFile = join(tmpdir(), `excaliterm_screenshot_${Date.now()}.jpg`);
-    const escapedPath = tmpFile.replaceAll("\\", "\\\\");
-
-    const script = [
-      "Add-Type -AssemblyName System.Windows.Forms",
-      "Add-Type -AssemblyName System.Drawing",
-      "$screens = [System.Windows.Forms.Screen]::AllScreens",
-      `$idx = ${monitorIndex}`,
-      "if ($idx -ge $screens.Length) { $idx = 0 }",
-      "$screen = $screens[$idx]",
-      "$bounds = $screen.Bounds",
-      "$bmp = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height)",
-      "$graphics = [System.Drawing.Graphics]::FromImage($bmp)",
-      "$graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)",
-      "$graphics.Dispose()",
-      `$bmp.Save('${escapedPath}', [System.Drawing.Imaging.ImageFormat]::Jpeg)`,
-      "$bmp.Dispose()",
-      '"$($bounds.Width)|$($bounds.Height)"',
-    ].join("; ");
-
-    return new Promise((resolve, reject) => {
-      execFile(
-        "powershell.exe",
-        ["-NoProfile", "-Command", script],
-        { timeout: 15000 },
-        async (err, stdout) => {
-          if (err) {
-            reject(new Error(`Screenshot capture failed: ${err.message}`));
-            return;
-          }
-          try {
-            const [w, h] = stdout.trim().split("|");
-            const imgBuffer = await readFile(tmpFile);
-            await unlink(tmpFile).catch(() => {});
-
-            console.log(`[Screenshot] Captured ${imgBuffer.length} bytes (${Math.round(imgBuffer.length / 1024)}KB), ${w}x${h}`);
-
-            resolve({
-              imageBase64: imgBuffer.toString("base64"),
-              width: Number.parseInt(w) || 0,
-              height: Number.parseInt(h) || 0,
-            });
-          } catch (readErr) {
-            reject(new Error(`Failed to read screenshot file: ${readErr}`));
-          }
-        },
-      );
-    });
+    return {
+      imageBase64: imgBuffer.toString("base64"),
+      width: dims.width,
+      height: dims.height,
+    };
   }
 }
