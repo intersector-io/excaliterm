@@ -1,9 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { Settings } from "lucide-react";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
-import { TerminalListPanel } from "@/components/canvas/TerminalListPanel";
 import { TerminalDock } from "@/components/canvas/TerminalDock";
 import { MobileTerminalListView } from "@/components/canvas/MobileTerminalListView";
 import { useCanvas, type HostNodeData } from "@/hooks/use-canvas";
@@ -41,29 +40,37 @@ function SettingsView() {
 function CanvasView() {
   const { nodes } = useCanvas();
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const [terminalListOpen, setTerminalListOpen] = useState(false);
   const focusTerminalRef = useRef<((nodeId: string) => void) | null>(null);
-  const fullScreenRef = useRef<((terminalId: string, status: string) => void) | null>(null);
+  const fullScreenRef = useRef<
+    ((terminalId: string, status: string) => void) | null
+  >(null);
 
   const handleFocusTerminal = useCallback((nodeId: string) => {
     focusTerminalRef.current?.(nodeId);
   }, []);
 
   const nodesRef = useRef(nodes);
-  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
 
   const handleFocusService = useCallback((serviceId: string) => {
     const hostNode = nodesRef.current.find(
-      (n) => n.type === "host" && (n.data as HostNodeData).serviceInstanceId === serviceId,
+      (n) =>
+        n.type === "host" &&
+        (n.data as HostNodeData).serviceInstanceId === serviceId,
     );
     if (hostNode) {
       focusTerminalRef.current?.(hostNode.id);
     }
   }, []);
 
-  const handleFullScreenTerminal = useCallback((terminalId: string, status: string) => {
-    fullScreenRef.current?.(terminalId, status);
-  }, []);
+  const handleFullScreenTerminal = useCallback(
+    (terminalId: string, status: string) => {
+      fullScreenRef.current?.(terminalId, status);
+    },
+    [],
+  );
 
   if (isMobile) {
     return <MobileTerminalListView />;
@@ -71,21 +78,18 @@ function CanvasView() {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <CanvasToolbar onOpenTerminalList={() => setTerminalListOpen(true)} onFocusService={handleFocusService} />
+      <CanvasToolbar onFocusService={handleFocusService} />
       <div className="relative min-h-0 flex-1">
-        <InfiniteCanvas onFocusTerminalRef={focusTerminalRef} onFullScreenRef={fullScreenRef} />
+        <InfiniteCanvas
+          onFocusTerminalRef={focusTerminalRef}
+          onFullScreenRef={fullScreenRef}
+        />
         {nodes.length === 0 && <CanvasEmptyState />}
         <TerminalDock
           onFocusTerminal={handleFocusTerminal}
           onFullScreenTerminal={handleFullScreenTerminal}
         />
       </div>
-      <TerminalListPanel
-        open={terminalListOpen}
-        onClose={() => setTerminalListOpen(false)}
-        onFocusTerminal={handleFocusTerminal}
-        onFullScreenTerminal={handleFullScreenTerminal}
-      />
     </div>
   );
 }

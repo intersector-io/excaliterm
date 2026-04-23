@@ -9,6 +9,7 @@ import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { useScreenShare } from "@/hooks/use-screen-share";
 import { useCommandHistorySave } from "@/hooks/use-command-history";
+import { useHover } from "@/hooks/use-hover";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useFullscreenStore } from "@/stores/fullscreen-store";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -33,7 +34,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   const { saveCommand, createNode: createHistoryNode } = useCommandHistorySave(data.terminalId);
   const openFullScreen = useFullscreenStore((s) => s.open);
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const [hovered, setHovered] = useState(false);
+  const { hovered, onMouseEnter, onMouseLeave } = useHover();
   const [monitorPickerOpen, setMonitorPickerOpen] = useState(false);
   const [monitorPickerMode, setMonitorPickerMode] = useState<MonitorPickerMode>("screenshot");
   const {
@@ -186,8 +187,8 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   return (
     <div
       className="h-full w-full"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <NodeResizer
         minWidth={isMobile ? 340 : 520}
