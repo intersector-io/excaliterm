@@ -37,7 +37,7 @@ The agent loads environment variables from the current process and then falls ba
 | `SERVICE_API_KEY` | Yes | Per-workspace API key (auto-generated, shown in the "Connect a Host" dialog) |
 | `SERVICE_ID` | Recommended | Stable identifier for this service instance |
 | `WORKSPACE_ID` | Yes | Workspace to join |
-| `WHITELISTED_PATHS` | Optional | Comma-separated allowed roots for file access |
+| `WHITELISTED_PATHS` | Optional | Comma-separated allowed roots for file access. Empty = no filesystem access. Also settable via `--allow <path>` or positional args. |
 | `SHELL_OVERRIDE` | Optional | Explicit shell executable |
 
 Example:
@@ -153,9 +153,9 @@ And replies with:
 File access is restricted twice:
 
 1. The SignalR hub validates requested paths against its own allowlist.
-2. The terminal agent validates paths against `WHITELISTED_PATHS`.
+2. The terminal agent validates paths against its whitelist (`WHITELISTED_PATHS` env or `--allow` flags). By default the whitelist is empty and **no** filesystem access is allowed.
 
-Keep `WHITELISTED_PATHS` narrow in production.
+Keep the whitelist narrow in production.
 
 ## Troubleshooting
 
@@ -182,5 +182,5 @@ Check:
 Check:
 
 - the path passes the hub-side allowlist
-- the path is inside `WHITELISTED_PATHS`
+- the path is inside the agent's whitelist (`WHITELISTED_PATHS` or `--allow`)
 - the selected service belongs to the same workspace

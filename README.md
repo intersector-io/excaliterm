@@ -113,7 +113,7 @@ Copy the workspace URL and send it to anyone. They join instantly as a collabora
 | `SIGNALR_HUB_URL` | Yes | `http://localhost:5000` | SignalR hub URL from the service config |
 | `WORKSPACE_ID` | Yes | -- | Workspace ID from the browser URL |
 | `SHELL_OVERRIDE` | No | Auto-detected | Override the default shell (e.g. `/bin/zsh`, `bash.exe`) |
-| `WHITELISTED_PATHS` | No | -- | Comma-separated list of allowed working directories |
+| `WHITELISTED_PATHS` | No | *(none)* | Comma-separated list of allowed filesystem roots. Empty = no filesystem access. Also settable via `--allow <path>` (repeatable) or positional args. |
 | `SERVICE_ID` | No | `<hostname>-<pid>` | Custom identifier for this agent instance |
 
 ## Architecture

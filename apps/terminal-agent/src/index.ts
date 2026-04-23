@@ -31,7 +31,7 @@ async function main(): Promise<void> {
   console.log(`[terminal-agent] Hub URL: ${config.signalrHubUrl}`);
   console.log(`[terminal-agent] Shell: ${[config.shell, ...config.shellArgs].join(" ")}`);
   console.log(
-    `[terminal-agent] Whitelisted paths: ${config.whitelistedPaths.length > 0 ? config.whitelistedPaths.join(", ") : "(none - all paths allowed)"}`,
+    `[terminal-agent] Whitelisted paths: ${config.whitelistedPaths.length > 0 ? config.whitelistedPaths.join(", ") : "(none - filesystem access disabled)"}`,
   );
 
   const manager = new TerminalManager(config.shell, config.shellArgs);

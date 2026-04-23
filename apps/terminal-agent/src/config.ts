@@ -33,50 +33,53 @@ function generateServiceId(): string {
 
 function printHelp(): never {
   console.log(`
-Usage: excaliterm [options]
+Usage: excaliterm [options] [allowed-path...]
 
 Options:
-  --hub-url <url>            SignalR hub URL (env: SIGNALR_HUB_URL)
-  --api-key <key>            Service API key (env: SERVICE_API_KEY)
-  --workspace-id <id>        Workspace ID (env: WORKSPACE_ID)
-  --service-id <id>          Service ID (env: SERVICE_ID, default: hostname-pid)
-  --whitelisted-paths <paths> Comma-separated paths (env: WHITELISTED_PATHS)
-  --shell <path>             Shell executable override (env: SHELL_OVERRIDE)
-  --help                     Show this help message
+  --hub-url <url>        SignalR hub URL (env: SIGNALR_HUB_URL)
+  --api-key <key>        Service API key (env: SERVICE_API_KEY)
+  --workspace-id <id>    Workspace ID (env: WORKSPACE_ID)
+  --service-id <id>      Service ID (env: SERVICE_ID, default: hostname-pid)
+  --allow <path>         Allow filesystem access under <path>. Repeat for
+                         multiple roots. Positional arguments are also
+                         treated as --allow entries. (env: WHITELISTED_PATHS,
+                         comma-separated)
+  --shell <path>         Shell executable override (env: SHELL_OVERRIDE)
+  --help                 Show this help message
 
-Environment variables can be set in a .env file or passed directly.
-CLI arguments take precedence over environment variables.
+By default no filesystem paths are exposed. Pass --allow (or positionals)
+to whitelist directories. CLI values merge with WHITELISTED_PATHS.
 
 Examples:
-  excaliterm --hub-url https://hub.example.com --api-key secret123 --workspace-id abc-123
+  excaliterm --hub-url https://hub.example.com --api-key secret123 ./src ./docs
+  excaliterm --allow /var/log --allow /home/app --api-key secret123
   SERVICE_API_KEY=secret123 excaliterm --hub-url https://hub.example.com
-  npx excaliterm --hub-url https://hub.example.com --api-key secret123
 `);
   process.exit(0);
 }
 
 function parseCli() {
-  const { values } = parseArgs({
+  const { values, positionals } = parseArgs({
     options: {
       "hub-url": { type: "string" },
       "api-key": { type: "string" },
       "workspace-id": { type: "string" },
       "service-id": { type: "string" },
-      "whitelisted-paths": { type: "string" },
+      allow: { type: "string", multiple: true },
       shell: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
     strict: true,
-    allowPositionals: false,
+    allowPositionals: true,
   });
 
   if (values.help) printHelp();
 
-  return values;
+  return { values, positionals };
 }
 
 export function loadConfig(): Config {
-  const cli = parseCli();
+  const { values: cli, positionals } = parseCli();
 
   const apiKey = cli["api-key"] ?? process.env.SERVICE_API_KEY;
   if (!apiKey) {
@@ -85,9 +88,11 @@ export function loadConfig(): Config {
     );
   }
 
-  const whitelistedRaw = cli["whitelisted-paths"] ?? process.env.WHITELISTED_PATHS ?? "";
-  const whitelistedPaths = whitelistedRaw
-    .split(",")
+  const whitelistedPaths = [
+    ...(process.env.WHITELISTED_PATHS ?? "").split(","),
+    ...(cli.allow ?? []),
+    ...positionals,
+  ]
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
 

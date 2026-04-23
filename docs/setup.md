@@ -38,7 +38,7 @@ The root `.env` file is consumed by the backend and terminal agent. The SignalR 
 | `SERVICE_API_KEY` | Yes | Per-workspace API key shown in the "Connect a Host" dialog (auto-generated per workspace) |
 | `SERVICE_ID` | Recommended | Stable identifier for this agent instance |
 | `WORKSPACE_ID` | Required for useful terminal work | Workspace ID the agent should join |
-| `WHITELISTED_PATHS` | Optional | Comma-separated filesystem roots allowed by the agent |
+| `WHITELISTED_PATHS` | Optional | Comma-separated filesystem roots allowed by the agent. Also settable via the `--allow <path>` flag (repeatable) or positional arguments. **Empty = no filesystem access.** |
 | `SHELL_OVERRIDE` | Optional | Shell executable to launch instead of the default |
 
 Important:

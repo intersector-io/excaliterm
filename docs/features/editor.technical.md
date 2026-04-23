@@ -31,7 +31,7 @@ Routing uses `callerConnectionId` so only the requesting browser receives the re
 
 - Rejects empty paths, null bytes, literal `..` segments.
 - Resolves symlinks when the path exists.
-- If `WHITELISTED_PATHS` is set, enforces prefix match (case-insensitive on Windows).
+- Enforces prefix match against the configured whitelist (case-insensitive on Windows). The whitelist is built from `WHITELISTED_PATHS` (comma-separated), `--allow <path>` flags, and positional CLI args; an empty whitelist denies all paths.
 - Throws on denial; the file hub converts to `FileErrorResponse`.
 
 File I/O is handled by `apps/terminal-agent/src/filesystem/handler.ts` — listings are sorted (directories first, then files, both alphabetical); reads are capped at 10 MB; writes create parent directories with `fs.promises.mkdir({ recursive: true })`.

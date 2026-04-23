@@ -37,7 +37,7 @@ All configuration is via environment variables. Create a `.env` file or export t
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WHITELISTED_PATHS` | *(empty = all)* | Comma-separated filesystem roots the agent is allowed to access. Empty means unrestricted. |
+| `WHITELISTED_PATHS` | *(empty = none)* | Comma-separated filesystem roots the agent is allowed to access. Empty = no filesystem access. Also settable via `--allow <path>` (repeatable) or positional args. |
 | `SHELL_OVERRIDE` | PowerShell (Win) / `$SHELL` or `/bin/bash` (Unix) | Custom shell executable path |
 
 ## Quick Start
@@ -93,11 +93,11 @@ Once connected, the agent handles these operations from the web UI:
 - Lists directory contents (sorted: directories first, then files alphabetically)
 - Reads file contents (up to 10 MB limit)
 - Writes files (creates parent directories as needed)
-- All file operations respect `WHITELISTED_PATHS` restrictions
+- All file operations respect the agent's whitelist (`WHITELISTED_PATHS` / `--allow`); when empty, file operations are refused entirely
 
 ## Security Notes
 
-- **`WHITELISTED_PATHS`** restricts filesystem access. In production, always set this to limit exposure. Symlinks pointing outside whitelisted directories are blocked.
+- **Filesystem whitelist** — the agent denies all filesystem access by default. Pass `--allow <path>` (repeatable), positional path args, or set `WHITELISTED_PATHS` to expose specific roots. Symlinks pointing outside whitelisted directories are blocked.
 - **`SERVICE_API_KEY`** authenticates the agent with the hub. The hub validates the key against the backend per-workspace (via `GET /api/validate-key`). If the key doesn't match the workspace, the connection is rejected.
 - Path traversal attacks (`..`) are blocked after path normalization.
 - Null bytes in paths are rejected.
@@ -112,7 +112,7 @@ Once connected, the agent handles these operations from the web UI:
 
 **Terminals show "Host offline"** - The agent process stopped or lost connectivity. Restart it. For persistent deployments, use a process manager (pm2, systemd, or Windows NSSM).
 
-**File browser shows "Empty directory"** - Check `WHITELISTED_PATHS`. If set, the browsed path must be under a whitelisted directory. If empty/unset, all paths are accessible.
+**File browser shows "Empty directory" or "not allowed"** - Check the agent's whitelist. The browsed path must be under a directory passed via `--allow`, a positional arg, or `WHITELISTED_PATHS`. If the whitelist is empty, no paths are accessible.
 
 ## Running as a Persistent Service
 

@@ -132,7 +132,7 @@ node apps/terminal-agent/dist/index.js
 - The SignalR hub no longer uses a single shared `SERVICE_API_KEY` environment variable for validation. Instead, it calls the backend's `GET /api/validate-key` endpoint to verify each agent's key against the target workspace.
 - Workspace URLs act as collaboration entry points. Anyone with a valid workspace ID can currently join that workspace.
 - Restrict network access so only expected clients can reach the backend and hub.
-- Keep `WHITELISTED_PATHS` as narrow as possible on the terminal agent host.
+- Keep the agent's allowed paths (`WHITELISTED_PATHS` / `--allow`) as narrow as possible. Empty means no filesystem access at all.
 
 ## Operational Notes
 

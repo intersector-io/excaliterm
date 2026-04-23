@@ -35,4 +35,4 @@ A **service selector** dropdown at the top of the editor lets you pick which hos
 
 ## File access limits
 
-The terminal agent can be configured with `WHITELISTED_PATHS` (a comma-separated list). Anything outside those paths will refuse to list, read, or write. Path traversal (`..`) and null bytes are rejected.
+The terminal agent exposes only the directories you explicitly whitelist — via `--allow <path>` (repeatable), positional arguments, or the `WHITELISTED_PATHS` env var (comma-separated). **If no paths are whitelisted, the file browser and editor cannot read or write anything.** Path traversal (`..`) and null bytes are rejected.

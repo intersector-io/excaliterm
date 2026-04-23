@@ -173,7 +173,7 @@ The hub methods are defined as positional arguments:
 There are two layers of path enforcement:
 
 1. The hub rejects paths outside its built-in allowlist before forwarding.
-2. The terminal agent enforces `WHITELISTED_PATHS` again on the host.
+2. The terminal agent enforces its own whitelist (`WHITELISTED_PATHS` env, `--allow <path>`, or positional args) on the host. Empty whitelist = deny everything.
 
 The REST files route is still a stub, so the file hub is the active protocol for live file access.
 

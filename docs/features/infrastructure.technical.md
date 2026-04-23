@@ -74,7 +74,7 @@ Tables: `workspace`, `service_instance`, `terminal_session`, `note`, `chat_messa
 - **Workspace API key** — auto-generated per workspace; shown in the Connect-a-Host dialog. Used by the terminal-agent CLI to authenticate SignalR hub connections.
 - **Workspace URL** — anyone with the URL can join. There are no user accounts.
 - **Service-side enforcement** — `ApiKeyValidator` (hub) + `WorkspaceValidator` (hub) both call back to the backend with a 5-minute cache and 10-second HTTP timeout. On backend failure they fail closed (returning false).
-- **Path whitelist** — file hub enforces base paths `/app`, `/home`, `/var/log` and the agent additionally enforces `WHITELISTED_PATHS` if set.
+- **Path whitelist** — file hub enforces base paths `/app`, `/home`, `/var/log`. The agent enforces its own whitelist (from `WHITELISTED_PATHS`, `--allow <path>`, or positional args); the whitelist is empty by default, which blocks all filesystem access.
 
 ## Environment variables
 
@@ -98,7 +98,7 @@ Tables: `workspace`, `service_instance`, `terminal_session`, `note`, `chat_messa
 - `SIGNALR_HUB_URL` (default `http://localhost:5000`)
 - `WORKSPACE_ID` (required)
 - `SHELL_OVERRIDE` (optional)
-- `WHITELISTED_PATHS` (optional)
+- `WHITELISTED_PATHS` (optional, comma-separated; also `--allow <path>` or positional args)
 - `SERVICE_ID` (default `<hostname>-<pid>`)
 
 ## Terminal agent packaging

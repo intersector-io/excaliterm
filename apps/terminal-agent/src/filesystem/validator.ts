@@ -48,12 +48,12 @@ export class PathValidator {
       // If we can't resolve symlinks, proceed with the canonical path
     }
 
-    // If no whitelist is configured, allow all paths
     if (this.whitelistedPaths.length === 0) {
-      return canonical;
+      throw new Error(
+        `Access to path '${inputPath}' is not allowed. No directories have been whitelisted — pass --allow <path> to expose one.`,
+      );
     }
 
-    // Check that the canonical path starts with one of the whitelisted paths
     const normalizedCanonical = this.normalizePath(canonical);
 
     for (const allowed of this.whitelistedPaths) {
