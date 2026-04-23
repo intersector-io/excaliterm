@@ -24,6 +24,7 @@ import { groupTerminals, type GroupMode } from "@/lib/terminal-grouping";
 import { MobileMediaSection } from "./MobileMediaViewer";
 import { MobileNotesSection } from "./MobileNotesSection";
 import { MobileHostsSection } from "./MobileHostsSection";
+import { EditableDisplayName } from "@/components/ui/editable-display-name";
 import * as api from "@/lib/api-client";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { getTagColor, getTagBorderColor } from "./TagEditor";
@@ -55,7 +56,7 @@ export function MobileTerminalListView() {
   const { terminals, createTerminal, updateTerminal, dismissTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { services, onlineCount } = useServices();
-  const { collaborator, workspaceId } = useWorkspace();
+  const { workspaceId } = useWorkspace();
   const { collaboratorCount } = useTerminalCollaboration();
   const noHost = onlineCount === 0;
 
@@ -198,9 +199,7 @@ export function MobileTerminalListView() {
         <div>
           <h1 className="text-body font-semibold text-foreground">Terminals</h1>
           <div className="mt-1 flex items-center gap-2 text-caption">
-            <span className="truncate text-muted-foreground/70">
-              {collaborator.displayName}
-            </span>
+            <EditableDisplayName />
             <span className="text-border-default">|</span>
             <span className="flex items-center gap-1 text-muted-foreground/70">
               <Users className="h-3 w-3" />

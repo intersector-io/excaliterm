@@ -14,7 +14,7 @@ function WorkspaceRoute() {
   const workspaceId = params.workspaceId!;
   const [valid, setValid] = useState<boolean | null>(null);
   const [apiKey, setApiKey] = useState("");
-  const collaborator = useMemo(() => getOrCreateCollaboratorProfile(), []);
+  const [collaborator, setCollaborator] = useState(() => getOrCreateCollaboratorProfile());
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -35,7 +35,7 @@ function WorkspaceRoute() {
   }, [workspaceId]);
 
   const ctxValue = useMemo(
-    () => ({ workspaceId, apiKey, collaborator }),
+    () => ({ workspaceId, apiKey, collaborator, setCollaborator }),
     [workspaceId, apiKey, collaborator],
   );
 

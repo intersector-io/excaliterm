@@ -15,6 +15,7 @@ import {
 import { Server, Users, ChevronDown, Plus, Settings, GitBranchPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
+import { EditableDisplayName } from "@/components/ui/editable-display-name";
 import { ServiceConfigDialog } from "@/components/services/ServiceConfigDialog";
 import type { ServiceInstance } from "@/lib/api-client";
 
@@ -109,9 +110,7 @@ export function CanvasToolbar({
     <>
       <div className="flex h-11 items-center border-b border-border-default/50 bg-background px-4">
         <div className="flex min-w-0 items-center gap-2 text-body-sm">
-          <span className="truncate font-semibold text-foreground">
-            {collaborator.displayName}
-          </span>
+          <EditableDisplayName className="text-body-sm font-semibold text-foreground" />
           <span className="text-muted-foreground/30">/</span>
           <span className="hidden font-mono text-caption text-muted-foreground/60 md:inline">
             {workspaceId.slice(0, 12)}

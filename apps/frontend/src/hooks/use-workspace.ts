@@ -5,6 +5,7 @@ export interface WorkspaceContext {
   workspaceId: string;
   apiKey: string;
   collaborator: CollaboratorProfile;
+  setCollaborator: (profile: CollaboratorProfile) => void;
 }
 
 export const WorkspaceCtx = createContext<WorkspaceContext | null>(null);
