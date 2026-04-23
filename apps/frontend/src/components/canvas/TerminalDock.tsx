@@ -3,6 +3,7 @@ import { ChevronUp, ChevronDown, Search, Tag, Server, X, Terminal } from "lucide
 import { useTerminals } from "@/hooks/use-terminal";
 import { useServices } from "@/hooks/use-services";
 import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
+import { useDockCollapsed, setDockCollapsed } from "@/hooks/use-dock-state";
 import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
 import { groupTerminals, type GroupMode } from "@/lib/terminal-grouping";
 import { getTagColor } from "./TagEditor";
@@ -96,7 +97,7 @@ export function TerminalDock({
   const { services } = useServices();
   const { nodes } = useCanvas();
 
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useDockCollapsed();
   const [groupMode, setGroupMode] = useState<GroupMode>("tag");
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -111,14 +112,21 @@ export function TerminalDock({
     return map;
   }, [nodes]);
 
+  // Only show terminals that have a canvas node. Orphaned session records
+  // (node deleted but record lingering) must not appear in the dock.
+  const visibleTerminals = useMemo(
+    () => terminals.filter((t) => terminalNodeMap.has(t.id)),
+    [terminals, terminalNodeMap],
+  );
+
   const filteredTerminals = useMemo(() => {
-    if (collapsed || !search.trim()) return collapsed ? [] : terminals;
+    if (collapsed || !search.trim()) return collapsed ? [] : visibleTerminals;
     const tokens = search.toLowerCase().split(/\s+/);
-    return terminals.filter((t) => {
+    return visibleTerminals.filter((t) => {
       const text = `${t.id} ${(t.tags ?? []).join(" ")}`.toLowerCase();
       return tokens.every((tok) => text.includes(tok));
     });
-  }, [terminals, search, collapsed]);
+  }, [visibleTerminals, search, collapsed]);
 
   const groups = useMemo(
     () => (collapsed ? [] : groupTerminals(filteredTerminals, groupMode, services)),
@@ -133,17 +141,17 @@ export function TerminalDock({
     [terminalNodeMap, onFocusTerminal],
   );
 
-  if (terminals.length === 0) return null;
+  if (visibleTerminals.length === 0) return null;
 
-  const showFilterCount = filteredTerminals.length !== terminals.length;
-  const activeCount = terminals.filter((t) => t.status === "active").length;
+  const showFilterCount = filteredTerminals.length !== visibleTerminals.length;
+  const activeCount = visibleTerminals.filter((t) => t.status === "active").length;
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col">
       {/* Collapse toggle tab */}
       <div className="flex justify-center">
         <button
-          onClick={() => setCollapsed((v) => !v)}
+          onClick={() => setDockCollapsed((v) => !v)}
           className="flex h-6 items-center gap-2 rounded-t-lg border border-b-0 border-border-default/40 bg-card/85 px-3.5 shadow-[0_-2px_8px_rgba(0,0,0,0.15)] backdrop-blur-md transition-colors hover:bg-card/95 hover:text-muted-foreground"
         >
           {collapsed ? (
@@ -157,7 +165,7 @@ export function TerminalDock({
                 {activeCount}
               </span>
             )}
-            {terminals.length} terminal{terminals.length !== 1 ? "s" : ""}
+            {visibleTerminals.length} terminal{visibleTerminals.length !== 1 ? "s" : ""}
           </span>
         </button>
       </div>

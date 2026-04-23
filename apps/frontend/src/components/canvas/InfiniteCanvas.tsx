@@ -20,6 +20,7 @@ import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
 import { useServices } from "@/hooks/use-services";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useDockCollapsed } from "@/hooks/use-dock-state";
 import { TerminalNode } from "./TerminalNode";
 import { NoteNode } from "./NoteNode";
 import { ScreenshotNode } from "./ScreenshotNode";
@@ -63,6 +64,10 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { onlineCount } = useServices();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const dockCollapsed = useDockCollapsed();
+  const terminalNodeCount = useMemo(() => nodes.filter((n) => n.type === "terminal").length, [nodes]);
+  const hasDock = !isMobile && terminalNodeCount > 0;
+  const minimapBottomOffset = hasDock ? (dockCollapsed ? 32 : 156) : 10;
   const reactFlow = useReactFlow();
 
   const fullScreenTerminal = useFullscreenStore((s) => s.terminal);
@@ -291,6 +296,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
             nodeStrokeWidth={1}
             nodeBorderRadius={4}
             maskColor="rgba(0, 0, 0, 0.6)"
+            style={{ bottom: minimapBottomOffset, transition: "bottom 150ms ease" }}
           />
         )}
       </ReactFlow>

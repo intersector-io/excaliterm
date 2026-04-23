@@ -27,7 +27,7 @@ import {
 type TerminalNodeType = Node<TerminalNodeData>;
 
 function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeType>) {
-  const { deleteTerminal, updateTerminal } = useTerminals();
+  const { dismissTerminal, updateTerminal } = useTerminals();
   const { nodes: canvasNodes, deleteNode, addScreenShareNode } = useCanvas();
   const { monitors, isLoadingMonitors, isCapturing, listMonitors, captureScreenshot } = useScreenshot();
   const { startScreenShare } = useScreenShare();
@@ -54,14 +54,11 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
 
   const handleClose = useCallback(async () => {
     try {
-      if (isActive) {
-        await deleteTerminal(data.terminalId);
-      }
-      await deleteNode(id);
+      await dismissTerminal(data.terminalId);
     } catch (err) {
       console.error("Failed to close terminal:", err);
     }
-  }, [data.terminalId, id, isActive, deleteTerminal, deleteNode]);
+  }, [data.terminalId, dismissTerminal]);
 
   const handleToggleLock = useCallback(async () => {
     try {
