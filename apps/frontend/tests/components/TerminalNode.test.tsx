@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactFlowProvider } from "@xyflow/react";
 
 const mockDeleteTerminal = vi.fn();
@@ -32,6 +33,10 @@ vi.mock("@/hooks/use-canvas", () => ({
 
 vi.mock("@/hooks/use-media-query", () => ({
   useMediaQuery: () => false,
+}));
+
+vi.mock("@/hooks/use-workspace", () => ({
+  useWorkspace: () => ({ workspaceId: "ws-1" }),
 }));
 
 vi.mock("@/hooks/use-screenshot", () => ({
@@ -105,11 +110,22 @@ function renderTerminalNode(overrides: {
     zIndex: 0,
   };
 
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   return render(
     createElement(
-      ReactFlowProvider,
-      null,
-      createElement(TerminalNode, props),
+      QueryClientProvider,
+      { client: queryClient },
+      createElement(
+        ReactFlowProvider,
+        null,
+        createElement(TerminalNode, props),
+      ),
     ),
   );
 }

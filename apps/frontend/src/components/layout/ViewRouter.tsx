@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import { Settings } from "lucide-react";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
@@ -8,6 +8,9 @@ import { MobileTerminalListView } from "@/components/canvas/MobileTerminalListVi
 import { ChatView } from "@/components/chat/ChatView";
 import { useCanvas, type HostNodeData } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useWorkspace } from "@/hooks/use-workspace";
+import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
+import { findNewHostNodeId, getHostNodeIds } from "@/lib/host-nodes";
 import type { ActiveView } from "./AppShell";
 
 interface ViewRouterProps {
@@ -40,16 +43,29 @@ function SettingsView() {
 
 function CanvasView() {
   const { nodes } = useCanvas();
+  const { workspaceId, apiKey } = useWorkspace();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [connectOpen, setConnectOpen] = useState(false);
+  const [awaitingConnectedHostReveal, setAwaitingConnectedHostReveal] =
+    useState(false);
+  const [pendingConnectedHostNodeId, setPendingConnectedHostNodeId] =
+    useState<string | null>(null);
   const focusTerminalRef = useRef<((nodeId: string) => void) | null>(null);
   const fullScreenRef = useRef<
     ((terminalId: string, status: string) => void) | null
   >(null);
   const autoLayoutRef = useRef<(() => void) | null>(null);
+  const awaitedHostNodeIdsRef = useRef<Set<string>>(new Set());
 
   const handleAutoLayout = useCallback(() => {
     autoLayoutRef.current?.();
   }, []);
+
+  const handleConnectHost = useCallback(() => {
+    setAwaitingConnectedHostReveal(true);
+    awaitedHostNodeIdsRef.current = getHostNodeIds(nodes);
+    setConnectOpen(true);
+  }, [nodes]);
 
   const handleFocusTerminal = useCallback((nodeId: string) => {
     focusTerminalRef.current?.(nodeId);
@@ -59,6 +75,33 @@ function CanvasView() {
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
+
+  useEffect(() => {
+    if (!awaitingConnectedHostReveal) return;
+
+    const newHostNodeId = findNewHostNodeId(
+      nodes,
+      awaitedHostNodeIdsRef.current,
+    );
+
+    if (!newHostNodeId) return;
+
+    setPendingConnectedHostNodeId(newHostNodeId);
+    setConnectOpen(false);
+  }, [nodes, awaitingConnectedHostReveal]);
+
+  useEffect(() => {
+    if (!pendingConnectedHostNodeId) return;
+
+    const frame = globalThis.requestAnimationFrame(() => {
+      focusTerminalRef.current?.(pendingConnectedHostNodeId);
+      awaitedHostNodeIdsRef.current = getHostNodeIds(nodes);
+      setPendingConnectedHostNodeId(null);
+      setAwaitingConnectedHostReveal(false);
+    });
+
+    return () => globalThis.cancelAnimationFrame(frame);
+  }, [nodes, pendingConnectedHostNodeId]);
 
   const handleFocusService = useCallback((serviceId: string) => {
     const hostNode = nodesRef.current.find(
@@ -84,19 +127,29 @@ function CanvasView() {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <CanvasToolbar onFocusService={handleFocusService} onAutoLayout={handleAutoLayout} />
+      <CanvasToolbar
+        onConnectHost={handleConnectHost}
+        onFocusService={handleFocusService}
+        onAutoLayout={handleAutoLayout}
+      />
       <div className="relative min-h-0 flex-1">
         <InfiniteCanvas
           onFocusTerminalRef={focusTerminalRef}
           onFullScreenRef={fullScreenRef}
           onAutoLayoutRef={autoLayoutRef}
         />
-        {nodes.length === 0 && <CanvasEmptyState />}
+        {nodes.length === 0 && <CanvasEmptyState onConnectHost={handleConnectHost} />}
         <TerminalDock
           onFocusTerminal={handleFocusTerminal}
           onFullScreenTerminal={handleFullScreenTerminal}
         />
       </div>
+      <RegisterServiceDialog
+        open={connectOpen}
+        onOpenChange={setConnectOpen}
+        workspaceId={workspaceId}
+        apiKey={apiKey}
+      />
     </div>
   );
 }

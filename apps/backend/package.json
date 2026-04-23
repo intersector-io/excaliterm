@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "prebuild": "pnpm --filter @excaliterm/shared-types build",
     "build": "tsc",
     "test": "vitest run",
     "clean": "rm -rf dist"

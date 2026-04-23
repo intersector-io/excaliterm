@@ -14,17 +14,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Server, Users, ChevronDown, Plus, Settings, GitBranchPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
 import { EditableDisplayName } from "@/components/ui/editable-display-name";
 import { ServiceConfigDialog } from "@/components/services/ServiceConfigDialog";
 import type { ServiceInstance } from "@/lib/api-client";
 
 interface CanvasToolbarProps {
+  onConnectHost: () => void;
   onFocusService?: (serviceId: string) => void;
   onAutoLayout?: () => void;
 }
 
 export function CanvasToolbar({
+  onConnectHost,
   onFocusService,
   onAutoLayout,
 }: Readonly<CanvasToolbarProps>) {
@@ -32,7 +33,6 @@ export function CanvasToolbar({
   const { services, onlineCount, deleteService, isDeleting } = useServices();
   const { collaboratorCount } = useTerminalCollaboration();
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const [connectOpen, setConnectOpen] = useState(false);
   const [configService, setConfigService] = useState<ServiceInstance | null>(
     null,
   );
@@ -69,7 +69,7 @@ export function CanvasToolbar({
               </span>
               <button
                 onClick={() =>
-                  noHost ? setConnectOpen(true) : undefined
+                  noHost ? onConnectHost() : undefined
                 }
                 className={`flex items-center gap-1 ${noHost ? "text-accent-amber" : "text-accent-green"}`}
               >
@@ -80,12 +80,6 @@ export function CanvasToolbar({
           </div>
         </div>
 
-        <RegisterServiceDialog
-          open={connectOpen}
-          onOpenChange={setConnectOpen}
-          workspaceId={workspaceId}
-          apiKey={apiKey}
-        />
         {configService && (
           <ServiceConfigDialog
             open
@@ -164,7 +158,7 @@ export function CanvasToolbar({
                 ))
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setConnectOpen(true)}>
+              <DropdownMenuItem onClick={onConnectHost}>
                 <Plus className="h-3.5 w-3.5" />
                 <span>Connect Host</span>
               </DropdownMenuItem>
@@ -187,12 +181,6 @@ export function CanvasToolbar({
         </div>
       </div>
 
-      <RegisterServiceDialog
-        open={connectOpen}
-        onOpenChange={setConnectOpen}
-        workspaceId={workspaceId}
-        apiKey={apiKey}
-      />
       {configService && (
         <ServiceConfigDialog
           open

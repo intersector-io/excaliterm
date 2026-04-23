@@ -32,6 +32,7 @@ import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
 import { useFullscreenStore } from "@/stores/fullscreen-store";
 import { applyDagreLayout, buildHierarchyEdges } from "@/lib/dagre-layout";
+import { getCanvasHub } from "@/lib/signalr-client";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 import {
   DropdownMenu,
@@ -77,6 +78,9 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
   const noHost = onlineCount === 0;
   const isEmpty = nodes.length === 0;
   const prevNodeCount = useRef(nodes.length);
+  const [pendingAutoFocusNodeId, setPendingAutoFocusNodeId] = useState<
+    string | null
+  >(null);
 
   // Restore focus from URL hash on mount
   const restoredRef = useRef(false);
@@ -106,40 +110,70 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
   const localEdgesRef = useRef<Edge[]>([]);
   const [localEdges, setLocalEdges] = useState<Edge[]>([]);
 
-  // Auto-zoom to latest node when a new one is added
+  const focusNode = useCallback(
+    (nodeId: string) => {
+      const node = nodesRef.current.find((candidate) => candidate.id === nodeId);
+      if (!node) return;
+
+      reactFlow.setNodes((currentNodes) =>
+        currentNodes.map((currentNode) => ({
+          ...currentNode,
+          selected: currentNode.id === nodeId,
+        })),
+      );
+
+      reactFlow.fitView({
+        nodes: [{ id: nodeId }],
+        padding: isMobile ? 0.05 : 0.15,
+        maxZoom: isMobile ? 0.5 : 0.85,
+        duration: 400,
+      });
+    },
+    [reactFlow, isMobile],
+  );
+
+  useEffect(() => {
+    const canvasHub = getCanvasHub();
+
+    function handleNodeAdded(event: { node: { id: string } }) {
+      setPendingAutoFocusNodeId(event.node.id);
+    }
+
+    canvasHub.on("NodeAdded", handleNodeAdded);
+
+    return () => {
+      canvasHub.off("NodeAdded", handleNodeAdded);
+    };
+  }, []);
+
+  // Auto-focus newly added nodes. Prefer the explicit node announced by the
+  // hub so host connections land on the correct node even when query ordering
+  // is unstable.
   useEffect(() => {
     if (nodes.length > prevNodeCount.current && nodes.length > 0) {
-      const latestNode = nodes.at(-1);
-      if (latestNode) {
-        setTimeout(() => {
-          reactFlow.fitView({
-            nodes: [{ id: latestNode.id }],
-            padding: isMobile ? 0.05 : 0.15,
-            maxZoom: isMobile ? 0.5 : 0.85,
-            duration: 400,
-          });
+      const nextNodeId = pendingAutoFocusNodeId ?? nodes.at(-1)?.id;
+      if (nextNodeId) {
+        const timeout = globalThis.setTimeout(() => {
+          focusNode(nextNodeId);
+          setPendingAutoFocusNodeId((current) =>
+            current === nextNodeId ? null : current,
+          );
         }, 100);
+        prevNodeCount.current = nodes.length;
+        return () => globalThis.clearTimeout(timeout);
       }
     }
     prevNodeCount.current = nodes.length;
-  }, [nodes.length, reactFlow, isMobile]);
+  }, [nodes, pendingAutoFocusNodeId, focusNode]);
 
   // Expose focus function to parent
   useEffect(() => {
     if (onFocusTerminalRef) {
       onFocusTerminalRef.current = (nodeId: string) => {
-        const node = nodesRef.current.find((n) => n.id === nodeId);
-        if (node) {
-          reactFlow.fitView({
-            nodes: [{ id: nodeId }],
-            padding: isMobile ? 0.05 : 0.15,
-            maxZoom: isMobile ? 0.5 : 0.85,
-            duration: 400,
-          });
-        }
+        focusNode(nodeId);
       };
     }
-  }, [onFocusTerminalRef, reactFlow, isMobile]);
+  }, [onFocusTerminalRef, focusNode]);
 
   // Expose fullscreen trigger to parent
   useEffect(() => {

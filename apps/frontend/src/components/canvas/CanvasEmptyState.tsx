@@ -1,13 +1,10 @@
-import { useState } from "react";
 import { toast } from "sonner";
 import { Terminal, StickyNote, Server, ArrowRight, Zap } from "lucide-react";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
 import { useServices } from "@/hooks/use-services";
-import { useWorkspace } from "@/hooks/use-workspace";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
-import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
 
 function NoHostActions({
   isMobile,
@@ -114,13 +111,17 @@ function HasHostActions({
   );
 }
 
-export function CanvasEmptyState() {
+interface CanvasEmptyStateProps {
+  onConnectHost: () => void;
+}
+
+export function CanvasEmptyState({
+  onConnectHost,
+}: Readonly<CanvasEmptyStateProps>) {
   const { createTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { onlineCount } = useServices();
-  const { workspaceId, apiKey } = useWorkspace();
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const [connectOpen, setConnectOpen] = useState(false);
 
   const noHost = onlineCount === 0;
 
@@ -196,7 +197,7 @@ export function CanvasEmptyState() {
             <NoHostActions
               isMobile={isMobile}
               isCreatingNote={isCreatingNote}
-              onConnect={() => setConnectOpen(true)}
+              onConnect={onConnectHost}
               onCreateNote={handleCreateNote}
             />
           ) : (
@@ -210,13 +211,6 @@ export function CanvasEmptyState() {
           )}
         </div>
       </div>
-
-      <RegisterServiceDialog
-        open={connectOpen}
-        onOpenChange={setConnectOpen}
-        workspaceId={workspaceId}
-        apiKey={apiKey}
-      />
     </>
   );
 }
