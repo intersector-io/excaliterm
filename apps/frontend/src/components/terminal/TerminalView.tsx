@@ -45,7 +45,7 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
     const terminal = new Terminal({
       cursorBlink: true,
       cursorStyle: "block",
-      fontSize: 14,
+      fontSize: compact ? 12 : 14,
       fontWeight: 500,
       fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace",
       lineHeight: 1.28,
