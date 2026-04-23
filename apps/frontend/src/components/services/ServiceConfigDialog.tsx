@@ -160,7 +160,11 @@ export function ServiceConfigDialog({
             type="button"
             variant={confirmDelete ? "destructive" : "ghost"}
             size="sm"
-            className="w-full gap-1.5 text-xs text-destructive hover:text-destructive"
+            className={
+              confirmDelete
+                ? "w-full gap-1.5 text-xs"
+                : "w-full gap-1.5 text-xs text-destructive hover:text-destructive"
+            }
             onClick={handleDelete}
             disabled={isDeleting}
           >
