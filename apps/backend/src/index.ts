@@ -5,7 +5,7 @@ import { timingSafeEqual } from "node:crypto";
 import { loadEnv } from "./env.js";
 import { initializeDb, getDb, schema } from "./db/index.js";
 import { eq, and, count } from "drizzle-orm";
-import { initializeRedis, subscribe } from "./lib/redis.js";
+import { initializeRedis, subscribe, publish } from "./lib/redis.js";
 import { HTTPException } from "hono/http-exception";
 import { workspaceMiddleware } from "./middleware/workspace.js";
 import { rateLimiter } from "./middleware/rate-limit.js";
@@ -121,6 +121,17 @@ async function handleServiceOnline(serviceInstanceId: string, workspaceId: strin
     await ensureHostCanvasNode(serviceDbId, workspaceId, serviceInstanceId);
   }
 
+  // Defer ServiceOnline fan-out until DB is consistent — otherwise the
+  // frontend refetches before the auto-registered row and host canvas
+  // node exist and the new host never appears until a page reload.
+  await publish("service:online-ready", {
+    serviceInstanceId,
+    workspaceId,
+    timestamp: Date.now(),
+  }).catch((err: Error) =>
+    console.error("[redis] Failed to publish service:online-ready:", err.message),
+  );
+
   console.log(`[redis] Service ${serviceInstanceId} is now online`);
 }
 
@@ -155,8 +166,9 @@ async function ensureHostCanvasNode(serviceDbId: string, workspaceId: string, se
   const x = 72 + hostCount * (HOST_W + GAP);
   const y = 76;
 
+  const hostNodeId = crypto.randomUUID();
   await db.insert(schema.canvasNode).values({
-    id: crypto.randomUUID(),
+    id: hostNodeId,
     workspaceId,
     nodeType: "host",
     serviceInstanceId: serviceDbId,
@@ -167,6 +179,24 @@ async function ensureHostCanvasNode(serviceDbId: string, workspaceId: string, se
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+
+  await publish("canvas:updates", {
+    action: "nodeAdded",
+    workspaceId,
+    userId: "system",
+    node: {
+      id: hostNodeId,
+      terminalSessionId: null,
+      userId: "system",
+      x,
+      y,
+      width: HOST_W,
+      height: HOST_H,
+      zIndex: 0,
+    },
+  }).catch((err: Error) =>
+    console.error("[redis] Failed to publish canvas:updates nodeAdded:", err.message),
+  );
   console.log(`[redis] Created host canvas node for service ${serviceInstanceId}`);
 }
 

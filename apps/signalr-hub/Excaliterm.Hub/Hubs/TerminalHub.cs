@@ -152,10 +152,11 @@ public class TerminalHub : BaseHub
 
         var workspaceId = GetWorkspaceId() ?? "default";
 
-        // Notify the workspace group that the service is online
-        await Clients.Group(WorkspaceGroup(workspaceId)).SendAsync("ServiceOnline", serviceId);
-
-        // Publish to Redis so backend can update DB status
+        // Publish to Redis so backend can update DB status. The backend
+        // publishes service:online-ready once the DB is consistent, and the
+        // hub fans out ServiceOnline to the workspace group from there —
+        // this avoids clients refetching before the host row and canvas
+        // node exist.
         await _redisSubscriber.PublishServiceEvent("online", serviceId, workspaceId);
     }
 

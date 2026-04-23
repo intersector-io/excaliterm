@@ -184,5 +184,7 @@ When Redis is enabled in the hub, it subscribes to:
 - `terminal:commands`
 - `canvas:updates`
 - `chat:messages`
+- `service:online-ready` (broadcasts `ServiceOnline` once the backend confirms the DB is consistent)
+- `service:deleted` (broadcasts `ServiceDeleted`)
 
-The backend separately subscribes to `service:events` to keep service status in sync with agent presence.
+The backend separately subscribes to `service:events` to keep service status in sync with agent presence, and publishes `service:online-ready` / `canvas:updates` with the newly created host node after the DB writes complete.

@@ -83,6 +83,14 @@ public class RedisSubscriber : IHostedService
                     async (channel, message) => await HandleServiceDeleted(message!)
                 );
 
+                // Subscribe to the backend's confirmation that a service is
+                // fully registered (DB row + host canvas node persisted). The
+                // hub emits ServiceOnline only after this signal.
+                await _subscriber.SubscribeAsync(
+                    RedisChannel.Literal("service:online-ready"),
+                    async (channel, message) => await HandleServiceOnlineReady(message!)
+                );
+
                 _logger.LogInformation("Redis subscriber started on {ConnectionString}", connectionString);
                 return;
             }
@@ -287,13 +295,31 @@ public class RedisSubscriber : IHostedService
         }
     }
 
+    // ─── Service online confirmation ────────────────────────────────────────────
+
+    private async Task HandleServiceOnlineReady(string message)
+    {
+        try
+        {
+            var evt = JsonSerializer.Deserialize<RedisServiceNotification>(message, JsonOptions);
+            if (evt is null) return;
+
+            var group = BaseHub.FormatWorkspaceGroup(evt.WorkspaceId);
+            await _terminalHub.Clients.Group(group).SendAsync("ServiceOnline", evt.ServiceInstanceId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling service online confirmation from Redis");
+        }
+    }
+
     // ─── Service deletions ──────────────────────────────────────────────────────
 
     private async Task HandleServiceDeleted(string message)
     {
         try
         {
-            var evt = JsonSerializer.Deserialize<RedisServiceDeleted>(message, JsonOptions);
+            var evt = JsonSerializer.Deserialize<RedisServiceNotification>(message, JsonOptions);
             if (evt is null) return;
 
             var group = BaseHub.FormatWorkspaceGroup(evt.WorkspaceId);

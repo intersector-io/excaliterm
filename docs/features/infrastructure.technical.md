@@ -58,6 +58,8 @@ The hub uses Redis as a SignalR backplane (enabled when `REDIS_ENABLED=true` / `
 |---|---|---|
 | `terminal:commands` | backend → hub | `{ command: "terminal:create"/"destroy"/"resize"/"write", terminalId, serviceInstanceId, workspaceId, ... }` |
 | `service:events` | hub → backend | `{ event: "online"/"offline", serviceInstanceId, workspaceId, timestamp }` |
+| `service:online-ready` | backend → hub | `{ serviceInstanceId, workspaceId, timestamp }` — emitted after the DB is consistent; triggers the hub to broadcast `ServiceOnline`. |
+| `service:deleted` | backend → hub | `{ serviceInstanceId, workspaceId, timestamp }` |
 | `canvas:updates` | backend → hub | `{ action: "nodeAdded"/"nodeMoved"/"nodeResized"/"nodeRemoved", workspaceId, userId, node?/nodeId?, x?, y?, width?, height? }` |
 | `chat:messages` | backend → hub | `{ workspaceId, message: ChatMessageDto }` |
 

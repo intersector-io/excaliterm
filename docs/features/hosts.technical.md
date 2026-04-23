@@ -34,11 +34,10 @@ Both `TerminalHub` and `FileHub` expose `RegisterService(serviceId, apiKey)`. Th
 1. Validates the API key via `ApiKeyValidator` (5-minute cache; HTTP call to backend `/api/validate-key`).
 2. Tracks the connection in `ServiceRegistry` (in-memory).
 3. Publishes `{ event: "online", serviceInstanceId, workspaceId }` to Redis channel `service:events`.
-4. Broadcasts `ServiceOnline` to the workspace group.
 
 On hub disconnect (`OnDisconnectedAsync`) the hub publishes `service:events` with `event: "offline"` and marks all active terminals on that service as `disconnected`.
 
-The backend subscribes to `service:events` and updates `status`, `lastSeen`, and creates the host canvas node.
+The backend subscribes to `service:events` and updates `status`, `lastSeen`, and creates the host canvas node. After the DB is consistent it publishes `service:online-ready` (and `canvas:updates` with `nodeAdded` for a freshly created host node); the hub subscribes to those and fans out `ServiceOnline` / `NodeAdded` to the workspace group — so clients never refetch before the new row and node exist.
 
 ## Host management from the CLI
 
