@@ -24,7 +24,6 @@ import { groupTerminals, type GroupMode } from "@/lib/terminal-grouping";
 import { MobileMediaSection } from "./MobileMediaViewer";
 import { MobileNotesSection } from "./MobileNotesSection";
 import { MobileHostsSection } from "./MobileHostsSection";
-import { useCanvas } from "@/hooks/use-canvas";
 import * as api from "@/lib/api-client";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { getTagColor, getTagBorderColor } from "./TagEditor";
@@ -53,35 +52,12 @@ const GROUP_MODE_ICONS: Record<GroupMode, typeof Layers> = {
 };
 
 export function MobileTerminalListView() {
-  const { terminals, createTerminal, updateTerminal, deleteTerminal, isCreating } = useTerminals();
+  const { terminals, createTerminal, updateTerminal, dismissTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { services, onlineCount } = useServices();
   const { collaborator, workspaceId } = useWorkspace();
   const { collaboratorCount } = useTerminalCollaboration();
-  const { nodes: canvasNodes, deleteNode } = useCanvas();
-
   const noHost = onlineCount === 0;
-
-  const handleDismissTerminal = useCallback(
-    async (terminalId: string, isActive: boolean) => {
-      try {
-        // Close active terminal (sets status to exited on backend)
-        if (isActive) {
-          await deleteTerminal(terminalId);
-        }
-        // Remove the canvas node so it disappears from both canvas and list
-        const canvasNode = canvasNodes.find(
-          (n) => n.type === "terminal" && (n.data as { terminalId?: string }).terminalId === terminalId,
-        );
-        if (canvasNode) {
-          await deleteNode(canvasNode.id);
-        }
-      } catch {
-        toast.error("Failed to dismiss terminal");
-      }
-    },
-    [deleteTerminal, canvasNodes, deleteNode],
-  );
 
   const screenshotsQuery = useQuery({
     queryKey: ["screenshots", workspaceId],
@@ -426,7 +402,7 @@ export function MobileTerminalListView() {
                     onTagsChange={(tags) =>
                       updateTerminal({ id: terminal.id, data: { tags } })
                     }
-                    onDismiss={() => handleDismissTerminal(terminal.id, terminal.status === "active")}
+                    onDismiss={() => dismissTerminal(terminal.id)}
                   />
                 ))}
               </div>

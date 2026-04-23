@@ -37,6 +37,14 @@ export function useTerminals() {
     },
   });
 
+  const dismissMutation = useMutation({
+    mutationFn: (id: string) => api.dismissTerminal(workspaceId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+    },
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: { tags?: string[] } }) =>
       api.updateTerminal(workspaceId, id, data),
@@ -143,6 +151,7 @@ export function useTerminals() {
     createTerminal: createMutation.mutateAsync,
     updateTerminal: updateMutation.mutateAsync,
     deleteTerminal: deleteMutation.mutateAsync,
+    dismissTerminal: dismissMutation.mutateAsync,
     closeAllTerminals: closeAllMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isClosingAll: closeAllMutation.isPending,

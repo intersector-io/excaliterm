@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Server, Terminal, FileCode, Plus } from "lucide-react";
+import { Server, Terminal, FileCode, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useServices } from "@/hooks/use-services";
 import { useTerminals } from "@/hooks/use-terminal";
@@ -16,7 +16,7 @@ interface MobileHostsSectionProps {
 }
 
 export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSectionProps>) {
-  const { services } = useServices();
+  const { services, deleteService } = useServices();
   const { createTerminal, isCreating } = useTerminals();
   const { workspaceId, apiKey } = useWorkspace();
   const [editorServiceId, setEditorServiceId] = useState<string | null>(null);
@@ -79,20 +79,37 @@ export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSe
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => handleNewTerminal(service)}
-                  disabled={!isOnline || isCreating}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-cyan/10 text-accent-cyan transition-colors active:scale-[0.95] active:bg-accent-cyan/20 disabled:opacity-30"
-                >
-                  <Terminal className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setEditorServiceId(service.id)}
-                  disabled={!isOnline}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-blue/10 text-accent-blue transition-colors active:scale-[0.95] active:bg-accent-blue/20 disabled:opacity-30"
-                >
-                  <FileCode className="h-4 w-4" />
-                </button>
+                {isOnline ? (
+                  <>
+                    <button
+                      onClick={() => handleNewTerminal(service)}
+                      disabled={isCreating}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-cyan/10 text-accent-cyan transition-colors active:scale-[0.95] active:bg-accent-cyan/20 disabled:opacity-30"
+                    >
+                      <Terminal className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setEditorServiceId(service.id)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-blue/10 text-accent-blue transition-colors active:scale-[0.95] active:bg-accent-blue/20 disabled:opacity-30"
+                    >
+                      <FileCode className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await deleteService(service.id);
+                        toast.success("Host removed");
+                      } catch {
+                        toast.error("Failed to remove host");
+                      }
+                    }}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-red/10 text-accent-red transition-colors active:scale-[0.95] active:bg-accent-red/15"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           );

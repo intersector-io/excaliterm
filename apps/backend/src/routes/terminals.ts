@@ -299,9 +299,11 @@ terminals.patch("/:id", async (c) => {
 });
 
 // DELETE /:id - Destroy a terminal
+// ?dismiss=true fully removes the terminal and its canvas node
 terminals.delete("/:id", async (c) => {
   const workspaceId = c.get("workspaceId");
   const terminalId = c.req.param("id");
+  const dismiss = c.req.query("dismiss") === "true";
   const db = getDb();
 
   const [terminal] = await db
@@ -322,10 +324,26 @@ terminals.delete("/:id", async (c) => {
     await publishTerminalDestroy(db, terminal, workspaceId);
   }
 
-  await db
-    .update(schema.terminalSession)
-    .set({ status: "exited", updatedAt: new Date() })
-    .where(eq(schema.terminalSession.id, terminalId));
+  if (dismiss) {
+    // Remove canvas node linked to this terminal
+    await db
+      .delete(schema.canvasNode)
+      .where(
+        and(
+          eq(schema.canvasNode.workspaceId, workspaceId),
+          eq(schema.canvasNode.terminalSessionId, terminalId),
+        ),
+      );
+    // Remove the terminal record
+    await db
+      .delete(schema.terminalSession)
+      .where(eq(schema.terminalSession.id, terminalId));
+  } else {
+    await db
+      .update(schema.terminalSession)
+      .set({ status: "exited", updatedAt: new Date() })
+      .where(eq(schema.terminalSession.id, terminalId));
+  }
 
   return c.json({ success: true });
 });

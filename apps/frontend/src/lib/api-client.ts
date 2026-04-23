@@ -75,6 +75,10 @@ export function deleteTerminal(workspaceId: string, id: string): Promise<void> {
   return request(`/w/${workspaceId}/terminals/${id}`, { method: "DELETE" });
 }
 
+export function dismissTerminal(workspaceId: string, id: string): Promise<void> {
+  return request(`/w/${workspaceId}/terminals/${id}?dismiss=true`, { method: "DELETE" });
+}
+
 export function updateTerminal(
   workspaceId: string,
   id: string,
