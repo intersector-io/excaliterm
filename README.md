@@ -237,6 +237,7 @@ Excaliterm implements several standards for AI agent discoverability:
 
 ## Documentation
 
+- [Features](./docs/features/README.md) — per-feature user and technical docs
 - [Architecture](./docs/architecture.md)
 - [Setup Guide](./docs/setup.md)
 - [API Reference](./docs/api-reference.md)
