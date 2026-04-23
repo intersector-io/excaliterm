@@ -62,8 +62,8 @@ export function VirtualKeyboardBar({ onInput }: Readonly<VirtualKeyboardBarProps
         <button className={keyClass} onClick={() => handleKey("|", "|")}>
           |
         </button>
-        <button className={keyClass} onClick={() => handleKey("~", "~")}>
-          ~
+        <button className={keyClass} onClick={() => handleKey("\r")}>
+          Enter
         </button>
       </div>
       {/* Row 2 */}
