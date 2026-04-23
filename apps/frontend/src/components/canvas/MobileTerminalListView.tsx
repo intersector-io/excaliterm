@@ -553,7 +553,7 @@ function TerminalCard({
                 </span>
               </div>
             </div>
-            {(tags ?? []).length > 0 && (
+            {!showTagEditor && (tags ?? []).length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
                 {tags!.map((tag) => (
                   <span
