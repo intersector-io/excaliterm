@@ -15,6 +15,14 @@ interface FullscreenStore {
 
 export const useFullscreenStore = create<FullscreenStore>((set) => ({
   terminal: null,
-  open: (terminal) => set({ terminal }),
-  close: () => set({ terminal: null }),
+  open: (terminal) => {
+    window.location.hash = `focus=${terminal.terminalId}`;
+    set({ terminal });
+  },
+  close: () => {
+    if (window.location.hash.startsWith("#focus=")) {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+    set({ terminal: null });
+  },
 }));

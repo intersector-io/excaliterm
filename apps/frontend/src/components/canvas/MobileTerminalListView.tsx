@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -70,6 +70,30 @@ export function MobileTerminalListView() {
     status: TerminalStatus;
     tags?: string[];
   } | null>(null);
+
+  // Sync fullscreen state with URL hash for persistence across refresh
+  useEffect(() => {
+    if (fullScreenTerminal) {
+      window.location.hash = `focus=${fullScreenTerminal.terminalId}`;
+    } else if (window.location.hash.startsWith("#focus=")) {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, [fullScreenTerminal]);
+
+  // Restore focus from URL hash on mount
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#focus=") || terminals.length === 0) return;
+    const id = hash.slice(7);
+    const terminal = terminals.find((t) => t.id === id);
+    if (terminal && !fullScreenTerminal) {
+      setFullScreenTerminal({
+        terminalId: terminal.id,
+        status: terminal.status as TerminalStatus,
+        tags: terminal.tags,
+      });
+    }
+  }, [terminals]); // only re-check when terminals load
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [filterOpen, setFilterOpen] = useState(false);

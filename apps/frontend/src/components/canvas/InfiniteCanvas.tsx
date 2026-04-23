@@ -73,6 +73,24 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
   const isEmpty = nodes.length === 0;
   const prevNodeCount = useRef(nodes.length);
 
+  // Restore focus from URL hash on mount
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || terminals.length === 0) return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#focus=")) return;
+    const id = hash.slice(7);
+    const terminal = terminals.find((t) => t.id === id);
+    if (terminal) {
+      restoredRef.current = true;
+      openFullScreen({
+        terminalId: terminal.id,
+        status: terminal.status,
+        tags: terminal.tags,
+      });
+    }
+  }, [terminals, openFullScreen]);
+
   // Keep refs current for imperative callbacks (avoids re-running effects on every canvas change)
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
