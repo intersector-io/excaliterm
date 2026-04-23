@@ -15,9 +15,11 @@ The frontend is a React SPA served by Vite in development and nginx in productio
 Key responsibilities:
 
 - Create and validate workspaces
-- Render the infinite canvas with terminal and note nodes
+- Render the infinite canvas with terminal, note, host, editor, screenshot, and screen-share nodes
 - Open SignalR connections to terminal, canvas, chat, and file hubs
 - Drive terminal I/O, collaboration locks, chat, and file editing
+- On mobile (<=767px): render a dedicated mobile experience with hosts section, terminal list with tag-colored cards, notes section, media viewer, full-screen chat, virtual keyboard bar, scroll buttons, flippable terminal info card, and fullscreen file editor
+- On desktop: auto-layout canvas nodes using dagre, split terminal view (horizontal/vertical/quad)
 
 ### Backend (`apps/backend`)
 

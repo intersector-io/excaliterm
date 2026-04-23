@@ -5,6 +5,7 @@ import { InfiniteCanvas } from "@/components/canvas/InfiniteCanvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
 import { TerminalDock } from "@/components/canvas/TerminalDock";
 import { MobileTerminalListView } from "@/components/canvas/MobileTerminalListView";
+import { ChatView } from "@/components/chat/ChatView";
 import { useCanvas, type HostNodeData } from "@/hooks/use-canvas";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { ActiveView } from "./AppShell";
@@ -44,6 +45,11 @@ function CanvasView() {
   const fullScreenRef = useRef<
     ((terminalId: string, status: string) => void) | null
   >(null);
+  const autoLayoutRef = useRef<(() => void) | null>(null);
+
+  const handleAutoLayout = useCallback(() => {
+    autoLayoutRef.current?.();
+  }, []);
 
   const handleFocusTerminal = useCallback((nodeId: string) => {
     focusTerminalRef.current?.(nodeId);
@@ -78,11 +84,12 @@ function CanvasView() {
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <CanvasToolbar onFocusService={handleFocusService} />
+      <CanvasToolbar onFocusService={handleFocusService} onAutoLayout={handleAutoLayout} />
       <div className="relative min-h-0 flex-1">
         <InfiniteCanvas
           onFocusTerminalRef={focusTerminalRef}
           onFullScreenRef={fullScreenRef}
+          onAutoLayoutRef={autoLayoutRef}
         />
         {nodes.length === 0 && <CanvasEmptyState />}
         <TerminalDock
@@ -98,6 +105,8 @@ export function ViewRouter({ activeView }: Readonly<ViewRouterProps>) {
   switch (activeView) {
     case "canvas":
       return <CanvasView />;
+    case "chat":
+      return <ChatView isActive />;
     case "settings":
       return <SettingsView />;
     default:

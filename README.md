@@ -14,13 +14,13 @@ Infinite canvas with live terminals, sticky notes, and a connected host:
 
 ### Mobile
 
-Terminal list with live status indicators and one-tap access:
+Full mobile experience with hosts, terminals, notes, media, and chat:
 
 <p>
   <img src="screenshots/after-04-mobile-terminal-list.png" alt="Mobile terminal list" width="300">
 </p>
 
-Fullscreen terminal with swipe navigation between sessions:
+Fullscreen terminal with virtual keyboard bar, scroll buttons, and flippable info panel:
 
 <p>
   <img src="screenshots/14-mobile-terminal-fullscreen.png" alt="Mobile fullscreen terminal" width="300">
@@ -78,6 +78,25 @@ Click the **Terminal** or **Editor** button on the host node in the canvas. A li
 
 The **Terminal Dock** at the bottom of the canvas shows miniature skeleton cards for every terminal, grouped by **tag** or **host**. Use the search input to filter by ID or tag. Click a skeleton to pan to it on the canvas, or double-click to open fullscreen. On mobile, switch the terminal list grouping between status, tag, or host with the group toggle button. Swipe left/right in fullscreen to cycle between terminals.
 
+### Mobile-specific features
+
+On mobile (<=767px), the app switches to a dedicated mobile experience:
+
+- **Hosts section** -- see connected hosts with status and quick-action buttons (new terminal, open editor)
+- **Terminal cards with tag colors** -- colored left borders derived from the first tag for visual identification
+- **Notes section** -- create and edit sticky notes with a fullscreen markdown editor
+- **Chat as a full view** -- tap the Chat tab in the bottom nav for a full-screen chat experience
+- **Virtual keyboard bar** -- two-row grid with ESC, TAB, CTRL (toggle modifier), pipe, tilde, arrow keys, and speech-to-text mic button
+- **Scroll buttons** -- floating scroll-up/scroll-down buttons in fullscreen terminal mode
+- **Flippable card** -- tap the rotate icon in the terminal header to flip the card and see terminal details, tags, command history, and quick actions on the back face
+- **File editor** -- tap the editor button on any host card to open the file editor in a fullscreen overlay
+- **Screenshots and streams** -- view captured screenshots and live screen shares in the media section
+
+### Desktop-specific features
+
+- **Auto Layout** -- click the "Auto Layout" button in the canvas toolbar to arrange all nodes in a top-down hierarchy using dagre graph layout
+- **Split terminal view** -- in fullscreen terminal mode, click the split icon to view multiple terminals side-by-side (horizontal, vertical, or quad split) with terminal selector dropdowns per pane
+
 ### 7. View command history
 
 Open the overflow menu on any terminal and select **Command History**. A linked history node appears on the canvas showing all commands entered in that terminal. Switch to the **Top 10** tab to see the most frequently used commands. Each command has **copy** and **execute** buttons -- execute re-sends the command to the terminal.
@@ -118,7 +137,7 @@ Copy the workspace URL and send it to anyone. They join instantly as a collabora
 
 ## Stack
 
-- Frontend: React 19, Vite 6, Tailwind CSS 4, `@xyflow/react`, xterm.js, TanStack Query, Zustand, SignalR
+- Frontend: React 19, Vite 6, Tailwind CSS 4, `@xyflow/react`, xterm.js, dagre, TanStack Query, Zustand, SignalR
 - Backend: Hono, TypeScript, Drizzle ORM, SQLite, Redis
 - Realtime hub: ASP.NET Core SignalR on .NET 10 LTS
 - Agent: Node.js, `node-pty`, SignalR client (`npm install -g excaliterm`)

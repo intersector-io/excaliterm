@@ -10,13 +10,29 @@ const TAG_COLORS = [
   "bg-purple-500/15 text-purple-400 border-purple-500/25",
 ];
 
-export function getTagColor(tag: string): string {
+function hashTag(tag: string): number {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) {
     hash = (tag.codePointAt(i) ?? 0) + ((hash << 5) - hash);
   }
-  const idx = Math.abs(hash) % TAG_COLORS.length;
-  return TAG_COLORS[idx] as string;
+  return Math.abs(hash);
+}
+
+export function getTagColor(tag: string): string {
+  return TAG_COLORS[hashTag(tag) % TAG_COLORS.length] as string;
+}
+
+const TAG_BORDER_COLORS = [
+  "border-l-accent-cyan",
+  "border-l-accent-green",
+  "border-l-accent-amber",
+  "border-l-accent-blue",
+  "border-l-accent-red",
+  "border-l-purple-500",
+];
+
+export function getTagBorderColor(tag: string): string {
+  return TAG_BORDER_COLORS[hashTag(tag) % TAG_BORDER_COLORS.length] as string;
 }
 
 interface TagEditorProps {

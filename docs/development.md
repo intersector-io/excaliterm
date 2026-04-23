@@ -87,7 +87,12 @@ Notes:
 ### Frontend
 
 - Canvas and UI components: `apps/frontend/src/components`
+  - Mobile components: `MobileTerminalListView`, `MobileHostsSection`, `MobileNotesSection`, `MobileMediaViewer`
+  - Terminal: `TerminalFullScreen` (flippable card with `TerminalInfoFace`), `VirtualKeyboardBar`, `SplitTerminalView`
+  - Editor: `EditorFullScreen` (mobile portal overlay)
 - Reusable logic: `apps/frontend/src/hooks`
+  - `use-speech-recognition.ts` -- Web Speech API for voice-to-terminal input
+- Graph layout: `apps/frontend/src/lib/dagre-layout.ts` -- dagre auto-layout for top-down node hierarchy
 - SignalR client bootstrap: `apps/frontend/src/lib/signalr-client.ts`
 - Server-facing fetch wrappers: `apps/frontend/src/lib/api-client.ts`
 - Local state: `apps/frontend/src/stores`

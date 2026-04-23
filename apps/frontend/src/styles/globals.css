@@ -136,6 +136,35 @@ body {
   animation: collaborator-glow-amber 3s ease-in-out infinite;
 }
 
+/* ─── Card Flip 3D ──────────────────────────────────────────────────────────── */
+
+.card-flip-container {
+  perspective: 1000px;
+}
+
+.card-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-face-front {
+  transform: rotateY(0deg);
+}
+
+.card-face-front.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face-back {
+  transform: rotateY(-180deg);
+}
+
+.card-face-back.flipped {
+  transform: rotateY(0deg);
+}
+
 /* React Flow selection box */
 .react-flow__selection {
   background: rgba(255, 255, 255, 0.03) !important;

@@ -30,6 +30,7 @@ import { CommandHistoryNode } from "./CommandHistoryNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
 import { useFullscreenStore } from "@/stores/fullscreen-store";
+import { applyDagreLayout } from "@/lib/dagre-layout";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 import {
   DropdownMenu,
@@ -53,9 +54,10 @@ const defaultViewport = { x: 0, y: 0, zoom: 1 };
 interface InfiniteCanvasProps {
   onFocusTerminalRef?: React.MutableRefObject<((nodeId: string) => void) | null>;
   onFullScreenRef?: React.MutableRefObject<((terminalId: string, status: string) => void) | null>;
+  onAutoLayoutRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly<InfiniteCanvasProps>) {
+export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayoutRef }: Readonly<InfiniteCanvasProps>) {
   const { nodes, edges, onNodesChange } = useCanvas();
   const { createTerminal, isCreating, terminals } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
@@ -70,6 +72,16 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
   const noHost = onlineCount === 0;
   const isEmpty = nodes.length === 0;
   const prevNodeCount = useRef(nodes.length);
+
+  // Keep refs current for imperative callbacks (avoids re-running effects on every canvas change)
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
+  const terminalsRef = useRef(terminals);
+  terminalsRef.current = terminals;
+  const localEdgesRef = useRef<Edge[]>([]);
+  const [localEdges, setLocalEdges] = useState<Edge[]>([]);
 
   // Auto-zoom to latest node when a new one is added
   useEffect(() => {
@@ -87,13 +99,13 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
       }
     }
     prevNodeCount.current = nodes.length;
-  }, [nodes.length, nodes, reactFlow, isMobile]);
+  }, [nodes.length, reactFlow, isMobile]);
 
   // Expose focus function to parent
   useEffect(() => {
     if (onFocusTerminalRef) {
       onFocusTerminalRef.current = (nodeId: string) => {
-        const node = nodes.find((n) => n.id === nodeId);
+        const node = nodesRef.current.find((n) => n.id === nodeId);
         if (node) {
           reactFlow.fitView({
             nodes: [{ id: nodeId }],
@@ -104,13 +116,13 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
         }
       };
     }
-  }, [onFocusTerminalRef, nodes, reactFlow, isMobile]);
+  }, [onFocusTerminalRef, reactFlow, isMobile]);
 
   // Expose fullscreen trigger to parent
   useEffect(() => {
     if (onFullScreenRef) {
       onFullScreenRef.current = (terminalId: string, status: string) => {
-        const terminal = terminals.find((t) => t.id === terminalId);
+        const terminal = terminalsRef.current.find((t) => t.id === terminalId);
         openFullScreen({
           terminalId,
           status: (status as TerminalStatus) ?? "active",
@@ -118,22 +130,36 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef }: Readonly
         });
       };
     }
-  }, [onFullScreenRef, terminals, openFullScreen]);
+  }, [onFullScreenRef, openFullScreen]);
 
-  const [localEdges, setLocalEdges] = useState<Edge[]>([]);
+  // Expose auto-layout function to parent
+  useEffect(() => {
+    if (onAutoLayoutRef) {
+      onAutoLayoutRef.current = () => {
+        const allEdges = [...edgesRef.current, ...localEdgesRef.current];
+        const layoutedNodes = applyDagreLayout(nodesRef.current, allEdges, "TB");
+        reactFlow.setNodes(layoutedNodes);
+        setTimeout(() => {
+          reactFlow.fitView({ padding: 0.2, duration: 400 });
+        }, 50);
+      };
+    }
+  }, [onAutoLayoutRef, reactFlow]);
 
   const onConnect: OnConnect = useCallback(
     (connection) => {
-      setLocalEdges((eds) =>
-        addEdge(
+      setLocalEdges((eds) => {
+        const next = addEdge(
           {
             ...connection,
             style: { stroke: "rgba(255,255,255,0.1)", strokeWidth: 1 },
             animated: true,
           },
           eds,
-        ),
-      );
+        );
+        localEdgesRef.current = next;
+        return next;
+      });
     },
     [],
   );

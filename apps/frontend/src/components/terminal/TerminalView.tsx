@@ -11,10 +11,18 @@ import type { TerminalStatus } from "@excaliterm/shared-types";
 interface TerminalViewProps {
   terminalId: string;
   status: TerminalStatus;
+  compact?: boolean;
+  inputRef?: React.MutableRefObject<((data: string) => void) | null>;
+  scrollRef?: React.MutableRefObject<{
+    scrollUp: () => void;
+    scrollDown: () => void;
+    scrollToTop: () => void;
+    scrollToBottom: () => void;
+  } | null>;
   onCommandDetected?: (terminalId: string, command: string) => void;
 }
 
-export function TerminalView({ terminalId, status, onCommandDetected }: Readonly<TerminalViewProps>) {
+export function TerminalView({ terminalId, status, compact, inputRef, scrollRef, onCommandDetected }: Readonly<TerminalViewProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -96,6 +104,24 @@ export function TerminalView({ terminalId, status, onCommandDetected }: Readonly
 
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
+
+    // Expose input injection for virtual keyboard bar
+    if (inputRef) {
+      inputRef.current = (data: string) => {
+        if (statusRef.current !== "active") return;
+        terminalHub.invoke("TerminalInput", terminalId, data).catch(() => {});
+      };
+    }
+
+    // Expose scroll methods for scroll buttons
+    if (scrollRef) {
+      scrollRef.current = {
+        scrollUp: () => terminal.scrollLines(-10),
+        scrollDown: () => terminal.scrollLines(10),
+        scrollToTop: () => terminal.scrollToTop(),
+        scrollToBottom: () => terminal.scrollToBottom(),
+      };
+    }
 
     const buffered = useTerminalStore.getState().getOutput(terminalId);
     for (const chunk of buffered) {
@@ -221,6 +247,8 @@ export function TerminalView({ terminalId, status, onCommandDetected }: Readonly
       terminalRef.current = null;
       fitAddonRef.current = null;
       initializedRef.current = false;
+      if (inputRef) inputRef.current = null;
+      if (scrollRef) scrollRef.current = null;
     };
   }, [terminalId]);
 
@@ -253,7 +281,7 @@ export function TerminalView({ terminalId, status, onCommandDetected }: Readonly
     <div
       ref={containerRef}
       className="h-full w-full rounded-lg border border-border-subtle bg-surface-sunken shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-      style={{ padding: "14px 14px 12px" }}
+      style={{ padding: compact ? "4px 6px" : "14px 14px 12px" }}
     />
   );
 }

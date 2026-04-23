@@ -6,7 +6,6 @@ import {
   StickyNote,
   Plus,
   Users,
-  Focus,
   Filter,
   X,
   Tag,
@@ -21,9 +20,11 @@ import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
 import { groupTerminals, type GroupMode } from "@/lib/terminal-grouping";
 import { MobileMediaSection } from "./MobileMediaViewer";
+import { MobileNotesSection } from "./MobileNotesSection";
+import { MobileHostsSection } from "./MobileHostsSection";
 import * as api from "@/lib/api-client";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
-import { getTagColor } from "./TagEditor";
+import { getTagColor, getTagBorderColor } from "./TagEditor";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,10 +32,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { INSTALL_CMD, buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
-import { getHubUrl } from "@/lib/config";
-import { useCopyWithFeedback } from "@/hooks/use-copy";
-import { CopyButton } from "@/components/ui/copy-button";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 
 const ALL_STATUSES: TerminalStatus[] = [
@@ -54,7 +51,7 @@ export function MobileTerminalListView() {
   const { terminals, createTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { services, onlineCount } = useServices();
-  const { collaborator, workspaceId, apiKey } = useWorkspace();
+  const { collaborator, workspaceId } = useWorkspace();
   const { collaboratorCount } = useTerminalCollaboration();
 
   const noHost = onlineCount === 0;
@@ -140,17 +137,6 @@ export function MobileTerminalListView() {
     },
     [],
   );
-
-  const enterFocusMode = useCallback(() => {
-    const first = filteredTerminals[0];
-    if (first) {
-      setFullScreenTerminal({
-        terminalId: first.id,
-        status: first.status as TerminalStatus,
-        tags: first.tags,
-      });
-    }
-  }, [filteredTerminals]);
 
   async function handleNewTerminal() {
     if (noHost) {
@@ -255,14 +241,6 @@ export function MobileTerminalListView() {
                 </span>
               )}
             </button>
-            <button
-              onClick={enterFocusMode}
-              disabled={filteredTerminals.length === 0}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-accent-cyan/12 px-2.5 text-caption font-medium text-accent-cyan transition-colors hover:bg-accent-cyan/20 disabled:opacity-40"
-            >
-              <Focus className="h-3.5 w-3.5" />
-              Focus
-            </button>
           </div>
         )}
       </div>
@@ -337,11 +315,13 @@ export function MobileTerminalListView() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {terminals.length === 0 && noHost && (
-          <ConnectHostInline workspaceId={workspaceId} apiKey={apiKey} />
-        )}
+        {/* Hosts section — always visible at top */}
+        <div className="p-3 pb-0">
+          <MobileHostsSection />
+        </div>
+
         {terminals.length === 0 && !noHost && (
-          <div className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center">
+          <div className="flex flex-col items-center justify-center gap-5 px-6 py-10 text-center">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent-cyan/15 bg-accent-cyan/[0.06]">
               <Terminal className="h-9 w-9 text-accent-cyan/70" strokeWidth={1.5} />
             </div>
@@ -420,6 +400,9 @@ export function MobileTerminalListView() {
                 ))}
               </div>
             ))}
+
+            {/* Notes */}
+            <MobileNotesSection />
 
             {/* Media: Screenshots & Streams */}
             <MobileMediaSection screenshots={screenshots} />
@@ -531,7 +514,9 @@ function TerminalCard({
   return (
     <button
       onClick={onTap}
-      className="flex w-full items-center gap-3 rounded-xl border border-border-default bg-surface-raised/60 px-4 py-3 text-left transition-all active:scale-[0.98] active:bg-surface-raised"
+      className={`flex w-full items-center gap-3 rounded-xl border border-border-default border-l-[3px] bg-surface-raised/60 px-4 py-3 text-left transition-all active:scale-[0.98] active:bg-surface-raised ${
+        (tags ?? []).length > 0 ? getTagBorderColor(tags![0]!) : "border-l-border-subtle"
+      }`}
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-sunken/50">
         <Terminal className="h-4.5 w-4.5 text-muted-foreground" />
@@ -587,104 +572,3 @@ function ChevronIcon() {
   );
 }
 
-/* ─── Inline Connect Host ────────────────────────────────────────────────── */
-
-function ConnectHostInline({
-  workspaceId,
-  apiKey,
-}: Readonly<{
-  workspaceId: string;
-  apiKey: string;
-}>) {
-  const { copy, isCopied } = useCopyWithFeedback();
-  const hubUrl = getHubUrl();
-  const params = { hubUrl, workspaceId, apiKey };
-  const runCmd = buildRunCommand(params);
-  const envFile = buildEnvFile(params);
-
-  return (
-    <div className="px-4 py-5 space-y-5">
-      <div className="space-y-1.5">
-        <h2 className="text-body font-semibold text-foreground">
-          Connect a host
-        </h2>
-        <p className="text-body-sm leading-relaxed text-muted-foreground">
-          Install the Excaliterm agent on the machine you want to connect, then
-          run it with your workspace credentials.
-        </p>
-      </div>
-
-      {/* Step 1: Install */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-caption font-medium text-muted-foreground">
-            1. Install the package
-          </span>
-          <CopyButton
-            variant="plain"
-            copied={isCopied("install")}
-            onClick={() => copy(INSTALL_CMD, "install")}
-          />
-        </div>
-        <pre className="overflow-x-auto rounded-lg border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
-          {INSTALL_CMD}
-        </pre>
-      </div>
-
-      {/* Step 2: Run */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-caption font-medium text-muted-foreground">
-            2. Run the agent
-          </span>
-          <CopyButton
-            variant="plain"
-            copied={isCopied("command")}
-            onClick={() => copy(runCmd, "command")}
-          />
-        </div>
-        <pre className="overflow-x-auto rounded-lg border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
-          {runCmd}
-        </pre>
-      </div>
-
-      {/* Alternative: .env */}
-      <details className="group">
-        <summary className="cursor-pointer text-caption text-muted-foreground hover:text-foreground">
-          Or use environment variables / .env file
-        </summary>
-        <div className="mt-2 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-caption font-medium text-muted-foreground">
-              .env
-            </span>
-            <CopyButton
-              variant="plain"
-              copied={isCopied("env")}
-              onClick={() => copy(envFile, "env")}
-            />
-          </div>
-          <pre className="overflow-x-auto rounded-lg border border-border bg-surface-sunken p-3 font-mono text-caption leading-relaxed text-foreground">
-            {envFile}
-          </pre>
-          <p className="text-caption text-muted-foreground">
-            Then run{" "}
-            <code className="rounded bg-surface-sunken px-1">excaliterm</code>{" "}
-            or{" "}
-            <code className="rounded bg-surface-sunken px-1">
-              npx excaliterm
-            </code>
-          </p>
-        </div>
-      </details>
-
-      {/* Hint */}
-      <div className="flex items-start gap-2 rounded-lg border border-border bg-surface-sunken px-3 py-2.5">
-        <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <p className="text-caption leading-relaxed text-muted-foreground">
-          The host will appear here automatically once the agent connects.
-        </p>
-      </div>
-    </div>
-  );
-}

@@ -7,8 +7,12 @@ import { ServiceSelector } from "./ServiceSelector";
 import { FileTree } from "./FileTree";
 import { EditorPane } from "./EditorPane";
 
-export function EditorView() {
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+interface EditorViewProps {
+  initialServiceId?: string;
+}
+
+export function EditorView({ initialServiceId }: Readonly<EditorViewProps> = {}) {
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(initialServiceId ?? null);
   const [showTree, setShowTree] = useState(true);
 
   const isMobile = useMediaQuery("(max-width: 767px)");

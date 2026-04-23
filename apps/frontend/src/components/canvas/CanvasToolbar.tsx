@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Server, Users, ChevronDown, Plus, Settings } from "lucide-react";
+import { Server, Users, ChevronDown, Plus, Settings, GitBranchPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RegisterServiceDialog } from "@/components/services/RegisterServiceDialog";
 import { ServiceConfigDialog } from "@/components/services/ServiceConfigDialog";
@@ -20,10 +20,12 @@ import type { ServiceInstance } from "@/lib/api-client";
 
 interface CanvasToolbarProps {
   onFocusService?: (serviceId: string) => void;
+  onAutoLayout?: () => void;
 }
 
 export function CanvasToolbar({
   onFocusService,
+  onAutoLayout,
 }: Readonly<CanvasToolbarProps>) {
   const { workspaceId, apiKey, collaborator } = useWorkspace();
   const { services, onlineCount, deleteService, isDeleting } = useServices();
@@ -173,6 +175,16 @@ export function CanvasToolbar({
           <span className="text-caption text-muted-foreground/40">
             {collaboratorCount} here{terminalSuffix}
           </span>
+          {onAutoLayout && (
+            <button
+              onClick={onAutoLayout}
+              className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-muted-foreground/50 transition-colors hover:bg-white/[0.04] hover:text-muted-foreground"
+              title="Auto Layout (top-down)"
+            >
+              <GitBranchPlus className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Auto Layout</span>
+            </button>
+          )}
         </div>
       </div>
 

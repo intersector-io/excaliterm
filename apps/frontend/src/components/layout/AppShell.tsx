@@ -10,7 +10,7 @@ import { ViewRouter } from "./ViewRouter";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
 
-export type ActiveView = "canvas" | "settings";
+export type ActiveView = "canvas" | "chat" | "settings";
 
 export function AppShell() {
   const [activeView, setActiveView] = useState<ActiveView>("canvas");
@@ -56,12 +56,12 @@ export function AppShell() {
     };
   }, [workspaceId]);
 
-  // Reset unread when chat panel is open
+  // Reset unread when chat panel is open (desktop) or chat view is active (mobile)
   useEffect(() => {
-    if (chatOpen) {
+    if (chatOpen || (isMobile && activeView === "chat")) {
       resetUnread();
     }
-  }, [chatOpen, resetUnread]);
+  }, [chatOpen, isMobile, activeView, resetUnread]);
 
   const palette = (
     <CommandPalette
@@ -81,8 +81,6 @@ export function AppShell() {
           activeView={activeView}
           onViewChange={setActiveView}
           unreadChat={unreadChat}
-          onToggleChat={toggleChat}
-          chatOpen={chatOpen}
         />
         {palette}
       </div>
