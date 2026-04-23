@@ -43,6 +43,11 @@ export function AppShell() {
     return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    document.body.classList.add("app-locked");
+    return () => { document.body.classList.remove("app-locked"); };
+  }, []);
+
   // Start SignalR connections (hubs already initialized in App.tsx)
   useEffect(() => {
     let cancelled = false;
