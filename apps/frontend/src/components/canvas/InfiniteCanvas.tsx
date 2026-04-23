@@ -31,7 +31,7 @@ import { CommandHistoryNode } from "./CommandHistoryNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
 import { useFullscreenStore } from "@/stores/fullscreen-store";
-import { applyDagreLayout } from "@/lib/dagre-layout";
+import { applyDagreLayout, buildHierarchyEdges } from "@/lib/dagre-layout";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 import {
   DropdownMenu,
@@ -59,7 +59,7 @@ interface InfiniteCanvasProps {
 }
 
 export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayoutRef }: Readonly<InfiniteCanvasProps>) {
-  const { nodes, edges, onNodesChange } = useCanvas();
+  const { nodes, edges, onNodesChange, updateNodePosition } = useCanvas();
   const { createTerminal, isCreating, terminals } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { onlineCount } = useServices();
@@ -155,19 +155,21 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
     }
   }, [onFullScreenRef, openFullScreen]);
 
-  // Expose auto-layout function to parent
   useEffect(() => {
-    if (onAutoLayoutRef) {
-      onAutoLayoutRef.current = () => {
-        const allEdges = [...edgesRef.current, ...localEdgesRef.current];
-        const layoutedNodes = applyDagreLayout(nodesRef.current, allEdges, "TB");
-        reactFlow.setNodes(layoutedNodes);
-        setTimeout(() => {
-          reactFlow.fitView({ padding: 0.2, duration: 400 });
-        }, 50);
-      };
-    }
-  }, [onAutoLayoutRef, reactFlow]);
+    if (!onAutoLayoutRef) return;
+    onAutoLayoutRef.current = () => {
+      const currentNodes = nodesRef.current;
+      const hierarchyEdges = buildHierarchyEdges(currentNodes, edgesRef.current);
+      const layoutedNodes = applyDagreLayout(currentNodes, hierarchyEdges, "TB");
+      reactFlow.setNodes(layoutedNodes);
+      for (const n of layoutedNodes) {
+        updateNodePosition(n.id, n.position.x, n.position.y).catch(() => {});
+      }
+      setTimeout(() => {
+        reactFlow.fitView({ padding: 0.2, duration: 400 });
+      }, 50);
+    };
+  }, [onAutoLayoutRef, reactFlow, updateNodePosition]);
 
   const onConnect: OnConnect = useCallback(
     (connection) => {

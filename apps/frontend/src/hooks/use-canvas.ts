@@ -439,6 +439,8 @@ export function useCanvas() {
     createEditorNode: createEditorMutation.mutateAsync,
     addScreenShareNode,
     removeScreenShareNode: removeScreenShareStoreNode,
+    updateNodePosition: (id: string, x: number, y: number) =>
+      updateMutation.mutateAsync({ id, data: { x, y } }),
     isLoading: nodesQuery.isLoading,
   };
 }
