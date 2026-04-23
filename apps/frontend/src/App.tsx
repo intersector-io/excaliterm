@@ -61,34 +61,50 @@ function WorkspaceRoute() {
   }
 
   if (!valid) {
-    return (
-      <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-6 text-center px-4">
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-6xl font-bold tracking-tighter text-foreground/20">404</span>
-            <p className="text-base font-medium text-foreground">
-              Workspace not found
-            </p>
-            <p className="text-sm text-muted-foreground max-w-[40ch] leading-relaxed">
-              This workspace doesn't exist or may have expired.
-              Create a fresh one to get started.
-            </p>
-          </div>
-          <a
-            href="/"
-            className="inline-flex h-9 items-center rounded-lg bg-accent-cyan/15 px-4 text-sm font-medium text-accent-cyan transition-colors hover:bg-accent-cyan/25"
-          >
-            Create new workspace
-          </a>
-        </div>
-      </div>
-    );
+    return <NotFoundPage heading="Workspace not found" subheading="This workspace doesn't exist or may have expired." />;
   }
 
   return (
     <WorkspaceCtx.Provider value={ctxValue}>
       <AppShell />
     </WorkspaceCtx.Provider>
+  );
+}
+
+function NotFoundPage({ heading, subheading }: { heading: string; subheading: string }) {
+  return (
+    <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background px-6">
+      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border-subtle bg-card/60 p-8 text-center">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,oklch(0.25_0.06_290),transparent_70%)]" />
+        <span className="block text-6xl font-bold tracking-tighter text-foreground/20">404</span>
+        <p className="mt-2 text-base font-medium text-foreground">{heading}</p>
+        <p className="mx-auto mt-1 max-w-[40ch] text-sm leading-relaxed text-muted-foreground">{subheading}</p>
+        <div className="my-6 h-px bg-border-subtle" />
+        <p className="text-caption uppercase tracking-wider text-muted-foreground">Excaliterm</p>
+        <p className="mt-1 text-body-sm leading-relaxed text-foreground">
+          Pair on any terminal, any machine — in the browser.
+        </p>
+        <p className="mt-1 text-caption text-muted-foreground">
+          No account. Shareable link in 2 seconds.
+        </p>
+        <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+          <a
+            href="/"
+            className="inline-flex h-10 items-center rounded-lg bg-accent-cyan px-4 text-sm font-semibold text-background transition-all hover:brightness-110"
+          >
+            Create a workspace — free
+          </a>
+          <a
+            href="https://github.com/intersector-io/excaliterm"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 items-center rounded-lg border border-border-default bg-surface-raised/40 px-4 text-sm font-medium text-foreground transition-colors hover:bg-surface-raised"
+          >
+            View on GitHub
+          </a>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -114,18 +130,7 @@ export function App() {
         <Route path="/w/:workspaceId" component={WorkspaceRoute} />
         <Route path="/" component={LandingPage} />
         <Route>
-          <div className="flex min-h-[100dvh] w-screen items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <span className="text-6xl font-bold tracking-tighter text-foreground/20">404</span>
-              <p className="text-sm text-muted-foreground">Page not found</p>
-              <a
-                href="/"
-                className="text-sm text-accent-cyan hover:underline underline-offset-4"
-              >
-                Go home
-              </a>
-            </div>
-          </div>
+          <NotFoundPage heading="Page not found" subheading="That URL doesn't exist here." />
         </Route>
       </Switch>
     </>
