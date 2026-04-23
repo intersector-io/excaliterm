@@ -77,6 +77,12 @@ public class RedisSubscriber : IHostedService
                     async (channel, message) => await HandleChatMessage(message!)
                 );
 
+                // Subscribe to service deletions from REST API
+                await _subscriber.SubscribeAsync(
+                    RedisChannel.Literal("service:deleted"),
+                    async (channel, message) => await HandleServiceDeleted(message!)
+                );
+
                 _logger.LogInformation("Redis subscriber started on {ConnectionString}", connectionString);
                 return;
             }
@@ -278,6 +284,24 @@ public class RedisSubscriber : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling canvas update from Redis");
+        }
+    }
+
+    // ─── Service deletions ──────────────────────────────────────────────────────
+
+    private async Task HandleServiceDeleted(string message)
+    {
+        try
+        {
+            var evt = JsonSerializer.Deserialize<RedisServiceDeleted>(message, JsonOptions);
+            if (evt is null) return;
+
+            var group = BaseHub.FormatWorkspaceGroup(evt.WorkspaceId);
+            await _terminalHub.Clients.Group(group).SendAsync("ServiceDeleted", evt.ServiceInstanceId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling service deletion from Redis");
         }
     }
 

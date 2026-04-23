@@ -141,3 +141,9 @@ public record RedisServiceEvent(
     long Timestamp
 );
 
+public record RedisServiceDeleted(
+    string ServiceInstanceId,
+    string WorkspaceId,
+    long Timestamp
+);
+

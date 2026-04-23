@@ -248,6 +248,9 @@ export const TerminalHubMethods = {
   TerminalTyping: "TerminalTyping",
   TerminalLockChanged: "TerminalLockChanged",
   ShutdownInitiated: "ShutdownInitiated",
+  ServiceOnline: "ServiceOnline",
+  ServiceOffline: "ServiceOffline",
+  ServiceDeleted: "ServiceDeleted",
   // Server -> Service
   ShutdownHost: "ShutdownHost",
 } as const;

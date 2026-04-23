@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { eq, and } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
+import { publish } from "../lib/redis.js";
 import type { WorkspaceVariables } from "../middleware/workspace.js";
 
 const services = new Hono<{ Variables: WorkspaceVariables }>();
@@ -124,7 +125,17 @@ services.delete("/:id", async (c) => {
     throw new HTTPException(404, { message: "Service not found" });
   }
 
-  // Delete host and editor canvas nodes for this service
+  // Collect canvas node IDs before deletion so we can broadcast their removal.
+  const nodesToRemove = await db
+    .select({ id: schema.canvasNode.id })
+    .from(schema.canvasNode)
+    .where(
+      and(
+        eq(schema.canvasNode.workspaceId, workspaceId),
+        eq(schema.canvasNode.serviceInstanceId, serviceId),
+      ),
+    );
+
   await db
     .delete(schema.canvasNode)
     .where(
@@ -137,6 +148,26 @@ services.delete("/:id", async (c) => {
   await db
     .delete(schema.serviceInstance)
     .where(eq(schema.serviceInstance.id, serviceId));
+
+  // Broadcast removal to every connected client in the workspace via the hub.
+  for (const node of nodesToRemove) {
+    await publish("canvas:updates", {
+      action: "nodeRemoved",
+      workspaceId,
+      userId: "system",
+      nodeId: node.id,
+    }).catch((err: Error) =>
+      console.error("[redis] Failed to publish canvas:updates nodeRemoved:", err.message),
+    );
+  }
+
+  await publish("service:deleted", {
+    serviceInstanceId: existing.serviceId,
+    workspaceId,
+    timestamp: Date.now(),
+  }).catch((err: Error) =>
+    console.error("[redis] Failed to publish service:deleted:", err.message),
+  );
 
   return c.json({ success: true });
 });

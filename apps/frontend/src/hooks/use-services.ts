@@ -39,6 +39,21 @@ export function useServices() {
     [queryClient, workspaceId],
   );
 
+  const handleServiceDeleted = useCallback(
+    (serviceId: string) => {
+      queryClient.setQueryData(
+        ["services", workspaceId],
+        (old: { services: api.ServiceInstance[] } | undefined) => {
+          if (!old) return old;
+          return { services: old.services.filter((s) => s.serviceId !== serviceId) };
+        },
+      );
+      queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
+    },
+    [queryClient, workspaceId],
+  );
+
   const handleServiceOffline = useCallback(
     (serviceId: string) => {
       queryClient.setQueryData(
@@ -63,17 +78,21 @@ export function useServices() {
 
     terminalHub.on("ServiceOnline", handleServiceOnline);
     terminalHub.on("ServiceOffline", handleServiceOffline);
+    terminalHub.on("ServiceDeleted", handleServiceDeleted);
 
     return () => {
       terminalHub.off("ServiceOnline", handleServiceOnline);
       terminalHub.off("ServiceOffline", handleServiceOffline);
+      terminalHub.off("ServiceDeleted", handleServiceDeleted);
     };
-  }, [handleServiceOnline, handleServiceOffline]);
+  }, [handleServiceOnline, handleServiceOffline, handleServiceDeleted]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteServiceApi(workspaceId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
     },
   });
 
