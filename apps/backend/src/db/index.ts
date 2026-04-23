@@ -27,7 +27,7 @@ export function initializeDb() {
     CREATE TABLE IF NOT EXISTS "service_instance" (
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
-      "serviceId" text NOT NULL UNIQUE,
+      "serviceId" text NOT NULL,
       "name" text NOT NULL,
       "apiKey" text NOT NULL,
       "whitelistedPaths" text,
@@ -36,6 +36,8 @@ export function initializeDb() {
       "createdAt" integer NOT NULL DEFAULT (unixepoch()),
       "updatedAt" integer NOT NULL DEFAULT (unixepoch())
     );
+    CREATE UNIQUE INDEX IF NOT EXISTS "service_instance_workspace_service_unique"
+      ON "service_instance"("workspaceId", "serviceId");
 
     CREATE TABLE IF NOT EXISTS "note" (
       "id" text PRIMARY KEY NOT NULL,
@@ -137,6 +139,43 @@ export function initializeDb() {
     _sqlite.exec(`UPDATE "workspace" SET "apiKey" = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE "apiKey" = ''`);
   } catch {
     // Column already exists
+  }
+
+  // Rebuild service_instance if it still has the legacy column-level UNIQUE on serviceId.
+  // Older rows may have been "locked" under one workspace, making the same serviceId
+  // unable to appear in other workspaces even though each (workspaceId, serviceId) pair
+  // is what actually identifies an agent registration.
+  const serviceInstanceDdl = _sqlite
+    .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'service_instance'`)
+    .get() as { sql?: string } | undefined;
+  if (serviceInstanceDdl?.sql && /"serviceId"\s+text\s+NOT\s+NULL\s+UNIQUE/i.test(serviceInstanceDdl.sql)) {
+    console.log("[db] Migrating service_instance: dropping global UNIQUE on serviceId");
+    _sqlite.pragma("foreign_keys = OFF");
+    _sqlite.exec(`
+      BEGIN;
+      CREATE TABLE "service_instance__new" (
+        "id" text PRIMARY KEY NOT NULL,
+        "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+        "serviceId" text NOT NULL,
+        "name" text NOT NULL,
+        "apiKey" text NOT NULL,
+        "whitelistedPaths" text,
+        "lastSeen" integer,
+        "status" text DEFAULT 'offline',
+        "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+        "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+      );
+      INSERT INTO "service_instance__new"
+        SELECT "id", "workspaceId", "serviceId", "name", "apiKey", "whitelistedPaths",
+               "lastSeen", "status", "createdAt", "updatedAt"
+        FROM "service_instance";
+      DROP TABLE "service_instance";
+      ALTER TABLE "service_instance__new" RENAME TO "service_instance";
+      CREATE UNIQUE INDEX "service_instance_workspace_service_unique"
+        ON "service_instance"("workspaceId", "serviceId");
+      COMMIT;
+    `);
+    _sqlite.pragma("foreign_keys = ON");
   }
 
   // Flip legacy terminal→host edges to host→terminal so they render from the

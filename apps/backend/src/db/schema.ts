@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql, type InferSelectModel, type InferInsertModel } from "drizzle-orm";
 
 // ─── Workspace ────────────────────────────────────────────────────────────
@@ -17,24 +17,33 @@ export const workspace = sqliteTable("workspace", {
 
 // ─── Application Tables ────────────────────────────────────────────────────
 
-export const serviceInstance = sqliteTable("service_instance", {
-  id: text("id").primaryKey(),
-  workspaceId: text("workspaceId")
-    .notNull()
-    .references(() => workspace.id, { onDelete: "cascade" }),
-  serviceId: text("serviceId").notNull().unique(),
-  name: text("name").notNull(),
-  apiKey: text("apiKey").notNull(),
-  whitelistedPaths: text("whitelistedPaths"),
-  lastSeen: integer("lastSeen", { mode: "timestamp" }),
-  status: text("status").default("offline"),
-  createdAt: integer("createdAt", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updatedAt", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+export const serviceInstance = sqliteTable(
+  "service_instance",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspaceId")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    serviceId: text("serviceId").notNull(),
+    name: text("name").notNull(),
+    apiKey: text("apiKey").notNull(),
+    whitelistedPaths: text("whitelistedPaths"),
+    lastSeen: integer("lastSeen", { mode: "timestamp" }),
+    status: text("status").default("offline"),
+    createdAt: integer("createdAt", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updatedAt", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => ({
+    workspaceServiceUnique: uniqueIndex("service_instance_workspace_service_unique").on(
+      t.workspaceId,
+      t.serviceId,
+    ),
+  }),
+);
 
 export const note = sqliteTable("note", {
   id: text("id").primaryKey(),

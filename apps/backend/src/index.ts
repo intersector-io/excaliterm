@@ -75,14 +75,19 @@ async function handleServiceOnline(serviceInstanceId: string, workspaceId: strin
   const [existing] = await db
     .select()
     .from(schema.serviceInstance)
-    .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
+    .where(
+      and(
+        eq(schema.serviceInstance.serviceId, serviceInstanceId),
+        eq(schema.serviceInstance.workspaceId, workspaceId),
+      ),
+    );
 
   if (existing) {
     serviceDbId = existing.id;
     await db
       .update(schema.serviceInstance)
       .set({ status: "online", lastSeen: new Date(), updatedAt: new Date() })
-      .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
+      .where(eq(schema.serviceInstance.id, existing.id));
   } else if (workspaceId) {
     const [workspace] = await db
       .select()
@@ -165,18 +170,23 @@ async function ensureHostCanvasNode(serviceDbId: string, workspaceId: string, se
   console.log(`[redis] Created host canvas node for service ${serviceInstanceId}`);
 }
 
-async function handleServiceOffline(serviceInstanceId: string) {
+async function handleServiceOffline(serviceInstanceId: string, workspaceId: string) {
   const db = getDb();
   const [existing] = await db
     .select()
     .from(schema.serviceInstance)
-    .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
+    .where(
+      and(
+        eq(schema.serviceInstance.serviceId, serviceInstanceId),
+        eq(schema.serviceInstance.workspaceId, workspaceId),
+      ),
+    );
 
   if (existing) {
     await db
       .update(schema.serviceInstance)
       .set({ status: "offline", updatedAt: new Date() })
-      .where(eq(schema.serviceInstance.serviceId, serviceInstanceId));
+      .where(eq(schema.serviceInstance.id, existing.id));
 
     await db
       .update(schema.terminalSession)
@@ -205,7 +215,7 @@ try {
       if (event.event === "online") {
         await handleServiceOnline(event.serviceInstanceId, event.workspaceId);
       } else if (event.event === "offline") {
-        await handleServiceOffline(event.serviceInstanceId);
+        await handleServiceOffline(event.serviceInstanceId, event.workspaceId);
       }
     } catch (err) {
       console.error("[redis] Failed to handle service event:", err);

@@ -6,9 +6,9 @@ import { eq } from "drizzle-orm";
 import * as schema from "../../src/db/schema.js";
 
 let uuidCounter = 0;
-vi.mock("uuid", () => ({
-  v4: () => `test-uuid-${++uuidCounter}`,
-}));
+vi.spyOn(crypto, "randomUUID").mockImplementation(
+  () => `test-uuid-${++uuidCounter}` as `${string}-${string}-${string}-${string}-${string}`,
+);
 
 const mockPublish = vi.fn().mockResolvedValue(undefined);
 vi.mock("../../src/lib/redis.js", () => ({
@@ -31,13 +31,14 @@ function createTestDb() {
     CREATE TABLE "workspace" (
       "id" text PRIMARY KEY NOT NULL,
       "name" text NOT NULL DEFAULT 'Untitled workspace',
+      "apiKey" text NOT NULL DEFAULT '',
       "createdAt" integer NOT NULL,
       "lastAccessedAt" integer NOT NULL
     );
     CREATE TABLE "service_instance" (
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
-      "serviceId" text NOT NULL UNIQUE,
+      "serviceId" text NOT NULL,
       "name" text NOT NULL,
       "apiKey" text NOT NULL,
       "whitelistedPaths" text,
@@ -46,6 +47,8 @@ function createTestDb() {
       "createdAt" integer NOT NULL,
       "updatedAt" integer NOT NULL
     );
+    CREATE UNIQUE INDEX "service_instance_workspace_service_unique"
+      ON "service_instance"("workspaceId", "serviceId");
     CREATE TABLE "note" (
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
@@ -57,6 +60,7 @@ function createTestDb() {
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
       "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
+      "tags" text DEFAULT '',
       "status" text NOT NULL DEFAULT 'active',
       "exitCode" integer,
       "createdAt" integer NOT NULL,
@@ -68,6 +72,8 @@ function createTestDb() {
       "terminalSessionId" text REFERENCES "terminal_session"("id") ON DELETE SET NULL,
       "nodeType" text NOT NULL DEFAULT 'terminal',
       "noteId" text REFERENCES "note"("id") ON DELETE SET NULL,
+      "screenshotId" text,
+      "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
       "x" real NOT NULL DEFAULT 100,
       "y" real NOT NULL DEFAULT 100,
       "width" real NOT NULL DEFAULT 600,

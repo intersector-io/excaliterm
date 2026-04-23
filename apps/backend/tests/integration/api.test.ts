@@ -38,13 +38,14 @@ function createTestDb(): TestDb {
     CREATE TABLE "workspace" (
       "id" text PRIMARY KEY NOT NULL,
       "name" text NOT NULL DEFAULT 'Untitled workspace',
+      "apiKey" text NOT NULL DEFAULT '',
       "createdAt" integer NOT NULL,
       "lastAccessedAt" integer NOT NULL
     );
     CREATE TABLE "service_instance" (
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
-      "serviceId" text NOT NULL UNIQUE,
+      "serviceId" text NOT NULL,
       "name" text NOT NULL,
       "apiKey" text NOT NULL,
       "whitelistedPaths" text,
@@ -53,6 +54,8 @@ function createTestDb(): TestDb {
       "createdAt" integer NOT NULL,
       "updatedAt" integer NOT NULL
     );
+    CREATE UNIQUE INDEX "service_instance_workspace_service_unique"
+      ON "service_instance"("workspaceId", "serviceId");
     CREATE TABLE "note" (
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
@@ -64,6 +67,7 @@ function createTestDb(): TestDb {
       "id" text PRIMARY KEY NOT NULL,
       "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
       "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
+      "tags" text DEFAULT '',
       "status" text NOT NULL DEFAULT 'active',
       "exitCode" integer,
       "createdAt" integer NOT NULL,
@@ -75,6 +79,8 @@ function createTestDb(): TestDb {
       "terminalSessionId" text REFERENCES "terminal_session"("id") ON DELETE SET NULL,
       "nodeType" text NOT NULL DEFAULT 'terminal',
       "noteId" text REFERENCES "note"("id") ON DELETE SET NULL,
+      "screenshotId" text,
+      "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
       "x" real NOT NULL DEFAULT 100,
       "y" real NOT NULL DEFAULT 100,
       "width" real NOT NULL DEFAULT 600,
