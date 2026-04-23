@@ -10,6 +10,7 @@ import { VirtualKeyboardBar } from "./VirtualKeyboardBar";
 import { TerminalInfoFace } from "./TerminalInfoFace";
 import { SplitTerminalView } from "./SplitTerminalView";
 import { getTagColor } from "@/components/canvas/TagEditor";
+import { useVisualViewportHeight } from "@/hooks/use-visual-viewport";
 
 function getLockButtonStyle(lockedBySelf: boolean, lockedByOther: boolean): string {
   if (lockedBySelf) return "bg-accent-cyan/15 text-accent-cyan";
@@ -49,6 +50,7 @@ export function TerminalFullScreen({
   } = useTerminalCollaboration(terminalId);
 
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const viewportHeight = useVisualViewportHeight();
   const hasCycling = onPrev && onNext && totalCount && totalCount > 1;
   const [flipped, setFlipped] = useState(false);
   const [hasFlipped, setHasFlipped] = useState(false);
@@ -108,7 +110,8 @@ export function TerminalFullScreen({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex flex-col bg-background"
+      className="fixed inset-x-0 top-0 z-[100] flex flex-col bg-background"
+      style={{ height: isMobile ? `${viewportHeight}px` : "100%" }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
