@@ -87,7 +87,7 @@ export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSe
                   <Terminal className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setEditorServiceId(service.serviceId)}
+                  onClick={() => setEditorServiceId(service.id)}
                   disabled={!isOnline}
                   className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-blue/10 text-accent-blue transition-colors active:scale-[0.95] active:bg-accent-blue/20 disabled:opacity-30"
                 >
