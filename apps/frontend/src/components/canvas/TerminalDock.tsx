@@ -1,94 +1,16 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { ChevronUp, ChevronDown, Search, Tag, Server, X } from "lucide-react";
+import { ChevronUp, ChevronDown, Search, Tag, Server, X, Terminal } from "lucide-react";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useServices } from "@/hooks/use-services";
 import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
+import { groupTerminals, type GroupMode } from "@/lib/terminal-grouping";
 import { getTagColor } from "./TagEditor";
-import type { TerminalSession, TerminalStatus } from "@excaliterm/shared-types";
-
-type GroupMode = "tag" | "host";
-
-interface TerminalGroup {
-  key: string;
-  label: string;
-  colorClasses?: string;
-  terminals: TerminalSession[];
-}
+import type { TerminalSession } from "@excaliterm/shared-types";
 
 interface TerminalDockProps {
   onFocusTerminal: (nodeId: string) => void;
   onFullScreenTerminal: (terminalId: string, status: string) => void;
-}
-
-/* ─── Grouping Logic ─────────────────────────────────────────────────────── */
-
-function groupByTag(terminals: TerminalSession[]): TerminalGroup[] {
-  const tagMap = new Map<string, TerminalSession[]>();
-  const untagged: TerminalSession[] = [];
-
-  for (const t of terminals) {
-    const tags = t.tags ?? [];
-    if (tags.length === 0) {
-      untagged.push(t);
-    } else {
-      for (const tag of tags) {
-        const list = tagMap.get(tag) ?? [];
-        list.push(t);
-        tagMap.set(tag, list);
-      }
-    }
-  }
-
-  const groups: TerminalGroup[] = Array.from(tagMap.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([tag, terms]) => ({
-      key: `tag-${tag}`,
-      label: tag,
-      colorClasses: getTagColor(tag),
-      terminals: terms,
-    }));
-
-  if (untagged.length > 0) {
-    groups.push({ key: "__untagged", label: "untagged", terminals: untagged });
-  }
-
-  return groups;
-}
-
-function groupByHost(
-  terminals: TerminalSession[],
-  services: { id: string; name: string }[],
-): TerminalGroup[] {
-  const hostMap = new Map<string, TerminalSession[]>();
-  const orphaned: TerminalSession[] = [];
-
-  for (const t of terminals) {
-    if (t.serviceInstanceId) {
-      const list = hostMap.get(t.serviceInstanceId) ?? [];
-      list.push(t);
-      hostMap.set(t.serviceInstanceId, list);
-    } else {
-      orphaned.push(t);
-    }
-  }
-
-  const groups: TerminalGroup[] = Array.from(hostMap.entries()).map(
-    ([id, terms]) => {
-      const svc = services.find((s) => s.id === id);
-      return {
-        key: `host-${id}`,
-        label: svc?.name ?? id.slice(0, 8),
-        terminals: terms,
-      };
-    },
-  );
-
-  if (orphaned.length > 0) {
-    groups.push({ key: "__nohost", label: "no host", terminals: orphaned });
-  }
-
-  return groups;
 }
 
 /* ─── Skeleton Card ──────────────────────────────────────────────────────── */
@@ -105,19 +27,32 @@ function TerminalSkeleton({
   const tags = terminal.tags ?? [];
   const statusDot = getStatusDotColor(terminal.status);
   const statusText = getStatusLabel(terminal.status);
+  const isActive = terminal.status === "active";
 
   return (
     <button
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       title={`${terminal.id.slice(0, 8)} — ${statusText}. Double-click to fullscreen.`}
-      className="group flex w-[104px] shrink-0 flex-col gap-1 rounded-lg border border-border-subtle/60 bg-surface-sunken/80 p-1.5 transition-all hover:border-accent-cyan/30 hover:bg-surface-sunken active:scale-[0.97]"
+      className={`group relative flex w-[108px] shrink-0 flex-col gap-1 overflow-hidden rounded-lg border p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all active:scale-[0.97] ${
+        isActive
+          ? "border-border-subtle/70 bg-surface-sunken/90 hover:border-accent-cyan/30 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_12px_rgba(34,211,238,0.06)]"
+          : "border-border-subtle/40 bg-surface-sunken/50 opacity-70 hover:opacity-90 hover:border-border-subtle/60"
+      }`}
     >
+      {/* Faux terminal lines */}
+      <div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 top-[26px] flex flex-col gap-[3px] overflow-hidden opacity-[0.06]">
+        <div className="h-[2px] w-[70%] rounded-full bg-foreground" />
+        <div className="h-[2px] w-[55%] rounded-full bg-foreground" />
+        <div className="h-[2px] w-[85%] rounded-full bg-foreground" />
+        <div className="h-[2px] w-[40%] rounded-full bg-foreground" />
+      </div>
+
       {/* Title row */}
-      <div className="flex items-center gap-1">
+      <div className="relative flex items-center gap-1">
         <span
           className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot} ${
-            terminal.status === "active" ? "animate-pulse" : ""
+            isActive ? "animate-pulse" : ""
           }`}
         />
         <span className="truncate font-mono text-[9px] leading-none text-muted-foreground/70 group-hover:text-foreground/80">
@@ -126,7 +61,7 @@ function TerminalSkeleton({
       </div>
 
       {/* Tags */}
-      <div className="flex min-h-[14px] flex-wrap gap-0.5">
+      <div className="relative flex min-h-[14px] flex-wrap gap-0.5">
         {tags.slice(0, 3).map((tag) => (
           <span
             key={tag}
@@ -141,8 +76,9 @@ function TerminalSkeleton({
           </span>
         )}
         {tags.length === 0 && (
-          <span className="text-[8px] italic leading-[14px] text-muted-foreground/25">
-            no tags
+          <span className="flex items-center gap-0.5 text-[8px] leading-[14px] text-muted-foreground/35">
+            <Terminal className="h-2 w-2" />
+            shell
           </span>
         )}
       </div>
@@ -165,46 +101,42 @@ export function TerminalDock({
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const terminalNodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const n of nodes) {
+      if (n.type === "terminal") {
+        map.set((n.data as TerminalNodeData).terminalId, n.id);
+      }
+    }
+    return map;
+  }, [nodes]);
+
   const filteredTerminals = useMemo(() => {
-    if (!search.trim()) return terminals;
+    if (collapsed || !search.trim()) return collapsed ? [] : terminals;
     const tokens = search.toLowerCase().split(/\s+/);
     return terminals.filter((t) => {
       const text = `${t.id} ${(t.tags ?? []).join(" ")}`.toLowerCase();
       return tokens.every((tok) => text.includes(tok));
     });
-  }, [terminals, search]);
+  }, [terminals, search, collapsed]);
 
   const groups = useMemo(
-    () =>
-      groupMode === "tag"
-        ? groupByTag(filteredTerminals)
-        : groupByHost(filteredTerminals, services),
-    [filteredTerminals, groupMode, services],
+    () => (collapsed ? [] : groupTerminals(filteredTerminals, groupMode, services)),
+    [filteredTerminals, groupMode, services, collapsed],
   );
 
   const handleClickSkeleton = useCallback(
     (terminalId: string) => {
-      const node = nodes.find(
-        (n) =>
-          n.type === "terminal" &&
-          (n.data as TerminalNodeData).terminalId === terminalId,
-      );
-      if (node) onFocusTerminal(node.id);
+      const nodeId = terminalNodeMap.get(terminalId);
+      if (nodeId) onFocusTerminal(nodeId);
     },
-    [nodes, onFocusTerminal],
-  );
-
-  const handleDoubleClickSkeleton = useCallback(
-    (terminalId: string, status: TerminalStatus) => {
-      onFullScreenTerminal(terminalId, status);
-    },
-    [onFullScreenTerminal],
+    [terminalNodeMap, onFocusTerminal],
   );
 
   if (terminals.length === 0) return null;
 
-  const showFilterCount =
-    filteredTerminals.length !== terminals.length;
+  const showFilterCount = filteredTerminals.length !== terminals.length;
+  const activeCount = terminals.filter((t) => t.status === "active").length;
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col">
@@ -212,14 +144,19 @@ export function TerminalDock({
       <div className="flex justify-center">
         <button
           onClick={() => setCollapsed((v) => !v)}
-          className="flex h-5 items-center gap-1.5 rounded-t-md border border-b-0 border-border-default/40 bg-card/80 px-3 text-[10px] text-muted-foreground/60 backdrop-blur-md transition-colors hover:text-muted-foreground"
+          className="flex h-6 items-center gap-2 rounded-t-lg border border-b-0 border-border-default/40 bg-card/85 px-3.5 shadow-[0_-2px_8px_rgba(0,0,0,0.15)] backdrop-blur-md transition-colors hover:bg-card/95 hover:text-muted-foreground"
         >
           {collapsed ? (
-            <ChevronUp className="h-2.5 w-2.5" />
+            <ChevronUp className="h-2.5 w-2.5 text-muted-foreground/50" />
           ) : (
-            <ChevronDown className="h-2.5 w-2.5" />
+            <ChevronDown className="h-2.5 w-2.5 text-muted-foreground/50" />
           )}
-          <span className="font-mono">
+          <span className="font-mono text-[10px] text-muted-foreground/60">
+            {activeCount > 0 && (
+              <span className="mr-1 inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-green/15 px-1 text-[9px] font-semibold text-accent-green">
+                {activeCount}
+              </span>
+            )}
             {terminals.length} terminal{terminals.length !== 1 ? "s" : ""}
           </span>
         </button>
@@ -227,11 +164,10 @@ export function TerminalDock({
 
       {/* Dock body */}
       {!collapsed && (
-        <div className="border-t border-border-default/40 bg-card/80 backdrop-blur-md">
+        <div className="border-t border-border-default/40 bg-card/85 shadow-[0_-4px_16px_rgba(0,0,0,0.2)] backdrop-blur-md transition-all">
           {/* Toolbar */}
           <div className="flex items-center gap-2 px-3 py-1.5">
-            {/* Search */}
-            <div className="flex items-center gap-1.5 rounded-md border border-border-subtle/60 bg-surface-sunken/50 px-2 py-1">
+            <div className="flex items-center gap-1.5 rounded-md border border-border-subtle/60 bg-surface-sunken/50 px-2 py-1 transition-colors focus-within:border-accent-cyan/25">
               <Search className="h-3 w-3 shrink-0 text-muted-foreground/40" />
               <input
                 ref={searchRef}
@@ -246,14 +182,13 @@ export function TerminalDock({
                     setSearch("");
                     searchRef.current?.focus();
                   }}
-                  className="text-muted-foreground/40 hover:text-muted-foreground"
+                  className="text-muted-foreground/40 transition-colors hover:text-muted-foreground"
                 >
                   <X className="h-2.5 w-2.5" />
                 </button>
               )}
             </div>
 
-            {/* Group mode toggle */}
             <div className="flex overflow-hidden rounded-md border border-border-subtle/60">
               <button
                 onClick={() => setGroupMode("tag")}
@@ -279,9 +214,8 @@ export function TerminalDock({
               </button>
             </div>
 
-            {/* Count */}
-            <span className="ml-auto text-[10px] text-muted-foreground/30">
-              {showFilterCount && `${filteredTerminals.length} of `}
+            <span className="ml-auto font-mono text-[10px] text-muted-foreground/30">
+              {showFilterCount && `${filteredTerminals.length}/`}
               {terminals.length}
             </span>
           </div>
@@ -289,13 +223,13 @@ export function TerminalDock({
           {/* Groups */}
           <div className="flex gap-5 overflow-x-auto px-3 pb-2.5 pt-0.5">
             {groups.length === 0 ? (
-              <div className="flex w-full items-center justify-center py-4 text-caption text-muted-foreground/40">
+              <div className="flex w-full items-center justify-center gap-2 py-4 text-caption text-muted-foreground/40">
+                <Search className="h-3.5 w-3.5" />
                 No matching terminals
               </div>
             ) : (
               groups.map((group) => (
                 <div key={group.key} className="shrink-0">
-                  {/* Group label */}
                   <div className="mb-1.5 flex items-center gap-1.5">
                     {group.colorClasses ? (
                       <span
@@ -313,7 +247,6 @@ export function TerminalDock({
                     </span>
                   </div>
 
-                  {/* Skeletons row */}
                   <div className="flex gap-1.5">
                     {group.terminals.map((t) => (
                       <TerminalSkeleton
@@ -321,7 +254,7 @@ export function TerminalDock({
                         terminal={t}
                         onClick={() => handleClickSkeleton(t.id)}
                         onDoubleClick={() =>
-                          handleDoubleClickSkeleton(t.id, t.status)
+                          onFullScreenTerminal(t.id, t.status)
                         }
                       />
                     ))}

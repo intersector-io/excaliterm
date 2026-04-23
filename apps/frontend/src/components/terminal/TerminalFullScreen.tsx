@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Lock, LockOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
+import { getStatusBadgeClasses } from "@/lib/terminal-status";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 import { TerminalView } from "./TerminalView";
 import { getTagColor } from "@/components/canvas/TagEditor";
@@ -12,18 +13,7 @@ function getLockButtonStyle(lockedBySelf: boolean, lockedByOther: boolean): stri
   return "bg-secondary text-foreground";
 }
 
-function getStatusBadgeStyle(status: TerminalStatus): string {
-  switch (status) {
-    case "active":
-      return "bg-accent-green/20 text-accent-green";
-    case "error":
-      return "bg-accent-red/20 text-accent-red";
-    case "exited":
-      return "bg-muted text-muted-foreground";
-    default:
-      return "bg-accent-amber/20 text-accent-amber";
-  }
-}
+const SWIPE_THRESHOLD = 60;
 
 interface TerminalFullScreenProps {
   terminalId: string;
@@ -56,6 +46,7 @@ export function TerminalFullScreen({
 
   const hasCycling = onPrev && onNext && totalCount && totalCount > 1;
 
+  // Keyboard: Escape to close
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -66,8 +57,40 @@ export function TerminalFullScreen({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onBack]);
 
+  // Swipe gestures for cycling on mobile
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (!hasCycling) return;
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - touchStartX.current;
+      const dy = touch.clientY - touchStartY.current;
+
+      // Only trigger if horizontal swipe is dominant
+      if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx > 0 && onPrev) onPrev();
+        if (dx < 0 && onNext) onNext();
+      }
+    },
+    [hasCycling, onPrev, onNext],
+  );
+
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col bg-background">
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-background"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Header */}
       <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-card px-3">
         <button
@@ -125,7 +148,7 @@ export function TerminalFullScreen({
           </button>
         )}
         <span
-          className={`rounded-full px-2 py-0.5 text-caption font-semibold uppercase tracking-wider ${getStatusBadgeStyle(status)}`}
+          className={`rounded-full px-2 py-0.5 text-caption font-semibold uppercase tracking-wider ${getStatusBadgeClasses(status)}`}
         >
           {status}
         </span>
@@ -138,19 +161,19 @@ export function TerminalFullScreen({
 
       {/* Cycle navigation bar */}
       {hasCycling && (
-        <div className="flex h-12 shrink-0 items-center justify-between border-t border-border bg-card px-4">
+        <div className="flex h-14 shrink-0 items-center justify-between border-t border-border bg-card px-4">
           <button
             onClick={onPrev}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-raised text-muted-foreground transition-colors hover:text-foreground active:bg-surface-raised/80"
+            className="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-raised text-muted-foreground transition-colors hover:text-foreground active:scale-[0.95] active:bg-surface-raised/80"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {(currentIndex ?? 0) + 1} of {totalCount}
           </span>
           <button
             onClick={onNext}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-raised text-muted-foreground transition-colors hover:text-foreground active:bg-surface-raised/80"
+            className="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-raised text-muted-foreground transition-colors hover:text-foreground active:scale-[0.95] active:bg-surface-raised/80"
           >
             <ChevronRight className="h-5 w-5" />
           </button>

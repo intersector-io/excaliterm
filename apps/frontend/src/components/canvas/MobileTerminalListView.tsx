@@ -9,6 +9,9 @@ import {
   Focus,
   Filter,
   X,
+  Tag,
+  Server,
+  Layers,
 } from "lucide-react";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
@@ -16,6 +19,7 @@ import { useServices } from "@/hooks/use-services";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
+import { groupTerminals, type GroupMode } from "@/lib/terminal-grouping";
 import { MobileMediaSection } from "./MobileMediaViewer";
 import * as api from "@/lib/api-client";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
@@ -40,10 +44,16 @@ const ALL_STATUSES: TerminalStatus[] = [
   "error",
 ];
 
+const GROUP_MODE_ICONS: Record<GroupMode, typeof Layers> = {
+  status: Layers,
+  tag: Tag,
+  host: Server,
+};
+
 export function MobileTerminalListView() {
   const { terminals, createTerminal, isCreating } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
-  const { onlineCount } = useServices();
+  const { services, onlineCount } = useServices();
   const { collaborator, workspaceId, apiKey } = useWorkspace();
   const { collaboratorCount } = useTerminalCollaboration();
 
@@ -67,6 +77,7 @@ export function MobileTerminalListView() {
     new Set(),
   );
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [groupMode, setGroupMode] = useState<GroupMode>("status");
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -79,7 +90,7 @@ export function MobileTerminalListView() {
   const hasFilters = selectedStatuses.size > 0 || selectedTags.size > 0;
 
   const filteredTerminals = useMemo(() => {
-    if (!hasFilters) return terminals;
+    if (selectedStatuses.size === 0 && selectedTags.size === 0) return terminals;
     return terminals.filter((t) => {
       if (
         selectedStatuses.size > 0 &&
@@ -92,15 +103,11 @@ export function MobileTerminalListView() {
       }
       return true;
     });
-  }, [terminals, selectedStatuses, selectedTags, hasFilters]);
+  }, [terminals, selectedStatuses, selectedTags]);
 
-  const activeTerminals = useMemo(
-    () => filteredTerminals.filter((t) => t.status === "active"),
-    [filteredTerminals],
-  );
-  const inactiveTerminals = useMemo(
-    () => filteredTerminals.filter((t) => t.status !== "active"),
-    [filteredTerminals],
+  const groups = useMemo(
+    () => groupTerminals(filteredTerminals, groupMode, services),
+    [filteredTerminals, groupMode, services],
   );
 
   const toggleStatus = useCallback((s: TerminalStatus) => {
@@ -169,8 +176,7 @@ export function MobileTerminalListView() {
     }
   }
 
-  const statusColor = getStatusDotColor;
-  const statusLabel = getStatusLabel;
+  const GroupIcon = GROUP_MODE_ICONS[groupMode];
 
   return (
     <div className="flex h-full flex-col">
@@ -204,9 +210,36 @@ export function MobileTerminalListView() {
             </span>
           </div>
         </div>
-        {/* Focus + Filter buttons */}
+        {/* Focus + Filter + Group buttons */}
         {terminals.length > 0 && (
           <div className="flex items-center gap-1.5">
+            {/* Group mode toggle */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex h-8 items-center gap-1.5 rounded-lg bg-surface-raised px-2.5 text-caption font-medium text-muted-foreground"
+                >
+                  <GroupIcon className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setGroupMode("status")}>
+                  <Layers className="h-3.5 w-3.5" />
+                  <span>By status</span>
+                  {groupMode === "status" && <span className="ml-auto text-accent-cyan">*</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGroupMode("tag")}>
+                  <Tag className="h-3.5 w-3.5" />
+                  <span>By tag</span>
+                  {groupMode === "tag" && <span className="ml-auto text-accent-cyan">*</span>}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setGroupMode("host")}>
+                  <Server className="h-3.5 w-3.5" />
+                  <span>By host</span>
+                  {groupMode === "host" && <span className="ml-auto text-accent-cyan">*</span>}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               onClick={() => setFilterOpen((v) => !v)}
               className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-caption font-medium transition-colors ${
@@ -249,14 +282,14 @@ export function MobileTerminalListView() {
                   onClick={() => toggleStatus(s)}
                   className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-caption font-medium transition-colors ${
                     selectedStatuses.has(s)
-                      ? `${statusColor(s)}/20 ${statusColor(s).replace("bg-", "text-")} border-current`
+                      ? `${getStatusDotColor(s)}/20 ${getStatusDotColor(s).replace("bg-", "text-")} border-current`
                       : "border-border/40 text-muted-foreground"
                   }`}
                 >
                   <div
-                    className={`h-1.5 w-1.5 rounded-full ${statusColor(s)}`}
+                    className={`h-1.5 w-1.5 rounded-full ${getStatusDotColor(s)}`}
                   />
-                  {statusLabel(s)}
+                  {getStatusLabel(s)}
                 </button>
               ))}
             </div>
@@ -351,21 +384,31 @@ export function MobileTerminalListView() {
           </div>
         ) : (
           <div className="p-3 space-y-2">
-            {/* Active terminals */}
-            {activeTerminals.length > 0 && (
-              <div className="space-y-1.5">
-                <h3 className="px-1 text-caption font-medium uppercase tracking-wider text-muted-foreground/60">
-                  Active ({activeTerminals.length})
+            {groups.map((group) => (
+              <div key={group.key} className="space-y-1.5">
+                <h3 className="flex items-center gap-1.5 px-1 text-caption font-medium uppercase tracking-wider text-muted-foreground/60">
+                  {group.colorClasses ? (
+                    <span
+                      className={`inline-flex items-center rounded-full border px-1.5 py-0 text-caption font-medium normal-case tracking-normal ${group.colorClasses}`}
+                    >
+                      {group.label}
+                    </span>
+                  ) : (
+                    <span>{group.label}</span>
+                  )}
+                  <span className={`text-muted-foreground/30 ${group.colorClasses ? "text-[10px]" : ""}`}>
+                    {group.terminals.length}
+                  </span>
                 </h3>
-                {activeTerminals.map((terminal) => (
+                {group.terminals.map((terminal) => (
                   <TerminalCard
                     key={terminal.id}
                     terminalId={terminal.id}
                     status={terminal.status}
                     tags={terminal.tags}
                     exitCode={terminal.exitCode}
-                    statusColor={statusColor(terminal.status)}
-                    statusLabel={statusLabel(terminal.status)}
+                    statusColor={getStatusDotColor(terminal.status)}
+                    statusLabel={getStatusLabel(terminal.status)}
                     onTap={() =>
                       handleOpenTerminal(
                         terminal.id,
@@ -376,34 +419,7 @@ export function MobileTerminalListView() {
                   />
                 ))}
               </div>
-            )}
-
-            {/* Inactive terminals */}
-            {inactiveTerminals.length > 0 && (
-              <div className="space-y-1.5">
-                <h3 className="px-1 text-caption font-medium uppercase tracking-wider text-muted-foreground/60">
-                  Inactive ({inactiveTerminals.length})
-                </h3>
-                {inactiveTerminals.map((terminal) => (
-                  <TerminalCard
-                    key={terminal.id}
-                    terminalId={terminal.id}
-                    status={terminal.status}
-                    tags={terminal.tags}
-                    exitCode={terminal.exitCode}
-                    statusColor={statusColor(terminal.status)}
-                    statusLabel={statusLabel(terminal.status)}
-                    onTap={() =>
-                      handleOpenTerminal(
-                        terminal.id,
-                        terminal.status as TerminalStatus,
-                        terminal.tags,
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            )}
+            ))}
 
             {/* Media: Screenshots & Streams */}
             <MobileMediaSection screenshots={screenshots} />

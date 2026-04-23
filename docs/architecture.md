@@ -99,6 +99,12 @@ If Redis is not available, terminal creation and backend-driven fanout will not 
 - A `command-history` canvas node can be created from a terminal's dropdown menu to display the history and top 10 most-used commands.
 - Each command row has copy and execute buttons. Execute re-sends the command to the linked terminal via SignalR.
 
+### Terminal discovery
+
+- **Desktop**: A collapsible Terminal Dock sits at the bottom of the canvas. It shows miniature skeleton cards for each terminal, grouped by tag or host. A search input filters by terminal ID or tag. Clicking a skeleton pans the canvas to the terminal node; double-clicking opens fullscreen.
+- **Mobile**: The terminal list view supports grouping by status, tag, or host via a dropdown toggle. Fullscreen cycling supports swipe gestures for navigating between terminals.
+- Grouping logic is shared between desktop and mobile via `src/lib/terminal-grouping.ts`.
+
 ### Chat
 
 - Chat history is stored in SQLite and retrieved through REST.

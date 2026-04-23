@@ -32,6 +32,19 @@ export function isStaleStatus(status: string): boolean {
   return status === "error" || status === "disconnected";
 }
 
+export function getStatusBadgeClasses(status: string): string {
+  switch (status) {
+    case "active":
+      return "bg-accent-green/20 text-accent-green";
+    case "error":
+      return "bg-accent-red/20 text-accent-red";
+    case "exited":
+      return "bg-muted text-muted-foreground";
+    default:
+      return "bg-accent-amber/20 text-accent-amber";
+  }
+}
+
 export function getStatusLabel(status: string): string {
   switch (status) {
     case "active":

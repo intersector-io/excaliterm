@@ -70,15 +70,19 @@ The API key is auto-generated per workspace. You can find it any time in the "Co
 
 Once the agent logs `Ready and waiting for commands`, the UI shows **"1 host ready"** -- your machine is connected.
 
-### 5. Create terminals
+### 5. Create terminals and editors
 
-Click the **Terminal** button in the canvas toolbar. A live shell session appears on the canvas. Create as many as you need -- they arrange in a grid automatically. Tag them, filter by tag, drag them around, resize, and collaborate in real-time.
+Click the **Terminal** or **Editor** button on the host node in the canvas. A live shell session or file editor appears on the canvas, linked to the host. Create as many as you need -- they arrange in a grid automatically. Tag terminals, filter by tag, drag them around, resize, and collaborate in real-time.
 
-### 6. View command history
+### 6. Find terminals with the dock
+
+The **Terminal Dock** at the bottom of the canvas shows miniature skeleton cards for every terminal, grouped by **tag** or **host**. Use the search input to filter by ID or tag. Click a skeleton to pan to it on the canvas, or double-click to open fullscreen. On mobile, switch the terminal list grouping between status, tag, or host with the group toggle button. Swipe left/right in fullscreen to cycle between terminals.
+
+### 7. View command history
 
 Open the overflow menu on any terminal and select **Command History**. A linked history node appears on the canvas showing all commands entered in that terminal. Switch to the **Top 10** tab to see the most frequently used commands. Each command has **copy** and **execute** buttons -- execute re-sends the command to the terminal.
 
-### 7. Share with others
+### 8. Share with others
 
 Copy the workspace URL and send it to anyone. They join instantly as a collaborator -- no accounts needed.
 
