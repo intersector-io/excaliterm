@@ -287,7 +287,7 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
           size={1}
           color="rgba(255, 255, 255, 0.04)"
         />
-        {!isMobile && !isEmpty && <Controls position="bottom-left" />}
+        {!isMobile && !isEmpty && <Controls position="bottom-left" showInteractive={false} />}
         {!isMobile && nodes.length > 1 && (
           <MiniMap
             position="bottom-right"

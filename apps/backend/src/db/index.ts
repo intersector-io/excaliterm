@@ -139,6 +139,20 @@ export function initializeDb() {
     // Column already exists
   }
 
+  // Flip legacy terminal→host edges to host→terminal so they render from the
+  // host's bottom handle. Idempotent: after the swap no such edges remain.
+  _sqlite.exec(`
+    UPDATE "canvas_edge"
+    SET "sourceNodeId" = "targetNodeId", "targetNodeId" = "sourceNodeId"
+    WHERE "id" IN (
+      SELECT e."id"
+      FROM "canvas_edge" e
+      JOIN "canvas_node" s ON s."id" = e."sourceNodeId"
+      JOIN "canvas_node" t ON t."id" = e."targetNodeId"
+      WHERE s."nodeType" = 'terminal' AND t."nodeType" = 'host'
+    )
+  `);
+
   _db = drizzle(_sqlite, { schema });
 
   console.log("[db] Database initialized:", env.DATABASE_URL);

@@ -161,8 +161,8 @@ terminals.post("/", async (c) => {
     await db.insert(schema.canvasEdge).values({
       id: crypto.randomUUID(),
       workspaceId,
-      sourceNodeId: nodeId,
-      targetNodeId: hostNode.id,
+      sourceNodeId: hostNode.id,
+      targetNodeId: nodeId,
     });
   }
 
