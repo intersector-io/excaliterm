@@ -39,15 +39,24 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 // ─── Workspaces ──────────────────────────────────────────────────────────────
 
-export interface WorkspaceResponse {
+export interface WorkspaceCreateResponse {
   id: string;
   name: string;
+  // Returned only on creation. Store it client-side — the backend will not
+  // return it again on subsequent GETs.
   apiKey: string;
   createdAt: string;
   lastAccessedAt: string;
 }
 
-export function createWorkspace(): Promise<WorkspaceResponse> {
+export interface WorkspaceResponse {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastAccessedAt: string;
+}
+
+export function createWorkspace(): Promise<WorkspaceCreateResponse> {
   return request("/workspaces", { method: "POST" });
 }
 

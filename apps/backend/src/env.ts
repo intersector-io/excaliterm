@@ -12,6 +12,9 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url("FRONTEND_URL must be a valid URL"),
   BACKEND_PORT: z.coerce.number().int().positive().default(3001),
   REDIS_URL: z.string().min(1, "REDIS_URL is required").default("redis://localhost:6379"),
+  INTERNAL_API_SECRET: z
+    .string()
+    .min(32, "INTERNAL_API_SECRET must be at least 32 characters"),
 });
 
 export type Env = z.infer<typeof envSchema>;

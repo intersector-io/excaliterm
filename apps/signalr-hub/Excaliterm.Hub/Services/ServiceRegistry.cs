@@ -149,6 +149,19 @@ public class ServiceRegistry
         return info;
     }
 
+    /// <summary>
+    /// Returns the service instance that owns the given terminal, or null if the
+    /// terminal is unknown. Used for authorization checks on terminal operations.
+    /// </summary>
+    public ServiceInstanceInfo? GetServiceForTerminal(string terminalId)
+    {
+        if (!_terminalToService.TryGetValue(terminalId, out var serviceId))
+            return null;
+
+        _byServiceInstanceId.TryGetValue(serviceId, out var info);
+        return info;
+    }
+
     public IReadOnlyList<ServiceInstanceInfo> GetServicesByWorkspace(string workspaceId)
     {
         return _byServiceInstanceId.Values

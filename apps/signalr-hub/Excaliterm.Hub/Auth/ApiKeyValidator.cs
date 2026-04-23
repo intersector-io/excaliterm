@@ -6,6 +6,7 @@ namespace Excaliterm.Hub.Auth;
 public class ApiKeyValidator
 {
     private readonly HttpClient _httpClient;
+    private readonly string _internalSecret;
     private readonly ILogger<ApiKeyValidator> _logger;
     private readonly ConcurrentDictionary<string, CachedResult> _cache = new();
     private readonly Timer _evictionTimer;
@@ -23,6 +24,11 @@ public class ApiKeyValidator
             ?? "http://localhost:3001"
         );
         _httpClient.Timeout = RequestTimeout;
+        _internalSecret = config["Internal:ApiSecret"]
+            ?? Environment.GetEnvironmentVariable("INTERNAL_API_SECRET")
+            ?? throw new InvalidOperationException(
+                "INTERNAL_API_SECRET (or config Internal:ApiSecret) is required for hub→backend auth."
+            );
         _logger = logger;
         _evictionTimer = new Timer(_ => EvictExpiredEntries(), null, CacheTtl, CacheTtl);
     }
@@ -39,10 +45,12 @@ public class ApiKeyValidator
         try
         {
             using var cts = new CancellationTokenSource(RequestTimeout);
-            var response = await _httpClient.GetAsync(
-                $"/api/validate-key?workspaceId={Uri.EscapeDataString(workspaceId)}&apiKey={Uri.EscapeDataString(apiKey)}",
-                cts.Token
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"/api/validate-key?workspaceId={Uri.EscapeDataString(workspaceId)}&apiKey={Uri.EscapeDataString(apiKey)}"
             );
+            request.Headers.Add("X-Internal-Secret", _internalSecret);
+            var response = await _httpClient.SendAsync(request, cts.Token);
 
             if (!response.IsSuccessStatusCode)
                 return false;

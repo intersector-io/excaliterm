@@ -174,10 +174,14 @@ public class TerminalHub : BaseHub
 
     public async Task AcquireTerminalLock(string terminalId)
     {
+        if (IsServiceConnection()) return;
+
         var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         var displayName = GetUserName();
         if (workspaceId is null || clientId is null || displayName is null) return;
+
+        if (!await EnsureCallerOwnsTerminalAsync(terminalId)) return;
 
         var acquired = _collaborationRegistry.TryAcquireLock(
             workspaceId,
@@ -207,9 +211,13 @@ public class TerminalHub : BaseHub
 
     public async Task ReleaseTerminalLock(string terminalId)
     {
+        if (IsServiceConnection()) return;
+
         var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         if (workspaceId is null || clientId is null) return;
+
+        if (!await EnsureCallerOwnsTerminalAsync(terminalId)) return;
 
         var existing = _collaborationRegistry.GetLock(terminalId);
         if (existing is not null && existing.ClientId != clientId)
@@ -294,15 +302,48 @@ public class TerminalHub : BaseHub
         return true;
     }
 
+    /// <summary>
+    /// Verifies that the caller's workspace owns the given terminal. Without this
+    /// check, any authenticated browser could reach terminals in other workspaces
+    /// by passing their IDs directly to the hub.
+    ///
+    /// On failure, sends TerminalError("Access denied") and returns false.
+    /// </summary>
+    private async Task<bool> EnsureCallerOwnsTerminalAsync(string terminalId)
+    {
+        var callerWorkspace = GetWorkspaceId();
+        if (callerWorkspace is null)
+            return false;
+
+        var owner = _serviceRegistry.GetServiceForTerminal(terminalId);
+        if (owner is null || owner.WorkspaceId != callerWorkspace)
+        {
+            Logger.LogWarning(
+                "Blocked cross-workspace terminal access: caller workspace={CallerWorkspace} terminal={TerminalId} connection={ConnectionId}",
+                callerWorkspace, terminalId, Context.ConnectionId
+            );
+            await Clients.Caller.SendAsync(
+                "TerminalError",
+                new TerminalErrorMessage(terminalId, "Access denied")
+            );
+            return false;
+        }
+
+        return true;
+    }
+
     // ─── Client → Server methods (input routing) ────────────────────────────────
 
     public async Task TerminalInput(string terminalId, string data)
     {
+        if (IsServiceConnection()) return;
+
         var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         var displayName = GetUserName();
         if (workspaceId is null || clientId is null || displayName is null) return;
 
+        if (!await EnsureCallerOwnsTerminalAsync(terminalId)) return;
         if (await IsLockedByOtherAsync(terminalId, clientId)) return;
 
         // Route input to the service connection that owns this terminal
@@ -336,10 +377,13 @@ public class TerminalHub : BaseHub
 
     public async Task TerminalResize(string terminalId, int cols, int rows)
     {
+        if (IsServiceConnection()) return;
+
         var workspaceId = GetWorkspaceId();
         var clientId = GetUserId();
         if (workspaceId is null || clientId is null) return;
 
+        if (!await EnsureCallerOwnsTerminalAsync(terminalId)) return;
         if (await IsLockedByOtherAsync(terminalId, clientId)) return;
 
         var connectionId = _serviceRegistry.GetConnectionForTerminal(terminalId);
@@ -393,6 +437,8 @@ public class TerminalHub : BaseHub
     public async Task RequestTerminalBuffer(string terminalId)
     {
         if (_redis is null) return;
+        if (IsServiceConnection()) return;
+        if (!await EnsureCallerOwnsTerminalAsync(terminalId)) return;
 
         try
         {

@@ -10,9 +10,6 @@ public class FileHub : BaseHub
     private readonly ServiceRegistry _serviceRegistry;
     private readonly ApiKeyValidator _apiKeyValidator;
 
-    // Default whitelisted base paths; can be overridden per-service from DB/cache
-    private static readonly string[] DefaultAllowedBasePaths = ["/app", "/home", "/var/log"];
-
     public FileHub(WorkspaceValidator workspaceValidator, ServiceRegistry serviceRegistry, ApiKeyValidator apiKeyValidator, ILogger<FileHub> logger)
         : base(workspaceValidator, logger)
     {
@@ -29,9 +26,9 @@ public class FileHub : BaseHub
 
     public async Task ListDirectory(string serviceId, string path)
     {
-        if (!ValidatePath(path))
+        if (!StructuralPathCheck(path))
         {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Path not allowed"));
+            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Invalid path"));
             return;
         }
 
@@ -44,9 +41,9 @@ public class FileHub : BaseHub
 
     public async Task ReadFile(string serviceId, string path)
     {
-        if (!ValidatePath(path))
+        if (!StructuralPathCheck(path))
         {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Path not allowed"));
+            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Invalid path"));
             return;
         }
 
@@ -59,9 +56,9 @@ public class FileHub : BaseHub
 
     public async Task WriteFile(string serviceId, string path, string content)
     {
-        if (!ValidatePath(path))
+        if (!StructuralPathCheck(path))
         {
-            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Path not allowed"));
+            await Clients.Caller.SendAsync("FileError", new FileErrorMessage(serviceId, path, "Invalid path"));
             return;
         }
 
@@ -247,33 +244,16 @@ public class FileHub : BaseHub
 
     // ─── Path validation ────────────────────────────────────────────────────────
 
-    private static bool ValidatePath(string path)
+    /// <summary>
+    /// Structural sanity check only. Filesystem-level authorization lives on the
+    /// terminal-agent (see PathValidator in apps/terminal-agent), which knows the
+    /// actual OS, user, and configured WHITELISTED_PATHS. The hub cannot enforce
+    /// those rules correctly for remote agents running on a different OS.
+    /// </summary>
+    private static bool StructuralPathCheck(string path)
     {
-        if (string.IsNullOrWhiteSpace(path))
-            return false;
-
-        // Reject obvious traversal patterns before normalization
-        if (path.Contains("..") || path.Contains('\0'))
-            return false;
-
-        // Normalize the path
-        string normalized;
-        try
-        {
-            normalized = Path.GetFullPath(path);
-        }
-        catch
-        {
-            return false;
-        }
-
-        // Double-check no traversal after normalization
-        if (normalized.Contains(".."))
-            return false;
-
-        // Check against whitelisted base paths
-        return DefaultAllowedBasePaths.Any(basePath =>
-            normalized.StartsWith(basePath, StringComparison.OrdinalIgnoreCase)
-        );
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        if (path.Contains('\0')) return false;
+        return true;
     }
 }

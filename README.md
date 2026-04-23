@@ -176,6 +176,12 @@ Set at least these values in `.env`:
 - `BACKEND_PORT`
 - `REDIS_URL`
 - `SIGNALR_HUB_URL`
+- `INTERNAL_API_SECRET` — shared secret the hub uses to call the backend's
+  internal `/api/validate-key` endpoint. Must be at least 32 characters.
+  Generate one with `openssl rand -hex 32`.
+- `TRUST_PROXY` — set to `true` only when the backend sits behind a trusted
+  reverse proxy. Defaults to `false`, in which case the rate-limiter uses the
+  TCP peer address (unspoofable) instead of `X-Forwarded-For`.
 
 ### Run
 

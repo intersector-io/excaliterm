@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
+import { timingSafeEqual } from "node:crypto";
 import { loadEnv } from "./env.js";
 import { initializeDb, getDb, schema } from "./db/index.js";
 import { eq, and, count } from "drizzle-orm";
@@ -22,8 +23,50 @@ import { commandHistory } from "./routes/command-history.js";
 
 const env = loadEnv();
 
+function timingSafeEqualStr(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  const len = Math.max(ab.length, bb.length);
+  const pa = Buffer.alloc(len);
+  const pb = Buffer.alloc(len);
+  ab.copy(pa);
+  bb.copy(pb);
+  const same = timingSafeEqual(pa, pb);
+  return same && ab.length === bb.length;
+}
+
 initializeDb();
 initializeRedis();
+
+// One-time rotation of any legacy "auto-registered" placeholder keys left by older
+// builds — those are not secrets and must be replaced with unique values.
+async function rotateLegacyAutoRegisteredKeys() {
+  const db = getDb();
+  const [probe] = await db
+    .select({ id: schema.serviceInstance.id })
+    .from(schema.serviceInstance)
+    .where(eq(schema.serviceInstance.apiKey, "auto-registered"))
+    .limit(1);
+  if (!probe) return;
+
+  const stale = await db
+    .select()
+    .from(schema.serviceInstance)
+    .where(eq(schema.serviceInstance.apiKey, "auto-registered"));
+
+  for (const row of stale) {
+    const fresh = crypto.randomUUID();
+    await db
+      .update(schema.serviceInstance)
+      .set({ apiKey: fresh, updatedAt: new Date() })
+      .where(eq(schema.serviceInstance.id, row.id));
+    console.log(
+      `[startup] Rotated legacy apiKey for service ${row.serviceId} (workspace=${row.workspaceId}).`,
+    );
+  }
+}
+
+await rotateLegacyAutoRegisteredKeys();
 
 async function handleServiceOnline(serviceInstanceId: string, workspaceId: string) {
   const db = getDb();
@@ -48,17 +91,22 @@ async function handleServiceOnline(serviceInstanceId: string, workspaceId: strin
 
     if (workspace) {
       serviceDbId = crypto.randomUUID();
+      const generatedApiKey = crypto.randomUUID();
       await db.insert(schema.serviceInstance).values({
         id: serviceDbId,
         workspaceId,
         serviceId: serviceInstanceId,
         name: serviceInstanceId,
-        apiKey: "auto-registered",
+        apiKey: generatedApiKey,
         status: "online",
         lastSeen: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+      console.log(
+        `[redis] Auto-registered service ${serviceInstanceId} (workspace=${workspaceId}). ` +
+          `Generated apiKey stored in DB; retrieve it via the backend if needed.`,
+      );
     } else {
       console.warn(`[redis] Ignoring service online event: workspace ${workspaceId} not found`);
     }
@@ -191,8 +239,16 @@ app.route("/api/health", health);
 
 // ─── Connect Info (public) ────────────────────────────────────────────────
 
-// Validate a workspace API key (used by SignalR hub)
+// Validate a workspace API key — internal-only, used by the SignalR hub over the
+// Docker network. Protected by a shared secret so it cannot be abused as a public
+// oracle to confirm workspace/apiKey pairs.
 app.get("/api/validate-key", async (c) => {
+  const provided = c.req.header("x-internal-secret");
+  if (!provided || !timingSafeEqualStr(provided, env.INTERNAL_API_SECRET)) {
+    // Deliberately mimic a missing route to avoid advertising the endpoint.
+    return c.notFound();
+  }
+
   const workspaceId = c.req.query("workspaceId");
   const apiKey = c.req.query("apiKey");
 

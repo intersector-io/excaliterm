@@ -25,6 +25,8 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=/app/data/excaliterm.db
       - REDIS_URL=redis://redis:6379
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - TRUST_PROXY=${TRUST_PROXY:-false}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/api/health').then(r=>{if(!r.ok)throw 1}).catch(()=>process.exit(1))\""]
       interval: 10s
@@ -52,6 +54,7 @@ services:
       - Backend__Url=http://backend:3001
       - Frontend__Url=http://frontend:80
       - ASPNETCORE_URLS=http://+:5000
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/health > /dev/null || exit 1"]
       interval: 10s

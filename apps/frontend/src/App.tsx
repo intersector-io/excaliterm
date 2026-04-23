@@ -5,7 +5,7 @@ import { WorkspaceCtx } from "@/hooks/use-workspace";
 import { getWorkspace } from "@/lib/api-client";
 import { initHubs } from "@/lib/signalr-client";
 import { getOrCreateCollaboratorProfile } from "@/lib/collaborator";
-import { WORKSPACE_STORAGE_KEY } from "@/lib/utils";
+import { WORKSPACE_STORAGE_KEY, workspaceApiKeyStorageKey } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { LandingPage } from "@/components/LandingPage";
 
@@ -26,9 +26,16 @@ function WorkspaceRoute() {
 
   useEffect(() => {
     getWorkspace(workspaceId)
-      .then((ws) => {
+      .then(() => {
         globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, workspaceId);
-        setApiKey(ws.apiKey ?? "");
+        // apiKey is only known to the browser that created the workspace (it is
+        // returned just once on POST /api/workspaces and stashed in localStorage).
+        // Browsers that arrive via a shared link will not have it, and the
+        // connect-host UI will show "(copy from the browser that created it)".
+        const storedKey = globalThis.localStorage.getItem(
+          workspaceApiKeyStorageKey(workspaceId),
+        );
+        setApiKey(storedKey ?? "");
         setValid(true);
       })
       .catch(() => setValid(false));

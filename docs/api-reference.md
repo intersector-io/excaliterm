@@ -39,15 +39,26 @@ Example response:
 }
 ```
 
-The `apiKey` is auto-generated when the workspace is created. It is used by terminal agents to authenticate with the SignalR hub.
+The `apiKey` is auto-generated when the workspace is created and is returned **only** on this creation response. It is used by terminal agents to authenticate with the SignalR hub. Store it immediately — the backend will not return it again.
+
+Rate limit: 5 requests per hour per client IP.
 
 ### `GET /workspaces/:id`
 
 Returns workspace metadata if the workspace exists. Also updates `lastAccessedAt`.
 
+The response intentionally **omits** `apiKey` — workspace IDs are shareable, but API keys are secrets.
+
 Errors:
 
 - `404` if the workspace does not exist
+
+### Trust model
+
+- The workspace ID is a shareable link and grants browser-level access to the workspace's canvas, terminals, and files.
+- The workspace `apiKey` is a secret and is only used by terminal agents to register with the SignalR hub.
+- `/api/validate-key` is an internal endpoint gated by an `X-Internal-Secret` header that must match `INTERNAL_API_SECRET`. External callers receive 404.
+- The SignalR hub enforces that a browser connected to workspace A cannot drive terminals owned by workspace B (cross-workspace terminal input, resize, buffer replay, and lock acquisition are all rejected).
 
 ## Workspace-Scoped Routes
 

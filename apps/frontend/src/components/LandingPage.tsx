@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 import { createWorkspace } from "@/lib/api-client";
 import { copyToClipboard } from "@/lib/clipboard";
-import { WORKSPACE_STORAGE_KEY } from "@/lib/utils";
+import { WORKSPACE_STORAGE_KEY, workspaceApiKeyStorageKey } from "@/lib/utils";
 
 const GITHUB_URL = "https://github.com/intersector-io/excaliterm";
 
@@ -36,6 +36,7 @@ export function LandingPage() {
     createWorkspace()
       .then((ws) => {
         globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
+        globalThis.localStorage.setItem(workspaceApiKeyStorageKey(ws.id), ws.apiKey);
         navigate(`/w/${ws.id}`, { replace: true });
       })
       .catch(() => setLoading(false));
