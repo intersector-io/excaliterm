@@ -81,9 +81,6 @@ body {
 body.app-locked {
   overflow: hidden;
 }
-body.app-locked #root {
-  height: 100vh;
-}
 
 /* ─── Custom Scrollbars ───────────────────────────────────────────────────── */
 
@@ -111,7 +108,6 @@ body.app-locked #root {
 }
 
 #root {
-  width: 100vw;
   min-height: 100vh;
 }
 
