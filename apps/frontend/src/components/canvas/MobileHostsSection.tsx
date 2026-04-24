@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Server, Terminal, FileCode, Plus, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useServices } from "@/hooks/use-services";
@@ -12,6 +12,10 @@ import { useCopyWithFeedback } from "@/hooks/use-copy";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Button } from "@/components/ui/button";
 import { MissingApiKeyExplainer } from "@/components/workspace/MissingApiKeyExplainer";
+import {
+  findNewHostServiceId,
+  getHostServiceIds,
+} from "@/lib/host-services";
 import type { ServiceInstance } from "@/lib/api-client";
 
 interface MobileHostsSectionProps {
@@ -19,10 +23,48 @@ interface MobileHostsSectionProps {
 }
 
 export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSectionProps>) {
-  const { services, deleteService } = useServices();
+  const { services, deleteService, isLoading } = useServices();
   const { createTerminal, isCreating } = useTerminals();
   const { workspaceId, apiKey } = useWorkspace();
   const [editorServiceId, setEditorServiceId] = useState<string | null>(null);
+  const [highlightedServiceId, setHighlightedServiceId] = useState<string | null>(
+    null,
+  );
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const hasInitializedServicesRef = useRef(false);
+  const previousServiceIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!hasInitializedServicesRef.current) {
+      if (isLoading) return;
+      previousServiceIdsRef.current = getHostServiceIds(services);
+      hasInitializedServicesRef.current = true;
+      return;
+    }
+
+    const previousServiceIds = previousServiceIdsRef.current;
+    const newHostServiceId = findNewHostServiceId(services, previousServiceIds);
+    const shouldRevealNewHost =
+      previousServiceIds.size === 0 && services.length > 0 && newHostServiceId;
+
+    previousServiceIdsRef.current = getHostServiceIds(services);
+
+    if (!shouldRevealNewHost) return;
+
+    sectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    setHighlightedServiceId(newHostServiceId);
+
+    const timeout = globalThis.setTimeout(() => {
+      setHighlightedServiceId((current) =>
+        current === newHostServiceId ? null : current,
+      );
+    }, 2500);
+
+    return () => globalThis.clearTimeout(timeout);
+  }, [services, isLoading]);
 
   const handleNewTerminal = useCallback(
     async (service: ServiceInstance) => {
@@ -48,18 +90,23 @@ export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSe
 
   return (
     <>
-      <div className="space-y-1.5">
+      <div ref={sectionRef} className="space-y-1.5">
         <h3 className="flex items-center gap-1.5 px-1 text-caption font-medium uppercase tracking-wider text-muted-foreground/60">
           <span>Hosts</span>
           <span className="text-muted-foreground/30">{services.length}</span>
         </h3>
         {services.map((service) => {
           const isOnline = service.status === "online";
+          const isHighlighted = service.id === highlightedServiceId;
           return (
             <div
               key={service.id}
-              className={`flex w-full items-center gap-3 rounded-xl border border-border-default bg-surface-raised/60 px-4 py-3 border-l-[3px] ${
+              className={`flex w-full items-center gap-3 rounded-xl border border-border-default bg-surface-raised/60 px-4 py-3 border-l-[3px] transition-all ${
                 isOnline ? "border-l-accent-green" : "border-l-border-subtle"
+              } ${
+                isHighlighted
+                  ? "ring-1 ring-accent-cyan/40 shadow-[0_0_0_1px_rgba(103,232,249,0.14)]"
+                  : ""
               }`}
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-sunken/50">
