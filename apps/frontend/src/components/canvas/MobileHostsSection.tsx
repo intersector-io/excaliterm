@@ -1,14 +1,17 @@
 import { useCallback, useState } from "react";
-import { Server, Terminal, FileCode, Plus, X } from "lucide-react";
+import { Server, Terminal, FileCode, Plus, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useServices } from "@/hooks/use-services";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { useCreateWorkspace } from "@/hooks/use-create-workspace";
 import { EditorFullScreen } from "@/components/editor/EditorFullScreen";
 import { INSTALL_CMD, buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
 import { getHubUrl } from "@/lib/config";
 import { useCopyWithFeedback } from "@/hooks/use-copy";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Button } from "@/components/ui/button";
+import { MissingApiKeyExplainer } from "@/components/workspace/MissingApiKeyExplainer";
 import type { ServiceInstance } from "@/lib/api-client";
 
 interface MobileHostsSectionProps {
@@ -34,6 +37,10 @@ export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSe
     },
     [createTerminal, onTerminalCreated],
   );
+
+  if (!apiKey) {
+    return <MissingApiKeyRecovery />;
+  }
 
   if (services.length === 0) {
     return <ConnectHostInline workspaceId={workspaceId} apiKey={apiKey} />;
@@ -224,6 +231,25 @@ function ConnectHostInline({
           The host will appear here automatically once the agent connects.
         </p>
       </div>
+    </div>
+  );
+}
+
+/* ─── Missing API Key Recovery ──────────────────────────────────────────── */
+
+function MissingApiKeyRecovery() {
+  const { create, creating } = useCreateWorkspace();
+  return (
+    <div className="px-4 py-5 space-y-4">
+      <MissingApiKeyExplainer />
+      <Button
+        onClick={create}
+        disabled={creating}
+        className="h-11 w-full gap-2 rounded-xl"
+      >
+        <Sparkles className="h-4 w-4" />
+        {creating ? "Creating..." : "Create new workspace"}
+      </Button>
     </div>
   );
 }

@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { toast } from "sonner";
-import { KeyRound, Sparkles, Terminal } from "lucide-react";
+import { Sparkles, Terminal } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,8 +12,8 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { INSTALL_CMD, buildRunCommand, buildEnvFile } from "@/lib/excaliterm-commands";
 import { getHubUrl } from "@/lib/config";
 import { useCopyWithFeedback } from "@/hooks/use-copy";
-import { createWorkspace } from "@/lib/api-client";
-import { WORKSPACE_STORAGE_KEY, workspaceApiKeyStorageKey } from "@/lib/utils";
+import { useCreateWorkspace } from "@/hooks/use-create-workspace";
+import { MissingApiKeyExplainer } from "@/components/workspace/MissingApiKeyExplainer";
 
 interface RegisterServiceDialogProps {
   open: boolean;
@@ -32,26 +29,13 @@ export function RegisterServiceDialog({
   apiKey,
 }: Readonly<RegisterServiceDialogProps>) {
   const { copy, isCopied, reset } = useCopyWithFeedback();
-  const [, navigate] = useLocation();
-  const [creating, setCreating] = useState(false);
+  const { create: handleCreateWorkspace, creating } = useCreateWorkspace(() =>
+    onOpenChange(false),
+  );
 
   function handleClose(value: boolean) {
     if (!value) reset();
     onOpenChange(value);
-  }
-
-  async function handleCreateWorkspace() {
-    setCreating(true);
-    try {
-      const ws = await createWorkspace();
-      globalThis.localStorage.setItem(WORKSPACE_STORAGE_KEY, ws.id);
-      globalThis.localStorage.setItem(workspaceApiKeyStorageKey(ws.id), ws.apiKey);
-      onOpenChange(false);
-      navigate(`/w/${ws.id}`, { replace: true });
-    } catch {
-      toast.error("Failed to create workspace");
-      setCreating(false);
-    }
   }
 
   const hubUrl = getHubUrl();
@@ -71,43 +55,7 @@ export function RegisterServiceDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="min-w-0 space-y-4">
-            <div className="flex items-start gap-3 rounded-md border border-accent-amber/20 bg-accent-amber/[0.06] px-4 py-3">
-              <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-accent-amber" />
-              <div className="space-y-1">
-                <p className="text-body-sm font-medium text-foreground">
-                  API key unavailable on this browser
-                </p>
-                <p className="text-caption leading-relaxed text-muted-foreground">
-                  The workspace API key is shown only once — at creation — and
-                  stored in the browser that created it. It can't be recovered
-                  from a shared link or a different browser, by design.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-body-sm font-medium text-foreground">
-                What you can do
-              </p>
-              <ul className="space-y-1.5 text-caption leading-relaxed text-muted-foreground">
-                <li className="flex gap-2">
-                  <span className="text-muted-foreground/50">•</span>
-                  <span>
-                    Open this workspace in the original browser that created
-                    it, then retry connecting a host there.
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-muted-foreground/50">•</span>
-                  <span>
-                    Or create a fresh workspace — you'll get a new shareable
-                    link and a new API key.
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
+          <MissingApiKeyExplainer />
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="secondary" onClick={() => handleClose(false)}>

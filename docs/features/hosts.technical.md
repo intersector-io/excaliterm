@@ -48,7 +48,7 @@ The `ShutdownHost()` hub method (declared on `TerminalHubConnection` from the ag
 - `components/services/RegisterServiceDialog.tsx` — connect-a-host dialog; builds the CLI command string from workspace ID, API key, and `SIGNALR_HUB_URL` (from config). When the workspace API key is missing from `localStorage` (e.g. the current browser didn't create the workspace, or storage was cleared), the dialog renders a recovery state that explains the constraint and offers a "Create new workspace" action instead of showing a broken command.
 - `components/services/ServiceCard.tsx`, `ServicesView.tsx` — list and status rendering.
 - `components/services/ServiceConfigDialog.tsx` — rename/shutdown/delete.
-- `components/canvas/MobileHostsSection.tsx` — mobile section with quick actions.
+- `components/canvas/MobileHostsSection.tsx` — mobile section with quick actions. Mirrors the desktop dialog's missing-`apiKey` recovery: when the workspace API key isn't present in this browser, it shows the "API key unavailable" explanation with a "Create new workspace" action in place of the hosts list and inline install instructions.
 - `hooks/use-services.ts` — TanStack Query hooks around the REST endpoints.
 
 ## Key files
