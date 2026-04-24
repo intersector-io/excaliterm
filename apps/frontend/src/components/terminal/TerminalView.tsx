@@ -253,20 +253,28 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
 
     terminalHub.invoke("TerminalResize", terminalId, terminal.cols, terminal.rows).catch(() => {});
 
-    const requestBuffer = () => {
-      terminalHub.invoke("RequestTerminalBuffer", terminalId).catch(() => {});
-    };
+    // Only request server replay if we have nothing cached. The store is kept
+    // in sync with the live TerminalOutput stream by `useTerminals`, so on
+    // remount (e.g. cycling between terminals in mobile focus mode) we already
+    // have the full history. Requesting again would replay through the same
+    // TerminalOutput handler and duplicate content in both the store and the
+    // xterm buffer — once per cycle.
+    if (buffered.length === 0) {
+      const requestBuffer = () => {
+        terminalHub.invoke("RequestTerminalBuffer", terminalId).catch(() => {});
+      };
 
-    if (terminalHub.state === HubConnectionState.Connected) {
-      requestBuffer();
-    } else {
-      const interval = setInterval(() => {
-        if (terminalHub.state === HubConnectionState.Connected) {
-          clearInterval(interval);
-          requestBuffer();
-        }
-      }, 100);
-      setTimeout(() => clearInterval(interval), 10_000);
+      if (terminalHub.state === HubConnectionState.Connected) {
+        requestBuffer();
+      } else {
+        const interval = setInterval(() => {
+          if (terminalHub.state === HubConnectionState.Connected) {
+            clearInterval(interval);
+            requestBuffer();
+          }
+        }, 100);
+        setTimeout(() => clearInterval(interval), 10_000);
+      }
     }
 
     return () => {

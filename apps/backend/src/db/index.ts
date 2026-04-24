@@ -133,6 +133,20 @@ export function initializeDb() {
   } catch {
     // Column already exists
   }
+
+  // Backfill serviceInstanceId on legacy screenshot canvas nodes so the
+  // host-delete cascade can reach them. Safe to re-run: it only touches rows
+  // where the column is still NULL but the linked screenshot knows its host.
+  _sqlite.exec(`
+    UPDATE "canvas_node"
+    SET "serviceInstanceId" = (
+      SELECT "serviceInstanceId" FROM "screenshot"
+      WHERE "screenshot"."id" = "canvas_node"."screenshotId"
+    )
+    WHERE "nodeType" = 'screenshot'
+      AND "serviceInstanceId" IS NULL
+      AND "screenshotId" IS NOT NULL
+  `);
   try {
     _sqlite.exec(`ALTER TABLE "workspace" ADD COLUMN "apiKey" text NOT NULL DEFAULT ''`);
     // Backfill existing workspaces with generated UUIDs (only runs once, when column is first added)

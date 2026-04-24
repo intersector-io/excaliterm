@@ -258,29 +258,26 @@ export function TerminalInfoFace({
         </button>
       </div>
 
-      {/* Scrollable control surface */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-        {/* Tags */}
-        <div className="rounded-xl border border-border-subtle/50 bg-surface-sunken/40 px-3 py-2">
-          <span className="mb-1.5 block text-caption uppercase tracking-[0.16em] text-muted-foreground/45">
-            Tags
-          </span>
+      {/* Locked control surface — fits the viewport, no scroll */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-3 py-2">
+        {/* Tags (compact inline) */}
+        <div className="shrink-0 rounded-xl border border-border-subtle/50 bg-surface-sunken/40 px-3 py-1.5">
           <TagEditor tags={tags ?? []} onTagsChange={handleTagsChange} />
         </div>
 
         {/* Primary control panel: scroll | d-pad | action stack */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid shrink-0 grid-cols-3 gap-2">
           {/* Scroll column */}
           <div className="flex flex-col gap-2">
             <HoldButton
-              className={CAP_MUTED + " h-14"}
+              className={CAP_MUTED + " h-12"}
               onFire={() => onScrollTop?.()}
               aria-label="Scroll to top"
             >
               <ArrowUpToLine className="h-5 w-5" />
             </HoldButton>
             <HoldButton
-              className={CAP + " h-14"}
+              className={CAP + " h-12"}
               onFire={() => onScrollUp?.()}
               repeatable
               aria-label="Page up"
@@ -288,7 +285,7 @@ export function TerminalInfoFace({
               <ChevronsUp className="h-6 w-6" />
             </HoldButton>
             <HoldButton
-              className={CAP + " h-14"}
+              className={CAP + " h-12"}
               onFire={() => onScrollDown?.()}
               repeatable
               aria-label="Page down"
@@ -296,7 +293,7 @@ export function TerminalInfoFace({
               <ChevronsDown className="h-6 w-6" />
             </HoldButton>
             <HoldButton
-              className={CAP_MUTED + " h-14"}
+              className={CAP_MUTED + " h-12"}
               onFire={() => onScrollBottom?.()}
               aria-label="Scroll to bottom"
             >
@@ -305,31 +302,31 @@ export function TerminalInfoFace({
           </div>
 
           {/* D-pad */}
-          <div className="grid grid-cols-3 grid-rows-4 gap-1.5">
+          <div className="grid grid-cols-3 grid-rows-4 gap-1">
             <div />
-            <HoldButton className={CAP + " h-14"} onFire={() => send(KEY_UP)} repeatable aria-label="Up">
+            <HoldButton className={CAP + " h-12"} onFire={() => send(KEY_UP)} repeatable aria-label="Up">
               <ChevronUp className="h-6 w-6" />
             </HoldButton>
             <div />
-            <HoldButton className={CAP + " h-14"} onFire={() => send(KEY_LEFT)} repeatable aria-label="Left">
+            <HoldButton className={CAP + " h-12"} onFire={() => send(KEY_LEFT)} repeatable aria-label="Left">
               <ChevronLeft className="h-6 w-6" />
             </HoldButton>
             <div
-              className="flex h-14 items-center justify-center rounded-full bg-surface-sunken/60 text-[0.6rem] font-mono uppercase tracking-[0.16em] text-muted-foreground/40"
+              className="flex h-12 items-center justify-center rounded-full bg-surface-sunken/60 text-[0.6rem] font-mono uppercase tracking-[0.16em] text-muted-foreground/40"
               aria-hidden
             >
               nav
             </div>
-            <HoldButton className={CAP + " h-14"} onFire={() => send(KEY_RIGHT)} repeatable aria-label="Right">
+            <HoldButton className={CAP + " h-12"} onFire={() => send(KEY_RIGHT)} repeatable aria-label="Right">
               <ChevronRight className="h-6 w-6" />
             </HoldButton>
             <div />
-            <HoldButton className={CAP + " h-14"} onFire={() => send(KEY_DOWN)} repeatable aria-label="Down">
+            <HoldButton className={CAP + " h-12"} onFire={() => send(KEY_DOWN)} repeatable aria-label="Down">
               <ChevronDown className="h-6 w-6" />
             </HoldButton>
             <div />
             <HoldButton
-              className={CAP_MUTED + " h-14 col-span-3 text-body-sm"}
+              className={CAP_MUTED + " h-10 col-span-3 text-body-sm"}
               onFire={() => send(" ", " ")}
             >
               space
@@ -339,13 +336,13 @@ export function TerminalInfoFace({
           {/* Action stack */}
           <div className="flex flex-col gap-2">
             <HoldButton
-              className={CAP_MUTED + " h-14 text-body-sm"}
+              className={CAP_MUTED + " h-11 text-body-sm"}
               onFire={() => send(KEY_ESC)}
             >
               esc
             </HoldButton>
             <HoldButton
-              className={CAP + " h-14 text-body-sm"}
+              className={CAP + " h-11 text-body-sm"}
               onFire={() => send(KEY_BACKSPACE)}
               repeatable
               aria-label="Backspace"
@@ -353,13 +350,13 @@ export function TerminalInfoFace({
               <Delete className="h-5 w-5" />
             </HoldButton>
             <HoldButton
-              className={CAP_MUTED + " h-14 text-body-sm"}
+              className={CAP_MUTED + " h-11 text-body-sm"}
               onFire={() => send(KEY_TAB)}
             >
               tab
             </HoldButton>
             <HoldButton
-              className={CAP_PRIMARY + " h-[5.5rem] flex-1 text-body"}
+              className={CAP_PRIMARY + " h-[4.25rem] flex-1 text-body"}
               onFire={() => send("\r")}
               haptic={10}
               aria-label="Enter"
@@ -372,7 +369,7 @@ export function TerminalInfoFace({
 
         {/* Context-specific row: Agent actions or Shell chords */}
         {deckMode === "agent" ? (
-          <div className="rounded-xl border border-border-subtle/40 bg-surface-sunken/40 px-2.5 py-2">
+          <div className="shrink-0 rounded-xl border border-border-subtle/40 bg-surface-sunken/40 px-2.5 py-1.5">
             <span className="mb-1.5 block text-caption uppercase tracking-[0.16em] text-muted-foreground/45">
               Agent
             </span>
@@ -422,7 +419,7 @@ export function TerminalInfoFace({
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-border-subtle/40 bg-surface-sunken/40 px-2.5 py-2">
+          <div className="shrink-0 rounded-xl border border-border-subtle/40 bg-surface-sunken/40 px-2.5 py-1.5">
             <span className="mb-1.5 block text-caption uppercase tracking-[0.16em] text-muted-foreground/45">
               Chords
             </span>
@@ -475,36 +472,36 @@ export function TerminalInfoFace({
         )}
 
         {/* Modifier row */}
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid shrink-0 grid-cols-5 gap-2">
           <HoldButton
-            className={(ctrlActive ? CAP_LATCHED : CAP_MUTED) + " h-12 text-body-sm"}
+            className={(ctrlActive ? CAP_LATCHED : CAP_MUTED) + " h-11 text-body-sm"}
             onFire={() => setCtrlActive((p) => !p)}
             haptic={15}
             aria-pressed={ctrlActive}
           >
             ctrl
           </HoldButton>
-          <HoldButton className={CAP + " h-12 text-body-sm"} onFire={() => send("~", "~")}>
+          <HoldButton className={CAP + " h-11 text-body-sm"} onFire={() => send("~", "~")}>
             ~
           </HoldButton>
-          <HoldButton className={CAP + " h-12 text-body-sm"} onFire={() => send("|", "|")}>
+          <HoldButton className={CAP + " h-11 text-body-sm"} onFire={() => send("|", "|")}>
             |
           </HoldButton>
-          <HoldButton className={CAP + " h-12 text-body-sm"} onFire={() => send("-", "-")}>
+          <HoldButton className={CAP + " h-11 text-body-sm"} onFire={() => send("-", "-")}>
             -
           </HoldButton>
-          <HoldButton className={CAP + " h-12 text-body-sm"} onFire={() => send("_", "_")}>
+          <HoldButton className={CAP + " h-11 text-body-sm"} onFire={() => send("_", "_")}>
             _
           </HoldButton>
         </div>
 
         {/* Agent-mode: quick numerics for option picks · Shell-mode: punctuation */}
         {deckMode === "agent" ? (
-          <div className="grid grid-cols-10 gap-1">
+          <div className="grid shrink-0 grid-cols-10 gap-1">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].map((ch) => (
               <HoldButton
                 key={ch}
-                className={CAP + " h-11 text-body-sm"}
+                className={CAP + " h-10 text-body-sm"}
                 onFire={() => send(ch, ch)}
               >
                 {ch}
@@ -512,11 +509,11 @@ export function TerminalInfoFace({
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-8 gap-1.5">
+          <div className="grid shrink-0 grid-cols-8 gap-1.5">
             {["/", "\\", ":", ";", ".", ",", ">", "<"].map((ch) => (
               <HoldButton
                 key={ch}
-                className={CAP + " h-11 text-body-sm"}
+                className={CAP + " h-10 text-body-sm"}
                 onFire={() => send(ch, ch)}
               >
                 {ch}
@@ -525,13 +522,13 @@ export function TerminalInfoFace({
           </div>
         )}
 
-        {/* Recent commands */}
+        {/* Recent commands — flex absorber, clips to remaining viewport */}
         {recentCommands.length > 0 && (
-          <div className="rounded-xl border border-border-subtle/50 bg-surface-sunken/40 px-3 py-2.5">
-            <span className="mb-2 block text-caption uppercase tracking-[0.16em] text-muted-foreground/45">
+          <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border-subtle/50 bg-surface-sunken/40 px-3 py-2">
+            <span className="mb-1.5 block shrink-0 text-caption uppercase tracking-[0.16em] text-muted-foreground/45">
               Recent
             </span>
-            <div className="space-y-1">
+            <div className="min-h-0 flex-1 space-y-1 overflow-hidden">
               {recentCommands.map((cmd, i) => (
                 <button
                   key={`${cmd.command}-${i}`}
@@ -539,7 +536,7 @@ export function TerminalInfoFace({
                     onRunCommand?.(cmd.command);
                     onFlipBack();
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg bg-card/60 px-3 py-2 text-left font-mono text-caption text-foreground/80 transition-colors active:bg-card active:text-foreground"
+                  className="flex w-full items-center gap-2 rounded-lg bg-card/60 px-3 py-1.5 text-left font-mono text-caption text-foreground/80 transition-colors active:bg-card active:text-foreground"
                 >
                   <span className="text-accent-cyan/40">$</span>
                   <span className="truncate">{cmd.command}</span>
@@ -550,12 +547,12 @@ export function TerminalInfoFace({
         )}
 
         {/* Footer actions */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="grid shrink-0 grid-cols-2 gap-2">
           {isActive && (
             <button
               onClick={handleToggleLock}
               disabled={lockedByOther}
-              className={CAP + " h-12 gap-2 text-body-sm disabled:opacity-30"}
+              className={CAP + " h-10 gap-2 text-body-sm disabled:opacity-30"}
             >
               {lockedByCurrentCollaborator ? (
                 <LockOpen className="h-4 w-4 text-accent-cyan" />
@@ -568,7 +565,7 @@ export function TerminalInfoFace({
           {speechSupported && (
             <button
               onClick={() => (isListening ? stopSpeech() : startSpeech())}
-              className={(isListening ? CAP_LATCHED : CAP) + " h-12 gap-2 text-body-sm"}
+              className={(isListening ? CAP_LATCHED : CAP) + " h-10 gap-2 text-body-sm"}
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               {isListening ? "Listening" : "Dictate"}
@@ -579,28 +576,18 @@ export function TerminalInfoFace({
               hideSoftKeyboard();
               onFlipBack();
             }}
-            className={CAP_MUTED + " h-12 gap-2 text-body-sm"}
+            className={CAP_MUTED + " h-10 gap-2 text-body-sm"}
           >
             <KeyboardOff className="h-4 w-4" />
             Hide keyboard
           </button>
-          <button onClick={handleClose} className={CAP_DANGER + " h-12 gap-2 text-body-sm"}>
+          <button onClick={handleClose} className={CAP_DANGER + " h-10 gap-2 text-body-sm"}>
             <Trash2 className="h-4 w-4" />
             {isActive ? "Close" : "Dismiss"}
           </button>
         </div>
       </div>
 
-      {/* Sticky flip-back: demoted to secondary so Enter can own the primary */}
-      <div className="shrink-0 border-t border-border bg-card/60 backdrop-blur px-3 py-2.5">
-        <button
-          onClick={onFlipBack}
-          className={CAP_MUTED + " h-12 w-full gap-2 text-body-sm"}
-        >
-          <RotateCw className="h-4 w-4" />
-          Back to Terminal
-        </button>
-      </div>
     </div>
   );
 }

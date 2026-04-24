@@ -9,8 +9,11 @@ import {
   KeyboardOff,
   CornerDownLeft,
   Delete,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { HoldButton } from "./HoldButton";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 interface VirtualKeyboardBarProps {
   onInput: (data: string) => void;
@@ -57,6 +60,12 @@ export function VirtualKeyboardBar({
   onScrollDown,
 }: Readonly<VirtualKeyboardBarProps>) {
   const [ctrlActive, setCtrlActive] = useState(false);
+  const {
+    isListening,
+    isSupported: speechSupported,
+    start: startSpeech,
+    stop: stopSpeech,
+  } = useSpeechRecognition((text) => onInput(text));
 
   const sendChar = useCallback(
     (data: string, label?: string) => {
@@ -102,6 +111,17 @@ export function VirtualKeyboardBar({
         <HoldButton className={CAP_BASE} onFire={() => sendChar("\r")} aria-label="Enter">
           <CornerDownLeft className="h-4 w-4" />
         </HoldButton>
+        {speechSupported && (
+          <HoldButton
+            className={isListening ? CAP_LATCHED : CAP_MUTED}
+            onFire={() => (isListening ? stopSpeech() : startSpeech())}
+            haptic={10}
+            aria-pressed={isListening}
+            aria-label={isListening ? "Stop dictation" : "Start dictation"}
+          >
+            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </HoldButton>
+        )}
         <HoldButton
           className={CAP_MUTED}
           onFire={hideSoftKeyboard}

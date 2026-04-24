@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Server, Terminal, FileCode, Plus, X, Sparkles } from "lucide-react";
+import { Server, Terminal, FileCode, Plus, X, Sparkles, MoreHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { useServices } from "@/hooks/use-services";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -80,6 +86,31 @@ export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSe
     [createTerminal, onTerminalCreated],
   );
 
+  const removeService = useCallback(
+    async (service: ServiceInstance) => {
+      try {
+        await deleteService(service.id);
+        toast.success("Host removed");
+      } catch {
+        toast.error("Failed to remove host");
+      }
+    },
+    [deleteService],
+  );
+
+  const confirmRemoveOnlineHost = useCallback(
+    (service: ServiceInstance) => {
+      toast(`Remove "${service.name}"?`, {
+        description: "The agent will be disconnected from this workspace.",
+        action: {
+          label: "Remove",
+          onClick: () => void removeService(service),
+        },
+      });
+    },
+    [removeService],
+  );
+
   if (!apiKey) {
     return <MissingApiKeyRecovery />;
   }
@@ -148,17 +179,31 @@ export function MobileHostsSection({ onTerminalCreated }: Readonly<MobileHostsSe
                     >
                       <FileCode className="h-4 w-4" />
                     </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Host actions"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground/40 transition-colors active:bg-surface-raised active:text-muted-foreground"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => confirmRemoveOnlineHost(service)}
+                          className="text-accent-red focus:text-accent-red"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Remove host</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 ) : (
                   <button
-                    onClick={async () => {
-                      try {
-                        await deleteService(service.id);
-                        toast.success("Host removed");
-                      } catch {
-                        toast.error("Failed to remove host");
-                      }
-                    }}
+                    onClick={() => void removeService(service)}
+                    aria-label="Remove host"
                     className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-red/10 text-accent-red transition-colors active:scale-[0.95] active:bg-accent-red/15"
                   >
                     <X className="h-4 w-4" />

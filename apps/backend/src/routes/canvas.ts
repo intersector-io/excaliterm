@@ -172,12 +172,15 @@ canvas.post("/screenshots", async (c) => {
     height: body.height,
   });
 
-  // Create canvas node for the screenshot
+  // Create canvas node for the screenshot. Stamping serviceInstanceId lets the
+  // host-delete cascade in `services.ts` remove the screenshot card alongside
+  // the terminal cards when a host is dismissed.
   await db.insert(schema.canvasNode).values({
     id: nodeId,
     workspaceId,
     nodeType: "screenshot",
     screenshotId,
+    serviceInstanceId: body.serviceInstanceId,
     x,
     y,
     width: Math.min(body.width, 800),
