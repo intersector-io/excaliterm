@@ -14,6 +14,7 @@ public class RedisSubscriber : IHostedService
     private readonly IHubContext<TerminalHub> _terminalHub;
     private readonly IHubContext<CanvasHub> _canvasHub;
     private readonly IHubContext<ChatHub> _chatHub;
+    private readonly IHubContext<FileHub> _fileHub;
     private readonly ServiceRegistry _serviceRegistry;
     private IConnectionMultiplexer? _redis;
     private ISubscriber? _subscriber;
@@ -29,6 +30,7 @@ public class RedisSubscriber : IHostedService
         IHubContext<TerminalHub> terminalHub,
         IHubContext<CanvasHub> canvasHub,
         IHubContext<ChatHub> chatHub,
+        IHubContext<FileHub> fileHub,
         ServiceRegistry serviceRegistry)
     {
         _config = config;
@@ -36,6 +38,7 @@ public class RedisSubscriber : IHostedService
         _terminalHub = terminalHub;
         _canvasHub = canvasHub;
         _chatHub = chatHub;
+        _fileHub = fileHub;
         _serviceRegistry = serviceRegistry;
     }
 
@@ -324,6 +327,27 @@ public class RedisSubscriber : IHostedService
 
             var group = BaseHub.FormatWorkspaceGroup(evt.WorkspaceId);
             await _terminalHub.Clients.Group(group).SendAsync("ServiceDeleted", evt.ServiceInstanceId);
+
+            // Tell the agent itself to shut down. Direct-client addressing keeps
+            // this signal off the workspace broadcast channel (where browsers
+            // listen) and reaches only the dismissed host's connections. A null
+            // connectionId means the agent is offline — the tombstone set by
+            // the backend will catch it on its next RegisterService attempt.
+            var terminalConn = _serviceRegistry.GetTerminalHubConnection(evt.ServiceInstanceId);
+            if (terminalConn is not null)
+            {
+                await _terminalHub.Clients.Client(terminalConn).SendAsync("AgentShutdown");
+                _logger.LogInformation(
+                    "Sent AgentShutdown to service {ServiceId} (terminal connection {ConnectionId})",
+                    evt.ServiceInstanceId, terminalConn
+                );
+            }
+
+            var fileConn = _serviceRegistry.GetFileHubConnection(evt.ServiceInstanceId);
+            if (fileConn is not null)
+            {
+                await _fileHub.Clients.Client(fileConn).SendAsync("AgentShutdown");
+            }
         }
         catch (Exception ex)
         {

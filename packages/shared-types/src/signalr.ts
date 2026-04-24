@@ -253,6 +253,7 @@ export const TerminalHubMethods = {
   ServiceDeleted: "ServiceDeleted",
   // Server -> Service
   ShutdownHost: "ShutdownHost",
+  AgentShutdown: "AgentShutdown",
 } as const;
 
 export const CanvasHubMethods = {

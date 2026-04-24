@@ -46,6 +46,10 @@ export async function publish(channel: string, data: unknown): Promise<void> {
   await pub.publish(channel, JSON.stringify(data));
 }
 
+export async function setEx(key: string, ttlSeconds: number, value: string): Promise<void> {
+  await getPublisher().set(key, value, "EX", ttlSeconds);
+}
+
 export async function subscribe(
   channel: string,
   handler: (message: string) => void,

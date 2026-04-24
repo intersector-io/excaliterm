@@ -8,10 +8,17 @@ export class TerminalHubConnection {
   private readonly hub: signalR.HubConnection;
   private readonly config: Config;
   private readonly manager: TerminalManager;
+  private readonly onAgentShutdown?: () => void;
+  private shuttingDown = false;
 
-  constructor(config: Config, manager: TerminalManager) {
+  constructor(
+    config: Config,
+    manager: TerminalManager,
+    onAgentShutdown?: () => void,
+  ) {
     this.config = config;
     this.manager = manager;
+    this.onAgentShutdown = onAgentShutdown;
 
     const url = `${config.signalrHubUrl.replace(/\/+$/, "")}/hubs/terminal?apiKey=${encodeURIComponent(config.serviceApiKey)}&workspaceId=${encodeURIComponent(config.workspaceId)}`;
 
@@ -43,9 +50,14 @@ export class TerminalHubConnection {
   }
 
   async stop(): Promise<void> {
+    this.shuttingDown = true;
     this.manager.destroyAll();
     await this.hub.stop();
     console.log("[TerminalHub] Disconnected from Terminal Hub");
+  }
+
+  markShuttingDown(): void {
+    this.shuttingDown = true;
   }
 
   // ── Incoming command handlers (Hub -> Agent) ─────────────────────────────
@@ -87,6 +99,12 @@ export class TerminalHubConnection {
     this.hub.on("ShutdownHost", () => {
       console.log("[TerminalHub] Received ShutdownHost command");
       this.handleShutdown();
+    });
+
+    this.hub.on("AgentShutdown", () => {
+      console.log("[TerminalHub] Received AgentShutdown command");
+      this.shuttingDown = true;
+      this.onAgentShutdown?.();
     });
   }
 
@@ -192,6 +210,10 @@ export class TerminalHubConnection {
     });
 
     this.hub.onreconnected(async (connectionId) => {
+      if (this.shuttingDown) {
+        console.log("[TerminalHub] Reconnected while shutting down; skipping re-register");
+        return;
+      }
       console.log(
         `[TerminalHub] Reconnected with connection ${connectionId}`
       );

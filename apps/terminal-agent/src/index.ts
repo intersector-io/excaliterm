@@ -40,11 +40,15 @@ async function main(): Promise<void> {
   const screenshotHandler = new ScreenshotHandler();
   const screenShareManager = new ScreenShareManager(screenshotHandler);
 
-  const terminalHub = new TerminalHubConnection(config, manager);
-  const fileHub = new FileHubConnection(config, fileHandler, screenshotHandler, screenShareManager);
-
+  let shuttingDown = false;
   const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log(`\n[terminal-agent] Received ${signal}, shutting down...`);
+
+    // Suppress any in-flight reconnect → re-register race before stopping.
+    terminalHub.markShuttingDown();
+    fileHub.markShuttingDown();
 
     manager.destroyAll();
     screenShareManager.stopAll();
@@ -58,6 +62,11 @@ async function main(): Promise<void> {
     console.log("[terminal-agent] Shutdown complete");
     process.exit(0);
   };
+
+  const terminalHub = new TerminalHubConnection(config, manager, () => {
+    void shutdown("AgentShutdown");
+  });
+  const fileHub = new FileHubConnection(config, fileHandler, screenshotHandler, screenShareManager);
 
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));

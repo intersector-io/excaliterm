@@ -35,6 +35,7 @@ export class FileHubConnection {
   private readonly fileHandler: FileSystemHandler;
   private readonly screenshotHandler: ScreenshotHandler;
   private readonly screenShareManager: ScreenShareManager;
+  private shuttingDown = false;
 
   constructor(config: Config, fileHandler: FileSystemHandler, screenshotHandler: ScreenshotHandler, screenShareManager: ScreenShareManager) {
     this.config = config;
@@ -71,8 +72,13 @@ export class FileHubConnection {
   }
 
   async stop(): Promise<void> {
+    this.shuttingDown = true;
     await this.hub.stop();
     console.log("[FileHub] Disconnected from File Hub");
+  }
+
+  markShuttingDown(): void {
+    this.shuttingDown = true;
   }
 
   // ── Incoming command handlers (Hub -> Agent) ─────────────────────────────
@@ -312,6 +318,10 @@ export class FileHubConnection {
     });
 
     this.hub.onreconnected(async (connectionId) => {
+      if (this.shuttingDown) {
+        console.log("[FileHub] Reconnected while shutting down; skipping re-register");
+        return;
+      }
       console.log(`[FileHub] Reconnected with connection ${connectionId}`);
       try {
         await this.hub.invoke(

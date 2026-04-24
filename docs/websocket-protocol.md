@@ -75,15 +75,18 @@ After the SignalR connection is established, the agent calls `RegisterService(se
 | `TerminalError` | `{ terminalId, error }` |
 | `ServiceOnline` | `serviceId` |
 | `ServiceOffline` | `serviceId` |
+| `ServiceDeleted` | `serviceId` |
 
 ### Hub -> agent events
 
-| Event | Arguments |
-|-------|-----------|
-| `CreateTerminal` | `terminalId`, `cols`, `rows` |
-| `DestroyTerminal` | `terminalId` |
-| `TerminalInput` | `terminalId`, `data` |
-| `TerminalResize` | `terminalId`, `cols`, `rows` |
+| Event | Arguments | Purpose |
+|-------|-----------|---------|
+| `CreateTerminal` | `terminalId`, `cols`, `rows` | |
+| `DestroyTerminal` | `terminalId` | |
+| `TerminalInput` | `terminalId`, `data` | |
+| `TerminalResize` | `terminalId`, `cols`, `rows` | |
+| `ShutdownHost` | none | Shuts down the **host OS machine**. Distinct from `AgentShutdown`. |
+| `AgentShutdown` | none | Cleanly stops the agent process only. Fired when the host is dismissed (`DELETE /services/:id`) or when a reconnecting agent hits the dismiss tombstone. Does not touch the host OS. |
 
 ### Terminal routing
 
@@ -185,6 +188,6 @@ When Redis is enabled in the hub, it subscribes to:
 - `canvas:updates`
 - `chat:messages`
 - `service:online-ready` (broadcasts `ServiceOnline` once the backend confirms the DB is consistent)
-- `service:deleted` (broadcasts `ServiceDeleted`)
+- `service:deleted` (broadcasts `ServiceDeleted` to the workspace group **and** sends `AgentShutdown` directly to the dismissed agent's terminal and file hub connections)
 
 The backend separately subscribes to `service:events` to keep service status in sync with agent presence, and publishes `service:online-ready` / `canvas:updates` with the newly created host node after the DB writes complete.

@@ -59,11 +59,13 @@ The hub uses Redis as a SignalR backplane (enabled when `REDIS_ENABLED=true` / `
 | `terminal:commands` | backend → hub | `{ command: "terminal:create"/"destroy"/"resize"/"write", terminalId, serviceInstanceId, workspaceId, ... }` |
 | `service:events` | hub → backend | `{ event: "online"/"offline", serviceInstanceId, workspaceId, timestamp }` |
 | `service:online-ready` | backend → hub | `{ serviceInstanceId, workspaceId, timestamp }` — emitted after the DB is consistent; triggers the hub to broadcast `ServiceOnline`. |
-| `service:deleted` | backend → hub | `{ serviceInstanceId, workspaceId, timestamp }` |
+| `service:deleted` | backend → hub | `{ serviceInstanceId, workspaceId, timestamp }` — hub broadcasts `ServiceDeleted` to the workspace group **and** sends `AgentShutdown` directly to the dismissed agent's terminal + file hub connections. |
 | `canvas:updates` | backend → hub | `{ action: "nodeAdded"/"nodeMoved"/"nodeResized"/"nodeRemoved", workspaceId, userId, node?/nodeId?, x?, y?, width?, height? }` |
 | `chat:messages` | backend → hub | `{ workspaceId, message: ChatMessageDto }` |
 
 Redis list `terminal:buffer:{terminalId}` is an output ring buffer (capped at 1000 entries, 24 h TTL) used by `RequestTerminalBuffer` to replay output to reconnecting clients.
+
+Redis key `service:tombstone:{workspaceId}:{serviceId}` is a 300 s TTL marker set by the backend on `DELETE /services/:id`. The hub's `RegisterService` handler checks this key before admitting a re-registration; if present, the hub sends `AgentShutdown` and aborts the connection. This closes the reconnect race where a dismissed agent could otherwise resurrect its service row via `.withAutomaticReconnect()`.
 
 ## Persistence — SQLite + Drizzle
 
@@ -112,7 +114,8 @@ Published as `excaliterm` on npm (`apps/terminal-agent/package.json`).
 - Engine: Node ≥20.12.
 - Dependencies: `@microsoft/signalr`, `node-pty`, `screenshot-desktop`.
 - Two hub connections (`TerminalHubConnection`, `FileHubConnection`) both use `.withAutomaticReconnect()` and re-invoke `RegisterService` on `onreconnected`.
-- Graceful shutdown on SIGINT/SIGTERM (stops all PTYs and screen-share sessions).
+- Each hub connection carries a `shuttingDown` flag that suppresses the `onreconnected` re-register callback once shutdown is in progress. This prevents an in-flight reconnect from resurrecting a dismissed service during the brief window between receiving `AgentShutdown` and `hub.stop()` completing.
+- Graceful shutdown on SIGINT / SIGTERM / `AgentShutdown` (from the hub). Flow: mark both hubs as shutting down → destroy PTYs → stop screen-share sessions → `hub.stop()` on both connections → `process.exit(0)`. `AgentShutdown` reuses this exact path so a remote dismiss exits cleanly without touching the host OS.
 
 ## Logging & observability
 

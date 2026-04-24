@@ -147,6 +147,20 @@ public class TerminalHub : BaseHub
 
     public async Task RegisterService(string serviceId, string apiKey)
     {
+        // Refuse re-registration for recently dismissed services. The backend
+        // writes a short-lived tombstone on DELETE; this prevents a reconnect
+        // race from recreating the row between delete and shutdown.
+        if (await IsDismissedAsync(serviceId, apiKey))
+        {
+            Logger.LogInformation(
+                "Refusing RegisterService for dismissed service {ServiceId} on connection {ConnectionId}",
+                serviceId, Context.ConnectionId
+            );
+            await Clients.Caller.SendAsync("AgentShutdown");
+            Context.Abort();
+            return;
+        }
+
         if (!await RegisterServiceAsync(serviceId, apiKey, "terminal", _apiKeyValidator, _serviceRegistry))
             return;
 
@@ -158,6 +172,31 @@ public class TerminalHub : BaseHub
         // this avoids clients refetching before the host row and canvas
         // node exist.
         await _redisSubscriber.PublishServiceEvent("online", serviceId, workspaceId);
+    }
+
+    private async Task<bool> IsDismissedAsync(string serviceId, string apiKey)
+    {
+        if (_redis is null) return false;
+
+        var httpContext = Context.GetHttpContext();
+        var workspaceId = httpContext?.Request.Query["workspaceId"].ToString();
+        if (string.IsNullOrWhiteSpace(workspaceId)) return false;
+
+        // Validate the API key before leaking tombstone existence. Mirrors the
+        // check inside RegisterServiceAsync so we don't respond differently
+        // for good vs bad credentials at this stage.
+        if (!await _apiKeyValidator.ValidateAsync(workspaceId, apiKey)) return false;
+
+        try
+        {
+            var db = _redis.GetDatabase();
+            return await db.KeyExistsAsync($"service:tombstone:{workspaceId}:{serviceId}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to check dismiss tombstone for service {ServiceId}", serviceId);
+            return false;
+        }
     }
 
     // ─── Browser client methods ─────────────────────────────────────────────────

@@ -2,7 +2,12 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { eq, and } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
-import { publish } from "../lib/redis.js";
+import { publish, setEx } from "../lib/redis.js";
+
+// Tombstone TTL that covers a typical agent reconnect window. If a dismissed
+// agent reconnects within this window, the hub will refuse its re-registration
+// and force it to shut down.
+const DISMISS_TOMBSTONE_TTL_SECONDS = 300;
 import type { WorkspaceVariables } from "../middleware/workspace.js";
 
 const services = new Hono<{ Variables: WorkspaceVariables }>();
@@ -160,6 +165,17 @@ services.delete("/:id", async (c) => {
       console.error("[redis] Failed to publish canvas:updates nodeRemoved:", err.message),
     );
   }
+
+  // Set a tombstone before publishing so that if the agent reconnects between
+  // our delete and its shutdown, the hub's RegisterService handler refuses the
+  // re-registration and tells the agent to shut down.
+  await setEx(
+    `service:tombstone:${workspaceId}:${existing.serviceId}`,
+    DISMISS_TOMBSTONE_TTL_SECONDS,
+    "dismissed",
+  ).catch((err: Error) =>
+    console.error("[redis] Failed to set service tombstone:", err.message),
+  );
 
   await publish("service:deleted", {
     serviceInstanceId: existing.serviceId,
