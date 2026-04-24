@@ -20,7 +20,7 @@ Full mobile experience with hosts, terminals, notes, media, and chat:
   <img src="screenshots/after-04-mobile-terminal-list.png" alt="Mobile terminal list" width="300">
 </p>
 
-Fullscreen terminal with virtual keyboard bar, scroll buttons, and flippable info panel:
+Fullscreen terminal with a tactile virtual keyboard bar and a full Command Deck on the back of the card:
 
 <p>
   <img src="screenshots/14-mobile-terminal-fullscreen.png" alt="Mobile fullscreen terminal" width="300">
@@ -86,9 +86,9 @@ On mobile (<=767px), the app switches to a dedicated mobile experience:
 - **Terminal cards with tag colors** -- colored left borders derived from the first tag for visual identification
 - **Notes section** -- create and edit sticky notes with a fullscreen markdown editor
 - **Chat as a full view** -- tap the Chat tab in the bottom nav for a full-screen chat experience
-- **Virtual keyboard bar** -- two-row grid with ESC, TAB, CTRL (toggle modifier), pipe, tilde, arrow keys, and speech-to-text mic button
-- **Scroll buttons** -- floating scroll-up/scroll-down buttons in fullscreen terminal mode
-- **Flippable card** -- tap the rotate icon in the terminal header to flip the card and see terminal details, tags, command history, and quick actions on the back face
+- **Virtual keyboard bar** -- two rows of 48px tactile keycaps: ESC, TAB, CTRL (latching modifier), `/`, Enter, hide-keyboard, plus arrow keys and page up/down scroll in the second row
+- **Hide on-screen keyboard** -- dedicated keycap that blurs the focused input to dismiss the iOS/Android soft keyboard without leaving the terminal
+- **Command Deck (back face)** -- tap the rotate icon to flip the card into a full-size hardware-style control surface: large D-pad, scroll column (top/page-up/page-down/bottom), oversized Esc/Tab/Enter action stack, latching Ctrl, modifier row (space, ~, |, -, _), symbol grid (/ \ : ; . , > <), tap-to-run recent commands, lock/unlock, dictate, hide-keyboard, and close
 - **File editor** -- tap the editor button on any host card to open the file editor in a fullscreen overlay
 - **Screenshots and streams** -- view captured screenshots and live screen shares in the media section
 

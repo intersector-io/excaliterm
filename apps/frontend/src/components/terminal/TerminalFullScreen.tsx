@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Lock, LockOpen, ChevronLeft, ChevronRight, ChevronsUp, ChevronsDown, RotateCw, Columns2 } from "lucide-react";
+import { ArrowLeft, Lock, LockOpen, ChevronLeft, ChevronRight, RotateCw, Columns2 } from "lucide-react";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { getStatusBadgeClasses } from "@/lib/terminal-status";
@@ -219,29 +219,15 @@ export function TerminalFullScreen({
               inputRef={inputRef}
               scrollRef={scrollRef}
             />
-
-            {/* Floating scroll buttons */}
-            {isMobile && !flipped && (
-              <div className="absolute right-3 bottom-4 flex flex-col gap-1 rounded-xl border border-border-subtle/30 bg-card/70 p-1 opacity-50 backdrop-blur-sm transition-opacity active:opacity-100">
-                <button
-                  onClick={() => scrollRef.current?.scrollUp()}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-surface-raised active:text-foreground"
-                >
-                  <ChevronsUp className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => scrollRef.current?.scrollDown()}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-surface-raised active:text-foreground"
-                >
-                  <ChevronsDown className="h-4 w-4" />
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Virtual keyboard bar (mobile only) */}
           {isMobile && status === "active" && !flipped && (
-            <VirtualKeyboardBar onInput={handleKeyboardInput} />
+            <VirtualKeyboardBar
+              onInput={handleKeyboardInput}
+              onScrollUp={() => scrollRef.current?.scrollUp()}
+              onScrollDown={() => scrollRef.current?.scrollDown()}
+            />
           )}
         </div>
 
@@ -252,7 +238,12 @@ export function TerminalFullScreen({
             status={status}
             tags={tags}
             onFlipBack={() => setFlipped(false)}
+            onInput={handleKeyboardInput}
             onRunCommand={(cmd) => inputRef.current?.(cmd + "\r")}
+            onScrollUp={() => scrollRef.current?.scrollUp()}
+            onScrollDown={() => scrollRef.current?.scrollDown()}
+            onScrollTop={() => scrollRef.current?.scrollToTop()}
+            onScrollBottom={() => scrollRef.current?.scrollToBottom()}
             onClose={onBack}
           />}
         </div>

@@ -46,7 +46,7 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
     const terminal = new Terminal({
       cursorBlink: true,
       cursorStyle: "block",
-      fontSize: compact ? 12 : 14,
+      fontSize: compact ? 11 : 14,
       fontWeight: 500,
       fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace",
       lineHeight: 1.28,
@@ -83,37 +83,47 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
     terminal.open(containerRef.current);
 
     let webglAddon: WebglAddon | null = null;
-    try {
-      webglAddon = new WebglAddon();
-      webglAddon.onContextLoss(() => {
-        webglAddon?.dispose();
-        webglAddon = null;
-      });
-      terminal.loadAddon(webglAddon);
-    } catch {
-      webglAddon = null;
-    }
 
-    requestAnimationFrame(() => {
+    const tryFit = () => {
       try {
         fitAddon.fit();
+        terminal.refresh(0, terminal.rows - 1);
       } catch {
         // Container might not be visible yet
       }
-    });
+    };
 
-    if (document.fonts) {
-      void document.fonts.ready.then(() => {
-        requestAnimationFrame(() => {
-          try {
-            fitAddon.fit();
-            terminal.refresh(0, terminal.rows - 1);
-          } catch {
-            // Ignore font-load fit errors
-          }
+    // Load WebGL only after the canvas renderer has measured and fit cleanly.
+    // If WebGL is attached too early on mobile, its glyph atlas caches a
+    // wrong cell size and xterm locks to ~20 cols × 2 rows for the session.
+    const loadWebgl = () => {
+      if (webglAddon) return;
+      try {
+        const addon = new WebglAddon();
+        addon.onContextLoss(() => {
+          addon.dispose();
+          webglAddon = null;
         });
-      });
-    }
+        terminal.loadAddon(addon);
+        webglAddon = addon;
+      } catch {
+        webglAddon = null;
+      }
+    };
+
+    requestAnimationFrame(tryFit);
+    const fitRetryTimers = [50, 250, 750, 1500].map((ms) => setTimeout(tryFit, ms));
+
+    const fontsReady = document.fonts?.ready ?? Promise.resolve();
+    void fontsReady.then(() => {
+      requestAnimationFrame(tryFit);
+    });
+    void loadWebgl; // webgl intentionally disabled on mobile — see note below
+
+    // NOTE: WebGL addon is disabled until an xterm/addon-webgl measurement bug
+    // that locks mobile viewports into a 20×2 cell grid is resolved. The DOM
+    // renderer measures cells correctly via .xterm-char-measure-element and
+    // produces normal-sized text.
 
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
@@ -268,6 +278,7 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
       terminalHub.off("TerminalDisconnected", handleDisconnected);
       terminalHub.off("TerminalError", handleError);
       resizeObserver.disconnect();
+      fitRetryTimers.forEach(clearTimeout);
       if (fitTimer) clearTimeout(fitTimer);
       webglAddon?.dispose();
       terminal.dispose();
