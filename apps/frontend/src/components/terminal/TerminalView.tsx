@@ -7,7 +7,6 @@ import "@xterm/xterm/css/xterm.css";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
 import { getTerminalHub } from "@/lib/signalr-client";
 import { useTerminalStore } from "@/stores/terminal-store";
-import { PredictiveEcho } from "./predictive-echo";
 import type { TerminalStatus } from "@excaliterm/shared-types";
 
 interface TerminalViewProps {
@@ -28,7 +27,6 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const predictorRef = useRef<PredictiveEcho | null>(null);
   const initializedRef = useRef(false);
   const previousLockOwnerRef = useRef<string | null>(null);
   const statusRef = useRef(status);
@@ -96,9 +94,6 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
       webglAddon = null;
     }
 
-    const predictor = new PredictiveEcho(terminal);
-    predictorRef.current = predictor;
-
     requestAnimationFrame(() => {
       try {
         fitAddon.fit();
@@ -127,7 +122,6 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
     if (inputRef) {
       inputRef.current = (data: string) => {
         if (statusRef.current !== "active") return;
-        predictor.tryPredict(data);
         terminalHub.invoke("TerminalInput", terminalId, data).catch(() => {});
       };
     }
@@ -149,7 +143,6 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
 
     const inputDisposable = terminal.onData((data) => {
       if (statusRef.current !== "active") return;
-      predictor.tryPredict(data);
       terminalHub.invoke("TerminalInput", terminalId, data).catch(() => {});
 
       for (let i = 0; i < data.length; i++) {
@@ -188,9 +181,6 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
     // Fix cursor positioning after exiting alternate screen buffer apps (vim, claude, htop)
     // ConPTY on Windows can leave the cursor displaced when switching back to the normal buffer
     const bufferChangeDisposable = terminal.buffer.onBufferChange((buffer) => {
-      // Any buffer switch invalidates pending predictions (alt-screen apps
-      // like vim/htop don't echo printable input to stdout).
-      predictor.reset();
       if (buffer === terminal.buffer.normal) {
         requestAnimationFrame(() => {
           terminal.scrollToBottom();
@@ -201,7 +191,7 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
 
     function handleOutput(msg: { terminalId: string; data: string }) {
       if (msg.terminalId === terminalId) {
-        terminal.write(predictor.filterOutput(msg.data));
+        terminal.write(msg.data);
       }
     }
 
@@ -266,12 +256,10 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
       terminalHub.off("TerminalDisconnected", handleDisconnected);
       terminalHub.off("TerminalError", handleError);
       resizeObserver.disconnect();
-      predictor.dispose();
       webglAddon?.dispose();
       terminal.dispose();
       terminalRef.current = null;
       fitAddonRef.current = null;
-      predictorRef.current = null;
       initializedRef.current = false;
       if (inputRef) inputRef.current = null;
       if (scrollRef) scrollRef.current = null;
@@ -290,7 +278,6 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
     } else {
       terminal.options.cursorBlink = false;
       terminal.options.disableStdin = true;
-      predictorRef.current?.reset();
     }
 
     if (lockedByOther && previousLockOwnerRef.current !== lockInfo?.clientId) {
