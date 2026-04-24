@@ -47,6 +47,11 @@ Table `terminal_session`:
 - `terminal:commands` — backend → hub: terminal lifecycle commands addressed to specific services.
 - `terminal:buffer:{terminalId}` — output ring buffer for reconnect replay.
 
+## Rendering and input latency
+
+- **WebGL renderer** (`@xterm/addon-webgl`). Loaded opportunistically; `onContextLoss` disposes the addon and the terminal falls back to the DOM renderer automatically.
+- **Predictive local echo** (`predictive-echo.ts`). When the user types printable ASCII in an active, unlocked terminal that is on the normal (non-alt) screen buffer, the characters are written to xterm immediately and enqueued. Incoming `TerminalOutput` chunks are filtered: escape sequences pass through untouched; plain bytes matching the head of the prediction queue are stripped (consuming the server's echo so characters aren't duplicated). The queue is reset on alt-screen toggles (vim, htop, ...), lock/status changes, and terminal disposal. A 200 ms watchdog erases locally predicted characters with `\b \b` if no matching echo has arrived within 800 ms — this covers password prompts and other `stty -echo` contexts so secrets don't linger on screen.
+
 ## Agent side — PTY
 
 - `apps/terminal-agent/src/terminal/manager.ts` maps `terminalId` → `TerminalProcess`.
@@ -55,7 +60,8 @@ Table `terminal_session`:
 
 ## Frontend
 
-- `components/terminal/TerminalView.tsx` — xterm.js integration; scrollback 5000 lines.
+- `components/terminal/TerminalView.tsx` — xterm.js integration; scrollback 5000 lines. Loads `@xterm/addon-webgl` for GPU-accelerated rendering (silently falls back to the default DOM renderer if WebGL context creation fails or is lost).
+- `components/terminal/predictive-echo.ts` — local echo predictor to hide SignalR round-trip latency while typing.
 - `components/terminal/TerminalFullScreen.tsx` — fullscreen orchestration, flippable card, swipe, keyboard bar integration, scroll controls, `#focus=` hash sync.
 - `components/terminal/TerminalInfoFace.tsx` — mobile back-face.
 - `components/terminal/VirtualKeyboardBar.tsx` — mobile on-screen keyboard.
