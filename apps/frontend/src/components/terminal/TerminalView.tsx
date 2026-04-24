@@ -218,15 +218,27 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
     terminalHub.on("TerminalDisconnected", handleDisconnected);
     terminalHub.on("TerminalError", handleError);
 
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(() => {
+    // Debounce fit() so mid-animation ResizeObserver ticks (mobile keyboard
+    // open/close, visual-viewport jitter, dock drawer) don't reflow the
+    // buffer while output is streaming — that's what produced the visible
+    // "scramble" during commands like `ls`.
+    let fitTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleFit = () => {
+      if (fitTimer) clearTimeout(fitTimer);
+      fitTimer = setTimeout(() => {
+        fitTimer = null;
         try {
+          const dims = fitAddon.proposeDimensions();
+          if (!dims) return;
+          if (dims.cols === terminal.cols && dims.rows === terminal.rows) return;
           fitAddon.fit();
         } catch {
-          // Ignore fit errors during transitions
+          // Container might be hidden/unmounted during transitions
         }
-      });
-    });
+      }, 100);
+    };
+
+    const resizeObserver = new ResizeObserver(scheduleFit);
     resizeObserver.observe(containerRef.current);
 
     terminalHub.invoke("TerminalResize", terminalId, terminal.cols, terminal.rows).catch(() => {});
@@ -256,6 +268,7 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
       terminalHub.off("TerminalDisconnected", handleDisconnected);
       terminalHub.off("TerminalError", handleError);
       resizeObserver.disconnect();
+      if (fitTimer) clearTimeout(fitTimer);
       webglAddon?.dispose();
       terminal.dispose();
       terminalRef.current = null;
