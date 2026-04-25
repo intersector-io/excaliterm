@@ -15,6 +15,7 @@ import {
   StickyNote,
   Server,
   Zap,
+  Plug2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createWorkspace } from "@/lib/api-client";
@@ -67,15 +68,16 @@ export function LandingPage() {
           </div>
 
           <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-            Pair on any terminal,{" "}
-            <span className="text-accent-cyan">any machine</span>
-            {" "}— in the browser.
+            Drop two terminals.{" "}
+            <span className="text-accent-cyan">One watches the other.</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Share a link. Teammates see the same live shells, files, and sticky
-            notes on an infinite canvas. No accounts, no SSH gymnastics, no
-            screen-sharing your whole desktop.
+            Run your dev server in Terminal A. Run Claude Code in Terminal B
+            with our MCP tools loaded. Let Claude read A's output, restart it
+            when it hangs, and escalate when something breaks. Walk away —
+            you'll see both terminals and the agent's reasoning side-by-side
+            on an infinite canvas.
           </p>
 
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -90,7 +92,8 @@ export function LandingPage() {
             </a>
           </div>
           <p className="mt-4 text-caption text-muted-foreground">
-            No account. No credit card. Shareable link in 2 seconds.
+            Also great for pair-debugging prod with a teammate, on-call war
+            rooms, and remote teaching. No account, no credit card.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 opacity-80">
@@ -137,7 +140,7 @@ export function LandingPage() {
 
       <section className="mx-auto max-w-5xl px-6 pt-24">
         <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
-          Built for the moments you'd rather not screen-share
+          The canvas where humans and agents collaborate
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
           Four jobs Excaliterm handles better than an ad-hoc Zoom + SSH dance.
@@ -145,14 +148,14 @@ export function LandingPage() {
 
         <div className="mt-12 grid gap-5 md:grid-cols-2">
           <UseCaseCard
+            icon={<Bot />}
+            title="Agent supervisor mode"
+            body="Install our MCP tools in Claude Code. Tell it to monitor another terminal on the canvas — read output, send commands, intervene when stuck. The whole loop is visible to you on the canvas. Zero credentials stored on our side."
+          />
+          <UseCaseCard
             icon={<Bug />}
             title="Pair debugging & on-call"
             body="Two engineers, one prod shell. Terminal locks keep you from fighting over the prompt; chat sits right next to the commands; screenshots pin evidence to the canvas."
-          />
-          <UseCaseCard
-            icon={<GraduationCap />}
-            title="Remote teaching & onboarding"
-            body="Instructor types, learners watch live. Drop sticky notes with next steps, open a file editor alongside the shell, and let everyone join by URL — no install on their end."
           />
           <UseCaseCard
             icon={<Siren />}
@@ -160,9 +163,9 @@ export function LandingPage() {
             body="Put prod, staging, and your laptop on the same canvas. Stream a monitor from any host at ~3fps when you need to see the GUI, not just the shell."
           />
           <UseCaseCard
-            icon={<Bot />}
-            title="AI & agent dashboards"
-            body="Connect long-running agents and Claude Code sessions as hosts — then schedule recurring checks or expose a webhook so external systems drive the shell directly. Watch them work, intervene when needed."
+            icon={<GraduationCap />}
+            title="Remote teaching & onboarding"
+            body="Instructor types, learners watch live. Drop sticky notes with next steps, open a file editor alongside the shell, and let everyone join by URL — no install on their end."
           />
         </div>
       </section>
@@ -186,6 +189,10 @@ export function LandingPage() {
             description="Prod, staging, your laptop side-by-side on an infinite canvas. Drag, zoom, tag — organize terminals like windows."
           />
           <FeatureCard
+            title="Let an agent watch your terminals"
+            description="Drop our MCP tools into Claude Code (or any MCP client). It can read any terminal's output and send commands via signed HTTP triggers. Run two terminals — one does the work, one supervises it."
+          />
+          <FeatureCard
             title="Automate from cron, CI, or a webhook"
             description="Attach a timer trigger to run a prompt every N minutes, or expose an HTTP webhook URL with a secret token. External systems POST to it; the prompt lands in the terminal as if you typed it."
           />
@@ -197,18 +204,15 @@ export function LandingPage() {
             title="Talk without leaving the shell"
             description="Built-in chat sits alongside your terminals. Decisions stay with the commands they describe — no Slack context-switching."
           />
-          <FeatureCard
-            title="One CLI command"
-            description="npm install -g excaliterm, paste the pre-filled command, done. The machine is online and ready in under a minute."
-          />
         </div>
 
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-body-sm text-muted-foreground">
+          <Badge icon={<Plug2 className="size-3.5" />} label="MCP supervisor mode" />
+          <Badge icon={<Zap className="size-3.5" />} label="Timer & HTTP triggers" />
           <Badge icon={<Lock className="size-3.5" />} label="Terminal locks" />
           <Badge icon={<History className="size-3.5" />} label="Persistent command history" />
           <Badge icon={<FileCode className="size-3.5" />} label="In-canvas file editor" />
           <Badge icon={<StickyNote className="size-3.5" />} label="Markdown sticky notes" />
-          <Badge icon={<Zap className="size-3.5" />} label="Timer & HTTP triggers" />
           <Badge icon={<Server className="size-3.5" />} label="Docker self-host" />
         </div>
       </section>
