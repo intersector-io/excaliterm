@@ -1,0 +1,87 @@
+# Triggers
+
+Triggers are nodes you attach to a terminal to submit input automatically. Two types are supported:
+
+- **Timer** — fires a stored prompt every N minutes.
+- **HTTP** — exposes a public webhook URL; calling it submits the prompt from the request payload.
+
+A terminal can have one of each type at the same time.
+
+## Adding a timer trigger
+
+1. Open the dropdown (`⋯`) on a terminal node.
+2. Click **Add timer trigger**. A trigger node appears to the right of the terminal, connected by a dashed amber edge.
+3. The trigger starts in `paused` state until you give it a prompt and toggle it on.
+
+Only one trigger of each type can exist per terminal. The menu item shows **Timer trigger attached** when you already have one.
+
+## Configuring it
+
+The trigger node has three controls:
+
+- **every N min** — interval stepper, 1 to 1440 minutes.
+- **prompt** — the command to run. Multi-line is allowed; a final Enter is appended automatically.
+- **active / paused** — toggle to enable. You can't enable an empty prompt.
+
+Changes save on blur or when stepping the interval.
+
+The footer shows `next MM:SS` while active. The amber dot pulses while running.
+
+## Manually firing
+
+The `⋯` menu has **Fire now**, which submits the prompt immediately without waiting for the interval. Useful for testing.
+
+## Disabling and removing
+
+- **active / paused** toggle pauses without losing config.
+- **Delete trigger** in the `⋯` menu removes the trigger node and its edge.
+
+If the parent terminal is locked by another collaborator, the trigger becomes read-only for everyone else.
+
+## Behavior when offline
+
+If the terminal's host goes offline, the scheduler still fires on schedule but writes fail. The error appears as a small red banner on the trigger node, and the trigger keeps trying.
+
+---
+
+## HTTP trigger
+
+The HTTP trigger turns a terminal into a webhook target. Useful for: CI runs that need to kick off a remote command, scheduled jobs from cron-job.org, manual one-off invocations from Postman / Slack / curl.
+
+### Adding one
+
+1. Open the dropdown (`⋯`) on a terminal node → **Add HTTP trigger**.
+2. The node appears with:
+   - **Endpoint** — the public URL to POST to. Click the copy icon to copy.
+   - **Token** — masked by default. Use the eye icon to reveal, copy icon to copy, rotate icon to generate a new secret. Rotating immediately invalidates the old token.
+   - **active / paused** toggle. Paused triggers return `403`.
+3. The `⋯` menu has **Copy endpoint**, **Copy cURL**, **Rotate secret**, **Delete trigger**.
+
+### Calling it
+
+Toggle to active, then POST to the endpoint with the token in a header and the prompt in the JSON body:
+
+```
+curl -X POST 'https://<host>/api/triggers/<id>/fire' \
+  -H 'X-Trigger-Token: <secret>' \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"echo hello from webhook"}'
+```
+
+The prompt comes **strictly from the payload** — empty body or empty `prompt` returns `400`. The HTTP trigger does not store a default prompt.
+
+### Status codes
+
+| code | meaning |
+|---|---|
+| 200 | fired; body `{ ok: true, firedAt }` |
+| 400 | missing/empty `prompt` in body |
+| 401 | wrong or missing `X-Trigger-Token` |
+| 403 | trigger is paused |
+| 404 | trigger id not found (or it's not an HTTP trigger) |
+| 429 | rate limit hit (60 calls / 60s per IP per endpoint) |
+| 502 | publish to terminal failed (host probably offline) |
+
+### Security notes
+
+The token is stored on the server and revealable inside the workspace because anyone with workspace access can already drive the terminal directly. The token's purpose is to keep the URL safe to share **outside** the workspace. Rotate immediately if you think it's been compromised.

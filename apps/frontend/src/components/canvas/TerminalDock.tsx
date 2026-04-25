@@ -179,6 +179,8 @@ export function TerminalDock({
               <Search className="h-3 w-3 shrink-0 text-muted-foreground/40" />
               <input
                 ref={searchRef}
+                name="terminal-dock-search"
+                aria-label="Find terminal"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Find terminal..."

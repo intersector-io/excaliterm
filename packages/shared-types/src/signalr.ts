@@ -261,6 +261,7 @@ export const CanvasHubMethods = {
   NodeMoved: "NodeMoved",
   NodeResized: "NodeResized",
   NodeRemoved: "NodeRemoved",
+  TriggerFired: "TriggerFired",
 } as const;
 
 export const ChatHubMethods = {

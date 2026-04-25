@@ -115,7 +115,29 @@ export function initializeDb() {
 
     CREATE INDEX IF NOT EXISTS "idx_command_history_ws_terminal"
       ON "command_history"("workspaceId", "terminalSessionId");
+
+    CREATE TABLE IF NOT EXISTS "trigger" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workspaceId" text NOT NULL REFERENCES "workspace"("id") ON DELETE CASCADE,
+      "terminalNodeId" text NOT NULL REFERENCES "canvas_node"("id") ON DELETE CASCADE,
+      "terminalSessionId" text NOT NULL REFERENCES "terminal_session"("id") ON DELETE CASCADE,
+      "type" text NOT NULL,
+      "enabled" integer NOT NULL DEFAULT 0,
+      "config" text NOT NULL DEFAULT '{}',
+      "lastFiredAt" integer,
+      "lastError" text,
+      "createdAt" integer NOT NULL DEFAULT (unixepoch()),
+      "updatedAt" integer NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "trigger_terminal_type_unique"
+      ON "trigger"("terminalNodeId", "type");
   `);
+
+  try {
+    _sqlite.exec(`ALTER TABLE "canvas_node" ADD COLUMN "triggerId" text`);
+  } catch {
+    // Column already exists
+  }
 
   // Migrations for existing databases
   try {
@@ -204,6 +226,15 @@ export function initializeDb() {
       JOIN "canvas_node" t ON t."id" = e."targetNodeId"
       WHERE s."nodeType" = 'terminal' AND t."nodeType" = 'host'
     )
+  `);
+
+  // Drop trigger canvas nodes whose underlying trigger row no longer exists.
+  // These can appear when a parent terminal is dismissed: the trigger row is
+  // FK-cascaded out, but its canvas_node lingers (no FK on canvas_node.triggerId).
+  _sqlite.exec(`
+    DELETE FROM "canvas_node"
+    WHERE "nodeType" = 'trigger'
+      AND ("triggerId" IS NULL OR "triggerId" NOT IN (SELECT "id" FROM "trigger"))
   `);
 
   _db = drizzle(_sqlite, { schema });

@@ -152,6 +152,7 @@ export const canvasNode = sqliteTable("canvas_node", {
     () => serviceInstance.id,
     { onDelete: "set null" },
   ),
+  triggerId: text("triggerId"),
   x: real("x").notNull().default(100),
   y: real("y").notNull().default(100),
   width: real("width").notNull().default(600),
@@ -164,6 +165,39 @@ export const canvasNode = sqliteTable("canvas_node", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+export const trigger = sqliteTable(
+  "trigger",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspaceId")
+      .notNull()
+      .references(() => workspace.id, { onDelete: "cascade" }),
+    terminalNodeId: text("terminalNodeId")
+      .notNull()
+      .references(() => canvasNode.id, { onDelete: "cascade" }),
+    terminalSessionId: text("terminalSessionId")
+      .notNull()
+      .references(() => terminalSession.id, { onDelete: "cascade" }),
+    type: text("type", { enum: ["timer", "http"] }).notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    config: text("config").notNull().default("{}"),
+    lastFiredAt: integer("lastFiredAt", { mode: "timestamp" }),
+    lastError: text("lastError"),
+    createdAt: integer("createdAt", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updatedAt", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => ({
+    terminalTypeUnique: uniqueIndex("trigger_terminal_type_unique").on(
+      t.terminalNodeId,
+      t.type,
+    ),
+  }),
+);
 
 export const canvasEdge = sqliteTable("canvas_edge", {
   id: text("id").primaryKey(),
@@ -209,3 +243,6 @@ export type InsertCanvasEdge = InferInsertModel<typeof canvasEdge>;
 
 export type SelectCommandHistory = InferSelectModel<typeof commandHistory>;
 export type InsertCommandHistory = InferInsertModel<typeof commandHistory>;
+
+export type SelectTrigger = InferSelectModel<typeof trigger>;
+export type InsertTrigger = InferInsertModel<typeof trigger>;

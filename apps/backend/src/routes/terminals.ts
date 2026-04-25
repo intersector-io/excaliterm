@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, inArray } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
 import { publish } from "../lib/redis.js";
+import { unscheduleTrigger } from "../services/trigger-scheduler.js";
 import type {
   CreateTerminalRequest,
   CreateTerminalResponse,
@@ -325,7 +326,31 @@ terminals.delete("/:id", async (c) => {
   }
 
   if (dismiss) {
-    // Remove canvas node linked to this terminal
+    // Cascade trigger cleanup: trigger rows are FK-cascaded when the terminal
+    // session is deleted, but their canvas_nodes aren't (no FK on triggerId).
+    // Find the trigger ids attached to this terminal first, then delete their
+    // canvas nodes alongside the terminal's own canvas node.
+    const attachedTriggers = await db
+      .select({ id: schema.trigger.id })
+      .from(schema.trigger)
+      .where(eq(schema.trigger.terminalSessionId, terminalId));
+
+    for (const t of attachedTriggers) unscheduleTrigger(t.id);
+
+    if (attachedTriggers.length > 0) {
+      await db
+        .delete(schema.canvasNode)
+        .where(
+          and(
+            eq(schema.canvasNode.workspaceId, workspaceId),
+            inArray(
+              schema.canvasNode.triggerId,
+              attachedTriggers.map((t) => t.id),
+            ),
+          ),
+        );
+    }
+
     await db
       .delete(schema.canvasNode)
       .where(
@@ -334,7 +359,6 @@ terminals.delete("/:id", async (c) => {
           eq(schema.canvasNode.terminalSessionId, terminalId),
         ),
       );
-    // Remove the terminal record
     await db
       .delete(schema.terminalSession)
       .where(eq(schema.terminalSession.id, terminalId));

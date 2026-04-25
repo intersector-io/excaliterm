@@ -53,6 +53,8 @@ export function ChatInput({ onSend }: Readonly<ChatInputProps>) {
             handleInput();
           }}
           onKeyDown={handleKeyDown}
+          name="chat-message"
+          aria-label="Chat message"
           placeholder="Type a message... (Markdown supported)"
           rows={1}
           className={cn(

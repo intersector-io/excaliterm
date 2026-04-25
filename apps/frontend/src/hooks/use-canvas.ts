@@ -15,6 +15,7 @@ import type {
   TerminalSession,
   TerminalStatus,
   CreateEditorNodeRequest,
+  Trigger,
 } from "@excaliterm/shared-types";
 import type { ServiceInstance } from "@/lib/api-client";
 import type { NoteData } from "@/hooks/use-notes";
@@ -83,7 +84,15 @@ export interface CommandHistoryNodeData {
   [key: string]: unknown;
 }
 
-type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData | HostNodeData | EditorNodeData | CommandHistoryNodeData;
+export interface TriggerNodeData {
+  triggerId: string;
+  terminalNodeId: string;
+  terminalSessionId: string;
+  label: string;
+  [key: string]: unknown;
+}
+
+type AnyNodeData = TerminalNodeData | NoteNodeData | ScreenshotNodeData | ScreenShareNodeData | HostNodeData | EditorNodeData | CommandHistoryNodeData | TriggerNodeData;
 
 function buildFlowNode(cn: CanvasNode, type: string, data: AnyNodeData): Node<AnyNodeData> {
   return {
@@ -114,8 +123,24 @@ function canvasNodeToFlowNode(
   notes: NoteData[],
   screenshots: Screenshot[],
   services: ServiceInstance[],
-): Node<AnyNodeData> {
+  triggersById: Map<string, Trigger>,
+): Node<AnyNodeData> | null {
   switch (cn.nodeType) {
+    case "trigger": {
+      const trig = cn.triggerId ? triggersById.get(cn.triggerId) : undefined;
+      if (trig) {
+        return buildFlowNode(cn, "trigger", {
+          triggerId: trig.id,
+          terminalNodeId: trig.terminalNodeId,
+          terminalSessionId: trig.terminalSessionId,
+          label: "Trigger",
+        });
+      }
+      // Orphaned trigger node — its underlying trigger row was cascade-deleted
+      // when the parent terminal was dismissed. Skip rendering; backend cleanup
+      // will remove the canvas node row on the next dismiss/refresh.
+      return null;
+    }
     case "host":
       if (cn.serviceInstanceId) {
         return buildFlowNode(cn, "host", buildServiceNodeData(cn, services, "Host"));
@@ -252,6 +277,11 @@ export function useCanvas() {
     queryFn: () => api.listServices(workspaceId),
   });
 
+  const triggersQuery = useQuery({
+    queryKey: ["triggers", workspaceId],
+    queryFn: () => api.listTriggers(workspaceId),
+  });
+
   const createEditorMutation = useMutation({
     mutationFn: (req: CreateEditorNodeRequest) =>
       api.createEditorNode(workspaceId, req),
@@ -265,6 +295,11 @@ export function useCanvas() {
   const notes = (notesQuery.data?.notes ?? []) as NoteData[];
   const screenshots = screenshotsQuery.data?.screenshots ?? [];
   const services = servicesQuery.data?.services ?? [];
+  const triggers = triggersQuery.data?.triggers ?? [];
+  const triggersById = useMemo(
+    () => new Map(triggers.map((t) => [t.id, t])),
+    [triggers],
+  );
 
   useEffect(() => {
     const canvasHub = getCanvasHub();
@@ -273,6 +308,7 @@ export function useCanvas() {
       queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
       queryClient.invalidateQueries({ queryKey: ["canvas-edges", workspaceId] });
       queryClient.invalidateQueries({ queryKey: ["screenshots", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["triggers", workspaceId] });
     }
 
     function handleNodeMoved(event: { nodeId: string; x: number; y: number }) {
@@ -294,6 +330,7 @@ export function useCanvas() {
         ["canvas-nodes", workspaceId],
         (old: { nodes: CanvasNode[] } | undefined) => applyNodeRemove(old, event),
       );
+      queryClient.invalidateQueries({ queryKey: ["triggers", workspaceId] });
     }
 
     canvasHub.on("NodeAdded", handleNodeAdded);
@@ -346,21 +383,33 @@ export function useCanvas() {
 
   const nodes: Node<AnyNodeData>[] = useMemo(
     () => [
-      ...(nodesQuery.data?.nodes ?? []).map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots, services)),
+      ...(nodesQuery.data?.nodes ?? [])
+        .map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots, services, triggersById))
+        .filter((n): n is Node<AnyNodeData> => n !== null),
       ...screenShareNodes,
     ],
-    [nodesQuery.data, terminals, notes, screenshots, services, screenShareNodes],
+    [nodesQuery.data, terminals, notes, screenshots, services, triggersById, screenShareNodes],
   );
 
   const edges: Edge[] = useMemo(() => {
     const dbEdges = edgesQuery.data?.edges ?? [];
-    const persistedEdges = dbEdges.map((e): Edge => ({
-      id: e.id,
-      source: e.sourceNodeId,
-      target: e.targetNodeId,
-      animated: true,
-      style: { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 },
-    }));
+    const triggerNodeIds = new Set(
+      (nodesQuery.data?.nodes ?? [])
+        .filter((n) => n.nodeType === "trigger")
+        .map((n) => n.id),
+    );
+    const persistedEdges = dbEdges.map((e): Edge => {
+      const isTriggerEdge = triggerNodeIds.has(e.targetNodeId);
+      return {
+        id: e.id,
+        source: e.sourceNodeId,
+        target: e.targetNodeId,
+        animated: true,
+        style: isTriggerEdge
+          ? { stroke: "rgba(251,191,36,0.45)", strokeWidth: 1.5, strokeDasharray: "4 4" }
+          : { stroke: "rgba(255,255,255,0.15)", strokeWidth: 1.5 },
+      };
+    });
 
     const streamEdges: Edge[] = screenShareNodes
       .filter((n) => n.data.sourceTerminalNodeId)
@@ -373,7 +422,7 @@ export function useCanvas() {
       }));
 
     return [...persistedEdges, ...streamEdges];
-  }, [edgesQuery.data, screenShareNodes]);
+  }, [edgesQuery.data, nodesQuery.data, screenShareNodes]);
 
   function reconcileCanvasNodes(canvasNodes: CanvasNode[], updated: Node<AnyNodeData>[]): CanvasNode[] {
     return canvasNodes.map((cn) => {
@@ -396,7 +445,9 @@ export function useCanvas() {
         (old: { nodes: CanvasNode[] } | undefined) => {
           if (!old) return old;
 
-          const flowNodes = old.nodes.map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots, services));
+          const flowNodes = old.nodes
+            .map((cn) => canvasNodeToFlowNode(cn, terminals, notes, screenshots, services, triggersById))
+            .filter((n): n is Node<AnyNodeData> => n !== null);
           const updated = applyNodeChanges(changes, flowNodes);
 
           const canvasHub = getCanvasHub();
@@ -427,7 +478,7 @@ export function useCanvas() {
         },
       );
     },
-    [queryClient, updateMutation, workspaceId, terminals, notes, screenshots, services],
+    [queryClient, updateMutation, workspaceId, terminals, notes, screenshots, services, triggersById],
   );
 
   return {

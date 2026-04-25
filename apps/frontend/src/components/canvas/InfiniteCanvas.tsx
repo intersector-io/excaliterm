@@ -28,6 +28,7 @@ import { ScreenShareNode } from "./ScreenShareNode";
 import { HostNode } from "./HostNode";
 import { EditorNode } from "./EditorNode";
 import { CommandHistoryNode } from "./CommandHistoryNode";
+import { TriggerNode } from "./TriggerNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
 import { useFullscreenStore } from "@/stores/fullscreen-store";
@@ -49,6 +50,7 @@ const nodeTypes: NodeTypes = {
   host: HostNode,
   editor: EditorNode,
   "command-history": CommandHistoryNode,
+  trigger: TriggerNode,
 };
 
 const defaultViewport = { x: 0, y: 0, zoom: 1 };

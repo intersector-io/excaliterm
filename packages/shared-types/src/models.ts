@@ -18,6 +18,7 @@ export interface CanvasNode {
   noteId?: string | null;
   screenshotId?: string | null;
   serviceInstanceId?: string | null;
+  triggerId?: string | null;
   x: number;
   y: number;
   width: number;

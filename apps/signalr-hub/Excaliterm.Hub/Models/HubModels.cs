@@ -114,7 +114,27 @@ public record RedisTerminalCommand(
     string? ServiceInstanceId,
     string? WorkspaceId,
     int? Cols,
-    int? Rows
+    int? Rows,
+    string? Data
+);
+
+public record TriggerFiredMessage(
+    string TriggerId,
+    string TerminalNodeId,
+    string TerminalSessionId,
+    long FiredAt,
+    bool Ok,
+    string? Error
+);
+
+public record RedisTriggerFired(
+    string TriggerId,
+    string TerminalNodeId,
+    string TerminalSessionId,
+    string WorkspaceId,
+    long FiredAt,
+    bool Ok,
+    string? Error
 );
 
 public record RedisCanvasUpdate(

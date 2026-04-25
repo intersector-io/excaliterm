@@ -139,6 +139,36 @@ body.app-locked {
   animation: collaborator-glow-amber 3s ease-in-out infinite;
 }
 
+/* ─── Trigger pulse (active timer trigger) ──────────────────────────────── */
+
+@keyframes trigger-heartbeat {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.0), 0 8px 24px rgba(0,0,0,0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.10), 0 8px 24px rgba(0,0,0,0.3);
+  }
+}
+
+.trigger-active {
+  animation: trigger-heartbeat 2.4s ease-in-out infinite;
+}
+
+@keyframes trigger-fire-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.55), 0 8px 24px rgba(0,0,0,0.3); }
+  60%  { box-shadow: 0 0 0 14px rgba(251, 191, 36, 0.0),  0 8px 24px rgba(0,0,0,0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.0),  0 8px 24px rgba(0,0,0,0.3); }
+}
+
+.trigger-fired {
+  animation: trigger-fire-flash 700ms ease-out;
+}
+
+@keyframes trigger-edge-pulse {
+  0%   { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -16; }
+}
+
 /* ─── Card Flip 3D ──────────────────────────────────────────────────────────── */
 
 .card-flip-container {

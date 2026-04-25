@@ -101,7 +101,15 @@ On mobile (<=767px), the app switches to a dedicated mobile experience:
 
 Open the overflow menu on any terminal and select **Command History**. A linked history node appears on the canvas showing all commands entered in that terminal. Switch to the **Top 10** tab to see the most frequently used commands. Each command has **copy** and **execute** buttons -- execute re-sends the command to the terminal.
 
-### 8. Share with others
+### 8. Automate with triggers
+
+Open the overflow menu on any terminal and attach a trigger:
+- **Timer** — fires a stored prompt every N minutes. Set the interval, type your prompt (or open the Monaco editor for longer scripts), toggle active.
+- **HTTP** — exposes a public webhook URL. Calling it submits the prompt from the request payload to the terminal. Click the trigger node to copy the endpoint or the cURL example; rotate the secret if it leaks.
+
+See [docs/features/triggers.user.md](./docs/features/triggers.user.md).
+
+### 9. Share with others
 
 Copy the workspace URL and send it to anyone. They join instantly as a collaborator -- no accounts needed.
 

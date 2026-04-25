@@ -25,6 +25,7 @@ For architecture-wide topics (deployment, Redis pub/sub, SignalR hubs, database 
 | Screenshots & screen share | [media.user.md](./media.user.md) | [media.technical.md](./media.technical.md) |
 | Collaboration (presence, locks) | [collaboration.user.md](./collaboration.user.md) | [collaboration.technical.md](./collaboration.technical.md) |
 | Command palette | [command-palette.user.md](./command-palette.user.md) | [command-palette.technical.md](./command-palette.technical.md) |
+| Triggers | [triggers.user.md](./triggers.user.md) | [triggers.technical.md](./triggers.technical.md) |
 
 ## Infrastructure / cross-cutting (technical-only)
 

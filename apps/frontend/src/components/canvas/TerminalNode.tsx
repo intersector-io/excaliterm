@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { type NodeProps, type Node, NodeResizer, Handle, Position } from "@xyflow/react";
-import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor, AlertTriangle, History, Maximize2 } from "lucide-react";
+import { Lock, LockOpen, MoreHorizontal, Trash2, Copy, Camera, Monitor, AlertTriangle, History, Maximize2, Timer, Webhook } from "lucide-react";
 import { toast } from "sonner";
 import { TerminalView } from "@/components/terminal/TerminalView";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
@@ -9,6 +9,7 @@ import { useCanvas, type TerminalNodeData } from "@/hooks/use-canvas";
 import { useScreenshot } from "@/hooks/use-screenshot";
 import { useScreenShare } from "@/hooks/use-screen-share";
 import { useCommandHistorySave } from "@/hooks/use-command-history";
+import { useTriggers } from "@/hooks/use-triggers";
 import { useHover } from "@/hooks/use-hover";
 import { copyToClipboard } from "@/lib/clipboard";
 import { useFullscreenStore } from "@/stores/fullscreen-store";
@@ -32,6 +33,7 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   const { monitors, isLoadingMonitors, isCapturing, listMonitors, captureScreenshot } = useScreenshot();
   const { startScreenShare } = useScreenShare();
   const { saveCommand, createNode: createHistoryNode } = useCommandHistorySave(data.terminalId);
+  const { triggers, createTrigger } = useTriggers();
   const openFullScreen = useFullscreenStore((s) => s.open);
   const isMobile = useMediaQuery("(max-width: 767px)");
   const { hovered, onMouseEnter, onMouseLeave } = useHover();
@@ -51,6 +53,32 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   const hasHistoryNode = canvasNodes.some(
     (n) => n.type === "command-history" && (n.data as { terminalSessionId?: string }).terminalSessionId === data.terminalId,
   );
+  const hasTimerTrigger = triggers.some(
+    (t) => t.terminalNodeId === id && t.type === "timer",
+  );
+  const hasHttpTrigger = triggers.some(
+    (t) => t.terminalNodeId === id && t.type === "http",
+  );
+
+  const handleAddTimerTrigger = useCallback(async () => {
+    if (hasTimerTrigger) return;
+    try {
+      await createTrigger({ terminalNodeId: id, type: "timer" });
+      toast.success("Timer trigger added");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add trigger");
+    }
+  }, [hasTimerTrigger, createTrigger, id]);
+
+  const handleAddHttpTrigger = useCallback(async () => {
+    if (hasHttpTrigger) return;
+    try {
+      await createTrigger({ terminalNodeId: id, type: "http" });
+      toast.success("HTTP trigger added");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add trigger");
+    }
+  }, [hasHttpTrigger, createTrigger, id]);
 
   const handleClose = useCallback(async () => {
     try {
@@ -299,6 +327,20 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
                   <DropdownMenuItem onClick={handleToggleHistory}>
                     <History className="h-3.5 w-3.5" />
                     <span>{hasHistoryNode ? "Hide Command History" : "Command History"}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleAddTimerTrigger}
+                    disabled={hasTimerTrigger || !isActive}
+                  >
+                    <Timer className="h-3.5 w-3.5" />
+                    <span>{hasTimerTrigger ? "Timer trigger attached" : "Add timer trigger"}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleAddHttpTrigger}
+                    disabled={hasHttpTrigger || !isActive}
+                  >
+                    <Webhook className="h-3.5 w-3.5" />
+                    <span>{hasHttpTrigger ? "HTTP trigger attached" : "Add HTTP trigger"}</span>
                   </DropdownMenuItem>
                   {isActive && data.serviceId && (
                     <>

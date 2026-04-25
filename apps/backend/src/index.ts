@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
-import { timingSafeEqual } from "node:crypto";
 import { loadEnv } from "./env.js";
 import { initializeDb, getDb, schema } from "./db/index.js";
 import { eq, and, count } from "drizzle-orm";
 import { initializeRedis, subscribe, publish } from "./lib/redis.js";
 import { HTTPException } from "hono/http-exception";
+import { timingSafeEqualStr } from "./lib/timing-safe.js";
 import { workspaceMiddleware } from "./middleware/workspace.js";
 import { rateLimiter } from "./middleware/rate-limit.js";
 import { health } from "./routes/health.js";
@@ -18,22 +18,13 @@ import { notes } from "./routes/notes.js";
 import { chat } from "./routes/chat.js";
 import { files } from "./routes/files.js";
 import { commandHistory } from "./routes/command-history.js";
+import { triggers } from "./routes/triggers.js";
+import { triggersPublic } from "./routes/triggers-public.js";
+import { loadAllTriggers } from "./services/trigger-scheduler.js";
 
 // ─── Bootstrap ─────────────────────────────────────────────────────────────
 
 const env = loadEnv();
-
-function timingSafeEqualStr(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  const len = Math.max(ab.length, bb.length);
-  const pa = Buffer.alloc(len);
-  const pb = Buffer.alloc(len);
-  ab.copy(pa);
-  bb.copy(pb);
-  const same = timingSafeEqual(pa, pb);
-  return same && ab.length === bb.length;
-}
 
 initializeDb();
 initializeRedis();
@@ -67,6 +58,10 @@ async function rotateLegacyAutoRegisteredKeys() {
 }
 
 await rotateLegacyAutoRegisteredKeys();
+
+await loadAllTriggers().catch((err) =>
+  console.error("[trigger-scheduler] Failed to load triggers:", err),
+);
 
 async function handleServiceOnline(serviceInstanceId: string, workspaceId: string) {
   const db = getDb();
@@ -309,6 +304,10 @@ app.get("/api/validate-key", async (c) => {
 
 app.route("/api/workspaces", workspaces);
 
+// ─── Public trigger endpoint (auth via per-trigger secret) ────────────────
+
+app.route("/api/triggers", triggersPublic);
+
 // ─── Workspace-scoped Routes ──────────────────────────────────────────────
 
 app.use("/api/w/:workspaceId/*", workspaceMiddleware);
@@ -320,6 +319,7 @@ app.route("/api/w/:workspaceId/notes", notes);
 app.route("/api/w/:workspaceId/chat", chat);
 app.route("/api/w/:workspaceId/files", files);
 app.route("/api/w/:workspaceId/command-history", commandHistory);
+app.route("/api/w/:workspaceId/triggers", triggers);
 
 // ─── Global Error Handler ──────────────────────────────────────────────────
 

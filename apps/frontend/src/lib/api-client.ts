@@ -16,9 +16,16 @@ import type {
   SaveCommandResponse,
   UpdateCanvasNodeRequest,
   CanvasNode,
+  CreateTriggerRequest,
+  CreateTriggerResponse,
+  UpdateTriggerRequest,
+  TriggerResponse,
+  ListTriggersResponse,
 } from "@excaliterm/shared-types";
 
-const BASE = `${import.meta.env.VITE_API_URL || ""}/api`;
+import { getApiBaseUrl } from "./config";
+
+const BASE = `${getApiBaseUrl()}/api`;
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${url}`, {
@@ -293,6 +300,48 @@ export function createCommandHistoryNode(
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+// ─── Triggers ──────────────────────────────────────────────────────────────
+
+export function listTriggers(workspaceId: string): Promise<ListTriggersResponse> {
+  return request(`/w/${workspaceId}/triggers`);
+}
+
+export function createTrigger(
+  workspaceId: string,
+  data: CreateTriggerRequest,
+): Promise<CreateTriggerResponse> {
+  return request(`/w/${workspaceId}/triggers`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateTrigger(
+  workspaceId: string,
+  id: string,
+  data: UpdateTriggerRequest,
+): Promise<TriggerResponse> {
+  return request(`/w/${workspaceId}/triggers/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteTrigger(workspaceId: string, id: string): Promise<void> {
+  return request(`/w/${workspaceId}/triggers/${id}`, { method: "DELETE" });
+}
+
+export function fireTrigger(workspaceId: string, id: string): Promise<void> {
+  return request(`/w/${workspaceId}/triggers/${id}/fire`, { method: "POST" });
+}
+
+export function rotateTriggerSecret(
+  workspaceId: string,
+  id: string,
+): Promise<TriggerResponse> {
+  return request(`/w/${workspaceId}/triggers/${id}/rotate`, { method: "POST" });
 }
 
 // ─── Chat ─────────────────────────────────────────────────────────────────

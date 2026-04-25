@@ -1,6 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useCallback } from "react";
 import * as api from "@/lib/api-client";
+
+// Module-level dedupe so the N component instances of useTerminals don't
+// each log the same hub error event, and don't each fire an auto-dismiss.
+const loggedErrors = new Set<string>();
+const autoDismissed = new Set<string>();
+
+function logTerminalErrorOnce(terminalId: string, error: string) {
+  const key = `${terminalId}:${error}`;
+  if (loggedErrors.has(key)) return;
+  loggedErrors.add(key);
+  console.warn(`Terminal ${terminalId} error: ${error}`);
+}
+
+function shouldAutoDismiss(error: string): boolean {
+  return error === "Access denied";
+}
+
+function markAutoDismissed(terminalId: string): boolean {
+  if (autoDismissed.has(terminalId)) return false;
+  autoDismissed.add(terminalId);
+  return true;
+}
 import { getTerminalHub } from "@/lib/signalr-client";
 import { useTerminalStore } from "@/stores/terminal-store";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -38,7 +60,15 @@ export function useTerminals() {
   });
 
   const dismissMutation = useMutation({
-    mutationFn: (id: string) => api.dismissTerminal(workspaceId, id),
+    // A 404 on dismiss means the terminal is already gone — treat as success
+    // and refresh caches so the stale node clears from the UI.
+    mutationFn: async (id: string) => {
+      try {
+        await api.dismissTerminal(workspaceId, id);
+      } catch (err) {
+        if (!(err instanceof Error && /API 404/.test(err.message))) throw err;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
       queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
@@ -121,10 +151,16 @@ export function useTerminals() {
 
   const handleError = useCallback(
     (msg: { terminalId: string; error: string }) => {
-      console.error(`Terminal ${msg.terminalId} error: ${msg.error}`);
+      logTerminalErrorOnce(msg.terminalId, msg.error);
       updateTerminalStatus(msg.terminalId, "error");
+
+      // Orphan terminals (DB row exists but no agent owns the PTY) keep
+      // emitting "Access denied" on every hub call. Drop them automatically.
+      if (shouldAutoDismiss(msg.error) && markAutoDismissed(msg.terminalId)) {
+        dismissMutation.mutate(msg.terminalId);
+      }
     },
-    [updateTerminalStatus],
+    [updateTerminalStatus, dismissMutation],
   );
 
   useEffect(() => {

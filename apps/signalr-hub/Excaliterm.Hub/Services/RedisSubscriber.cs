@@ -94,6 +94,12 @@ public class RedisSubscriber : IHostedService
                     async (channel, message) => await HandleServiceOnlineReady(message!)
                 );
 
+                // Trigger fired events from backend scheduler — broadcast to workspace
+                await _subscriber.SubscribeAsync(
+                    RedisChannel.Literal("trigger:fired"),
+                    async (channel, message) => await HandleTriggerFired(message!)
+                );
+
                 _logger.LogInformation("Redis subscriber started on {ConnectionString}", connectionString);
                 return;
             }
@@ -226,7 +232,7 @@ public class RedisSubscriber : IHostedService
                     await _terminalHub.Clients.Client(targetConnectionId).SendAsync(
                         "TerminalInput",
                         command.TerminalId,
-                        "" // Data would come from an extended command model
+                        command.Data ?? string.Empty
                     );
                     break;
 
@@ -352,6 +358,34 @@ public class RedisSubscriber : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling service deletion from Redis");
+        }
+    }
+
+    // ─── Trigger fired ──────────────────────────────────────────────────────────
+
+    private async Task HandleTriggerFired(string message)
+    {
+        try
+        {
+            var evt = JsonSerializer.Deserialize<RedisTriggerFired>(message, JsonOptions);
+            if (evt is null) return;
+
+            var group = BaseHub.FormatWorkspaceGroup(evt.WorkspaceId);
+            await _canvasHub.Clients.Group(group).SendAsync(
+                "TriggerFired",
+                new TriggerFiredMessage(
+                    evt.TriggerId,
+                    evt.TerminalNodeId,
+                    evt.TerminalSessionId,
+                    evt.FiredAt,
+                    evt.Ok,
+                    evt.Error
+                )
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling trigger fired event");
         }
     }
 

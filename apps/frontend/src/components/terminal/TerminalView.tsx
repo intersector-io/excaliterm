@@ -82,6 +82,11 @@ export function TerminalView({ terminalId, status, compact, inputRef, scrollRef,
 
     terminal.open(containerRef.current);
 
+    // xterm.js renders an internal helper textarea for IME/clipboard handling
+    // that lacks id/name (Chrome devtools flags this). Tag it for autofill heuristics.
+    const helper = containerRef.current.querySelector<HTMLTextAreaElement>(".xterm-helper-textarea");
+    if (helper && !helper.name) helper.name = "xterm-helper";
+
     let webglAddon: WebglAddon | null = null;
 
     const tryFit = () => {
