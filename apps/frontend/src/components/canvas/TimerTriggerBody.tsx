@@ -133,7 +133,7 @@ function TimerTriggerBodyComponent({ trigger, selected }: Props) {
 
   return (
     <div className="h-full w-full">
-      <Handle type="target" position={Position.Left} className="!w-1.5 !h-1.5 !bg-amber-400/40 !border-0 !rounded-sm" />
+      <Handle type="target" position={Position.Top} className="!w-1.5 !h-1.5 !bg-amber-400/40 !border-0 !rounded-sm" />
       <div
         className={`flex h-full w-full flex-col overflow-hidden rounded-xl border border-amber-400/20 bg-card transition-all ${
           enabled ? "trigger-active" : ""

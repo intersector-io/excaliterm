@@ -129,9 +129,9 @@ export function LandingPage() {
             alt="Excaliterm workspace showing a connected host, live terminals, sticky notes, and a file editor on an infinite canvas"
             className="w-full"
           />
-          <AnnotationDot className="left-[43%] top-[34%]" label="Connected host on another machine" side="right" />
-          <AnnotationDot className="left-[71%] top-[32%]" label="Webhook fires a command on schedule" side="left" />
-          <AnnotationDot className="left-[28%] top-[64%]" label="Live shell streamed to everyone" side="right" />
+          <AnnotationDot className="left-[52%] top-[16%]" label="Connected host on another machine" side="right" />
+          <AnnotationDot className="left-[68%] top-[50%]" label="Live shell streamed to everyone" side="left" />
+          <AnnotationDot className="left-[30%] top-[78%]" label="Webhook fires a command on schedule" side="right" />
         </div>
       </section>
 

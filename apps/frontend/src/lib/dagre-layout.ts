@@ -31,6 +31,10 @@ export function buildHierarchyEdges(nodes: Node[], dbEdges: Edge[]): Edge[] {
     out.push({ id, source, target });
   }
 
+  // Pick a stable "fallback parent" for orphan nodes (notes have no terminal
+  // back-reference) so dagre still ranks them below terminals.
+  const firstTerminalNodeId = typed.find((n) => n.type === "terminal")?.id;
+
   for (const n of typed) {
     switch (n.type) {
       case "terminal":
@@ -46,6 +50,11 @@ export function buildHierarchyEdges(nodes: Node[], dbEdges: Edge[]): Edge[] {
         if (term) push(term, n.id);
         break;
       }
+      case "trigger": {
+        const parentNode = n.data.terminalNodeId as string | undefined;
+        if (parentNode) push(parentNode, n.id);
+        break;
+      }
       case "screen-share": {
         const src = n.data.sourceTerminalNodeId as string | undefined;
         if (src && nodeTypeById.get(src) === "terminal") push(src, n.id);
@@ -56,6 +65,12 @@ export function buildHierarchyEdges(nodes: Node[], dbEdges: Edge[]): Edge[] {
           (e) => e.target === n.id && nodeTypeById.get(e.source) === "terminal",
         );
         if (parent) push(parent.source, n.id);
+        break;
+      }
+      case "note": {
+        // Notes are workspace-scoped, not attached to a terminal. Anchor them
+        // under any terminal so they share the trigger/screenshot rank.
+        if (firstTerminalNodeId) push(firstTerminalNodeId, n.id);
         break;
       }
     }
