@@ -15,6 +15,7 @@ function tryLoadEnvFile(path?: string): void {
 
 import { loadConfig } from "./config.js";
 import { TerminalManager } from "./terminal/manager.js";
+import { probeShell } from "./terminal/process.js";
 import { FileSystemHandler } from "./filesystem/handler.js";
 import { PathValidator } from "./filesystem/validator.js";
 import { TerminalHubConnection } from "./hub/terminal-hub.js";
@@ -33,6 +34,15 @@ async function main(): Promise<void> {
   console.log(
     `[terminal-agent] Whitelisted paths: ${config.whitelistedPaths.length > 0 ? config.whitelistedPaths.join(", ") : "(none - filesystem access disabled)"}`,
   );
+
+  try {
+    const probe = probeShell(config.shell, config.shellArgs);
+    console.log(`[terminal-agent] Shell self-test passed (shell=${probe.shell}, cwd=${probe.cwd})`);
+  } catch (err) {
+    console.error(`[terminal-agent] ${err instanceof Error ? err.message : String(err)}`);
+    console.error("[terminal-agent] Refusing to start. Fix the shell/cwd above or pass --shell <path>.");
+    process.exit(1);
+  }
 
   const manager = new TerminalManager(config.shell, config.shellArgs);
   const pathValidator = new PathValidator(config.whitelistedPaths);

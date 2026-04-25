@@ -1,3 +1,4 @@
+import { statSync } from "node:fs";
 import os from "node:os";
 import { parseArgs } from "node:util";
 
@@ -11,6 +12,14 @@ export interface Config {
   shellArgs: string[];
 }
 
+function existsAsFile(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function detectShell(): { shell: string; shellArgs: string[] } {
   if (process.platform === "win32") {
     // Use a clean PowerShell session so web terminals do not inherit decorative prompts.
@@ -19,10 +28,20 @@ function detectShell(): { shell: string; shellArgs: string[] } {
       shellArgs: ["-NoLogo", "-NoProfile"],
     };
   }
-  return {
-    shell: process.env.SHELL || "/bin/bash",
-    shellArgs: [],
-  };
+
+  const envShell = process.env.SHELL;
+  if (envShell && existsAsFile(envShell)) {
+    return { shell: envShell, shellArgs: [] };
+  }
+
+  for (const candidate of ["/bin/bash", "/bin/sh", "/usr/bin/sh"]) {
+    if (existsAsFile(candidate)) {
+      return { shell: candidate, shellArgs: [] };
+    }
+  }
+
+  // Last resort: let node-pty try $SHELL or /bin/bash and surface the error.
+  return { shell: envShell || "/bin/bash", shellArgs: [] };
 }
 
 function generateServiceId(): string {
