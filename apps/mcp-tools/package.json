@@ -1,9 +1,17 @@
 {
   "name": "@excaliterm/mcp-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server exposing Excaliterm terminal read/write tools to Claude Code, Aider, Cursor, and other MCP-aware agents.",
   "license": "MIT",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intersector-io/excaliterm",
+    "directory": "apps/mcp-tools"
+  },
   "bin": {
     "excaliterm-mcp": "dist/index.js"
   },
