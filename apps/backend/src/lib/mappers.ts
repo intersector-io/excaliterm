@@ -55,7 +55,15 @@ function normalizeLanguage(v: unknown): TriggerPromptLanguage {
 function parseTimerConfig(parsed: Partial<TimerTriggerConfig>): TimerTriggerConfig {
   const intervalMin = Math.max(1, Math.min(1440, Math.floor(parsed.intervalMin ?? TIMER_DEFAULTS.intervalMin)));
   const prompt = typeof parsed.prompt === "string" ? parsed.prompt : "";
-  return { intervalMin, prompt, language: normalizeLanguage(parsed.language) };
+  const result: TimerTriggerConfig = {
+    intervalMin,
+    prompt,
+    language: normalizeLanguage(parsed.language),
+  };
+  if (typeof parsed.requireIdleSec === "number" && parsed.requireIdleSec > 0) {
+    result.requireIdleSec = Math.max(1, Math.min(3600, Math.floor(parsed.requireIdleSec)));
+  }
+  return result;
 }
 
 function parseHttpConfig(parsed: Partial<HttpTriggerConfig>): HttpTriggerConfig {

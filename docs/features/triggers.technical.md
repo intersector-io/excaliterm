@@ -12,7 +12,7 @@
 | terminalSessionId | text FK → terminal_session | cascade delete |
 | type | text | `"timer"` or `"http"` |
 | enabled | integer (boolean) | default 0 |
-| config | text (JSON) | timer: `{ intervalMin, prompt, language }` · http: `{ secret }` |
+| config | text (JSON) | timer: `{ intervalMin, prompt, language, requireIdleSec? }` · http: `{ secret }` |
 | lastFiredAt | integer (timestamp) | nullable |
 | lastError | text | nullable, last fire error |
 
@@ -44,6 +44,14 @@ Unique index on `(terminalNodeId, type)` — enforces one-of-each.
 ## In-process scheduler
 
 `apps/backend/src/services/trigger-scheduler.ts`. **Timer triggers only** — the scheduler filters by `type === "timer"` on load and rejects non-timer triggers in `rescheduleTimerTrigger`. Min-heap (sorted array) of `{ id, nextFireAt }` driven by a single `setTimeout`. Reschedules itself after each fire.
+
+### Idle gating (Ralph-loop support)
+
+Timer config may include `requireIdleSec`. When set, `fireScheduledTrigger` consults `isTerminalIdle(terminalSessionId, requireIdleSec)` from `apps/backend/src/services/terminal-activity.ts`. If the terminal has produced output within the last N seconds, the firing is silently skipped and re-enqueued at `now + intervalMin*60_000`. This avoids injecting input into the PTY's stdin while a long-running command is in progress.
+
+Activity is tracked via Redis topic `terminal:activity`, published by the SignalR hub's `TerminalOutput` handler with a 1-second per-terminal throttle. The backend keeps an in-memory `Map<terminalId, lastOutputMs>` consumed by `isTerminalIdle`. Coarse-grained timestamps are sufficient — the gate doesn't need byte-level precision.
+
+Manual `Fire now` (`force: true`) bypasses the idle gate.
 
 ### Shared fire helper
 

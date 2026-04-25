@@ -443,6 +443,13 @@ public class TerminalHub : BaseHub
 
     // ─── Server → Client methods (from service to browser clients) ──────────────
 
+    // Throttle terminal:activity publishes to at most one per second per terminal.
+    // The backend only needs a coarse "last output at" timestamp for idle detection,
+    // not every keystroke.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, long>
+        _lastActivityPubMs = new();
+    private const long ActivityPubThrottleMs = 1000;
+
     public async Task TerminalOutput(string terminalId, string data)
     {
         if (!IsServiceConnection()) return;
@@ -455,6 +462,33 @@ public class TerminalHub : BaseHub
             "TerminalOutput",
             new TerminalOutputMessage(terminalId, data)
         );
+
+        // Publish throttled activity heartbeat so the backend's trigger
+        // scheduler can gate "only fire when idle".
+        if (_redis is not null)
+        {
+            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var prev = _lastActivityPubMs.TryGetValue(terminalId, out var p) ? p : 0L;
+            if (nowMs - prev >= ActivityPubThrottleMs)
+            {
+                _lastActivityPubMs[terminalId] = nowMs;
+                try
+                {
+                    var db = _redis.GetDatabase();
+                    var payload = System.Text.Json.JsonSerializer.Serialize(
+                        new { terminalId, ts = nowMs }
+                    );
+                    await db.PublishAsync(
+                        StackExchange.Redis.RedisChannel.Literal("terminal:activity"),
+                        payload
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogDebug(ex, "Failed to publish terminal activity for {TerminalId}", terminalId);
+                }
+            }
+        }
 
         // Buffer output in Redis for replay on reconnect
         if (_redis is not null)

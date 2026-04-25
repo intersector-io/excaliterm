@@ -75,7 +75,12 @@ function TimerTriggerBodyComponent({ trigger, selected }: Props) {
   }, [trigger.enabled]);
 
   const persistConfig = useCallback(
-    async (next: { intervalMin?: number; prompt?: string; language?: TriggerPromptLanguage }) => {
+    async (next: {
+      intervalMin?: number;
+      prompt?: string;
+      language?: TriggerPromptLanguage;
+      requireIdleSec?: number;
+    }) => {
       try {
         await updateTrigger({ id: trigger.id, data: { config: next } });
       } catch (err) {
@@ -216,6 +221,12 @@ function TimerTriggerBodyComponent({ trigger, selected }: Props) {
             </div>
           </div>
 
+          <IdleGate
+            value={config.requireIdleSec ?? 0}
+            disabled={readOnly}
+            onChange={(next) => persistConfig({ requireIdleSec: next })}
+          />
+
           <div className="relative">
             <textarea
               ref={textareaRef}
@@ -280,3 +291,72 @@ function TimerTriggerBodyComponent({ trigger, selected }: Props) {
 }
 
 export const TimerTriggerBody = memo(TimerTriggerBodyComponent);
+
+interface IdleGateProps {
+  value: number;
+  disabled: boolean;
+  onChange: (next: number) => void;
+}
+
+function IdleGate({ value, disabled, onChange }: Readonly<IdleGateProps>) {
+  const enabled = value > 0;
+  const [seconds, setSeconds] = useState<number>(value > 0 ? value : 10);
+
+  useEffect(() => {
+    if (value > 0) setSeconds(value);
+  }, [value]);
+
+  return (
+    <div className="flex items-center justify-between text-caption">
+      <label className="flex items-center gap-2 text-white/55">
+        <input
+          type="checkbox"
+          name="trigger-require-idle"
+          aria-label="Only fire when terminal is idle"
+          checked={enabled}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked ? seconds : 0)}
+          className="h-3 w-3 cursor-pointer accent-amber-400"
+        />
+        only when idle for
+      </label>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => {
+            const v = Math.max(1, seconds - 5);
+            setSeconds(v);
+            if (enabled) onChange(v);
+          }}
+          disabled={disabled || !enabled}
+          className="flex h-5 w-5 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.08] disabled:opacity-30"
+        >
+          −
+        </button>
+        <input
+          type="number"
+          name="trigger-idle-seconds"
+          aria-label="Idle seconds"
+          min={1}
+          max={3600}
+          value={seconds}
+          onChange={(e) => setSeconds(Math.max(1, Math.min(3600, Number(e.target.value) || 1)))}
+          onBlur={() => enabled && onChange(seconds)}
+          disabled={disabled || !enabled}
+          className="w-10 rounded-md bg-transparent text-center font-mono text-body-sm font-semibold text-foreground/90 outline-none focus:bg-white/[0.04] disabled:opacity-50"
+        />
+        <button
+          onClick={() => {
+            const v = Math.min(3600, seconds + 5);
+            setSeconds(v);
+            if (enabled) onChange(v);
+          }}
+          disabled={disabled || !enabled}
+          className="flex h-5 w-5 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.08] disabled:opacity-30"
+        >
+          +
+        </button>
+        <span className="text-caption text-white/40">s</span>
+      </div>
+    </div>
+  );
+}

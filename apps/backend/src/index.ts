@@ -21,6 +21,7 @@ import { commandHistory } from "./routes/command-history.js";
 import { triggers } from "./routes/triggers.js";
 import { triggersPublic } from "./routes/triggers-public.js";
 import { loadAllTriggers } from "./services/trigger-scheduler.js";
+import { initTerminalActivityTracking } from "./services/terminal-activity.js";
 
 // ─── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -61,6 +62,10 @@ await rotateLegacyAutoRegisteredKeys();
 
 await loadAllTriggers().catch((err) =>
   console.error("[trigger-scheduler] Failed to load triggers:", err),
+);
+
+await initTerminalActivityTracking().catch((err) =>
+  console.error("[terminal-activity] Failed to subscribe:", err),
 );
 
 async function handleServiceOnline(serviceInstanceId: string, workspaceId: string) {

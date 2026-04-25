@@ -666,6 +666,7 @@ Headers:
 |---|---|---|
 | `X-Trigger-Token` | yes | Compared timing-safe against the trigger's `secret`. |
 | `Content-Type` | recommended | `application/json` |
+| `X-Trigger-Require-Idle` | optional | Integer seconds (1–3600). If set, the call returns `409` when the terminal has produced output within the last N seconds. Useful for agentic loops that should only nudge an idle agent. |
 
 Body:
 
@@ -688,6 +689,7 @@ Success:
 | 401 | wrong/missing `X-Trigger-Token` |
 | 403 | trigger is paused (`enabled: false`) |
 | 404 | trigger id not found, or it's not an HTTP trigger (timer triggers are not exposed here) |
+| 409 | `X-Trigger-Require-Idle: N` was set and terminal produced output within the last N seconds; body `{ ok: false, error: "Terminal busy", lastOutputAt }` |
 | 429 | rate limit |
 | 502 | publish to terminal failed (host probably offline) |
 

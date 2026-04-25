@@ -31,7 +31,7 @@ const triggers = new Hono<{ Variables: WorkspaceVariables }>();
 
 function defaultSizeFor(type: TriggerType): { width: number; height: number } {
   if (type === "http") return { width: 340, height: 260 };
-  return { width: 300, height: 280 };
+  return { width: 320, height: 320 };
 }
 
 triggers.get("/", async (c) => {
@@ -97,14 +97,21 @@ triggers.post("/", async (c) => {
   const size = defaultSizeFor(body.type);
 
   // Build the type-specific config, applying defaults via the mapper.
-  const initialConfig =
-    body.type === "http"
-      ? ({ secret: crypto.randomUUID() } satisfies HttpTriggerConfig)
-      : ({
-          intervalMin: (body.config as Partial<TimerTriggerConfig>)?.intervalMin ?? 5,
-          prompt: (body.config as Partial<TimerTriggerConfig>)?.prompt ?? "",
-          language: (body.config as Partial<TimerTriggerConfig>)?.language ?? "shell",
-        } satisfies TimerTriggerConfig);
+  let initialConfig: HttpTriggerConfig | TimerTriggerConfig;
+  if (body.type === "http") {
+    initialConfig = { secret: crypto.randomUUID() };
+  } else {
+    const partial = body.config as Partial<TimerTriggerConfig> | undefined;
+    const timerConfig: TimerTriggerConfig = {
+      intervalMin: partial?.intervalMin ?? 5,
+      prompt: partial?.prompt ?? "",
+      language: partial?.language ?? "shell",
+    };
+    if (partial?.requireIdleSec && partial.requireIdleSec > 0) {
+      timerConfig.requireIdleSec = partial.requireIdleSec;
+    }
+    initialConfig = timerConfig;
+  }
 
   const x = terminalNode.x + terminalNode.width + 60;
   const y = terminalNode.y + Math.max(0, terminalNode.height - size.height) / 2;
@@ -197,6 +204,12 @@ triggers.patch("/:id", async (c) => {
       prompt: partial.prompt ?? cur.prompt,
       language: partial.language ?? cur.language,
     };
+    // requireIdleSec: explicit 0 disables, undefined keeps current
+    if (partial.requireIdleSec !== undefined) {
+      if (partial.requireIdleSec > 0) merged.requireIdleSec = partial.requireIdleSec;
+    } else if (cur.requireIdleSec !== undefined) {
+      merged.requireIdleSec = cur.requireIdleSec;
+    }
     if (nextEnabled && !merged.prompt.trim()) {
       throw new HTTPException(400, { message: "Cannot enable trigger with empty prompt" });
     }

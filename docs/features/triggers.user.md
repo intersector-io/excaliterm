@@ -17,15 +17,16 @@ Only one trigger of each type can exist per terminal. The menu item shows **Time
 
 ## Configuring it
 
-The trigger node has three controls:
+The trigger node has four controls:
 
 - **every N min** — interval stepper, 1 to 1440 minutes.
-- **prompt** — the command to run. Multi-line is allowed; a final Enter is appended automatically.
+- **prompt** — the command to run. Multi-line is allowed; a final Enter is appended automatically. Click the maximize icon for the full Monaco editor with language picker.
+- **only when idle for Ns** — optional. When checked, the timer skips a firing window if the terminal has produced output within the last N seconds. Lets you build agentic loops (Ralph loop) without injecting "continue" mid-execution. Range: 1–3600 s. Off by default.
 - **active / paused** — toggle to enable. You can't enable an empty prompt.
 
-Changes save on blur or when stepping the interval.
+Changes save on blur or when stepping the controls.
 
-The footer shows `next MM:SS` while active. The amber dot pulses while running.
+The footer shows `next MM:SS` while active. The amber dot pulses while running. If a firing is skipped because the terminal was busy, the trigger silently waits for the next interval — no failed-state banner.
 
 ## Manually firing
 
@@ -59,7 +60,7 @@ The HTTP trigger turns a terminal into a webhook target. Useful for: CI runs tha
 
 ### Calling it
 
-Toggle to active, then POST to the endpoint with the token in a header and the prompt in the JSON body:
+Toggle to active, then POST to the endpoint with the token in a header and the prompt in the JSON body. Optionally pass `X-Trigger-Require-Idle: <seconds>` to ask the backend to refuse the call (return 409) if the terminal has produced output within the last N seconds — useful for systems that should only drive an agent when it's idle.
 
 ```
 curl -X POST 'https://<host>/api/triggers/<id>/fire' \
@@ -79,6 +80,7 @@ The prompt comes **strictly from the payload** — empty body or empty `prompt` 
 | 401 | wrong or missing `X-Trigger-Token` |
 | 403 | trigger is paused |
 | 404 | trigger id not found (or it's not an HTTP trigger) |
+| 409 | `X-Trigger-Require-Idle: N` was set and the terminal produced output within the last N seconds; body has `lastOutputAt` |
 | 429 | rate limit hit (60 calls / 60s per IP per endpoint) |
 | 502 | publish to terminal failed (host probably offline) |
 

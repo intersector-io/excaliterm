@@ -10,6 +10,13 @@ export interface TimerTriggerConfig {
   intervalMin: number;
   prompt: string;
   language?: TriggerPromptLanguage;
+  /**
+   * If set, the timer skips a firing window when the terminal has produced
+   * output within the last N seconds. Useful for agentic loops (e.g. Ralph
+   * loop) where the trigger should only nudge when the agent is idle.
+   * Range: 1–3600. Omit/0 to disable.
+   */
+  requireIdleSec?: number;
 }
 
 export interface HttpTriggerConfig {

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb, schema } from "../db/index.js";
 import { parseTriggerConfig } from "../lib/mappers.js";
 import { executeTriggerWithPrompt } from "./trigger-fire.js";
+import { isTerminalIdle } from "./terminal-activity.js";
 import type { TimerTriggerConfig } from "@excaliterm/shared-types";
 
 interface ScheduledTrigger {
@@ -61,6 +62,21 @@ async function fireScheduledTrigger(triggerId: string, opts: { force: boolean })
   if (!opts.force && !row.enabled) return;
 
   const config = parseTriggerConfig("timer", row.config) as TimerTriggerConfig;
+
+  // Idle gate — skip this firing window if the terminal is still busy and
+  // try again on the next normal interval.
+  if (
+    !opts.force &&
+    config.requireIdleSec &&
+    !isTerminalIdle(row.terminalSessionId, config.requireIdleSec)
+  ) {
+    if (row.enabled) {
+      queue.push({ id: triggerId, nextFireAt: Date.now() + config.intervalMin * 60_000 });
+      sortQueue();
+    }
+    return;
+  }
+
   const result = await executeTriggerWithPrompt(triggerId, config.prompt);
 
   if (row.enabled) {
