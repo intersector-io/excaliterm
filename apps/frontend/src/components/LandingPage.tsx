@@ -14,6 +14,7 @@ import {
   FileCode,
   StickyNote,
   Server,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createWorkspace } from "@/lib/api-client";
@@ -128,9 +129,9 @@ export function LandingPage() {
             alt="Excaliterm workspace showing a connected host, live terminals, sticky notes, and a file editor on an infinite canvas"
             className="w-full"
           />
-          <AnnotationDot className="left-[10%] top-[18%]" label="Live terminal on another machine" side="right" />
-          <AnnotationDot className="left-[58%] top-[10%]" label="Sticky note visible to everyone" side="left" />
-          <AnnotationDot className="left-[72%] top-[62%]" label="Second collaborator types in real time" side="left" />
+          <AnnotationDot className="left-[43%] top-[34%]" label="Connected host on another machine" side="right" />
+          <AnnotationDot className="left-[71%] top-[32%]" label="Webhook fires a command on schedule" side="left" />
+          <AnnotationDot className="left-[28%] top-[64%]" label="Live shell streamed to everyone" side="right" />
         </div>
       </section>
 
@@ -161,7 +162,7 @@ export function LandingPage() {
           <UseCaseCard
             icon={<Bot />}
             title="AI & agent dashboards"
-            body="Connect long-running agents and Claude Code sessions as hosts. Watch them work, intervene when needed, and share the canvas with your team."
+            body="Connect long-running agents and Claude Code sessions as hosts — then schedule recurring checks or expose a webhook so external systems drive the shell directly. Watch them work, intervene when needed."
           />
         </div>
       </section>
@@ -185,8 +186,8 @@ export function LandingPage() {
             description="Prod, staging, your laptop side-by-side on an infinite canvas. Drag, zoom, tag — organize terminals like windows."
           />
           <FeatureCard
-            title="Invite anyone with a URL"
-            description="No accounts, no SSO, nothing to install on their side. Share the workspace link and they're in."
+            title="Automate from cron, CI, or a webhook"
+            description="Attach a timer trigger to run a prompt every N minutes, or expose an HTTP webhook URL with a secret token. External systems POST to it; the prompt lands in the terminal as if you typed it."
           />
           <FeatureCard
             title="See the GUI, not just the shell"
@@ -207,6 +208,7 @@ export function LandingPage() {
           <Badge icon={<History className="size-3.5" />} label="Persistent command history" />
           <Badge icon={<FileCode className="size-3.5" />} label="In-canvas file editor" />
           <Badge icon={<StickyNote className="size-3.5" />} label="Markdown sticky notes" />
+          <Badge icon={<Zap className="size-3.5" />} label="Timer & HTTP triggers" />
           <Badge icon={<Server className="size-3.5" />} label="Docker self-host" />
         </div>
       </section>
@@ -235,6 +237,7 @@ export function LandingPage() {
               <CompareRow feature="Spatial canvas & notes" a={false} b={false} c />
               <CompareRow feature="Persistent workspace & history" a={false} b={false} c />
               <CompareRow feature="Built-in chat beside shells" a={false} b c />
+              <CompareRow feature="Webhook automation into the shell" a={false} b={false} c />
               <CompareRow feature="Self-hostable (Docker)" a={false} b={false} c />
             </tbody>
           </table>

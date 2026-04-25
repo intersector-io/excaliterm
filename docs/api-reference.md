@@ -569,3 +569,133 @@ Example response:
   "message": "File tree will be proxied via SignalR in a future update"
 }
 ```
+
+## Triggers
+
+Triggers automate input to a terminal. Two types: `timer` (in-process scheduler fires a stored prompt every N minutes) and `http` (public webhook URL — caller POSTs the prompt). One of each type per terminal (enforced by a unique index on `(terminalNodeId, type)`).
+
+### `GET /w/:workspaceId/triggers`
+
+Lists every trigger in the workspace.
+
+```json
+{
+  "triggers": [
+    {
+      "id": "8e298a12-...",
+      "workspaceId": "1nm8pj3HLMfq",
+      "terminalNodeId": "3e774e60-...",
+      "terminalSessionId": "27085aa7-...",
+      "type": "timer",
+      "enabled": true,
+      "config": { "intervalMin": 5, "prompt": "git pull && pnpm test", "language": "shell" },
+      "lastFiredAt": "2026-04-25T00:42:46.000Z",
+      "lastError": null,
+      "createdAt": "2026-04-25T00:40:45.000Z",
+      "updatedAt": "2026-04-25T00:42:46.000Z"
+    }
+  ]
+}
+```
+
+### `POST /w/:workspaceId/triggers`
+
+Create a trigger attached to a terminal node. Inserts the trigger row, a canvas node (`nodeType: "trigger"`), and an edge from the terminal node — atomically in a single transaction.
+
+Body:
+
+```json
+{
+  "terminalNodeId": "3e774e60-...",
+  "type": "timer",
+  "config": { "intervalMin": 5, "prompt": "git pull", "language": "shell" }
+}
+```
+
+For `type: "http"`, the server generates `config.secret` automatically; you don't supply it. For `type: "timer"`, all `config` fields are optional and default to `{ intervalMin: 5, prompt: "", language: "shell" }`.
+
+Returns `201` with `{ trigger, canvasNode, canvasEdge }`. Trigger node default size is 300×280 for timer, 340×260 for http.
+
+Errors: `400` (missing `terminalNodeId`, unsupported `type`), `404` (terminal node not in workspace), `409` (a trigger of this type is already attached to this terminal).
+
+### `PATCH /w/:workspaceId/triggers/:id`
+
+Update `enabled` and (for timer triggers) `config`. HTTP triggers ignore `config` here — use `/rotate` to change the secret.
+
+Body (timer):
+
+```json
+{ "enabled": true, "config": { "intervalMin": 10, "prompt": "echo hi" } }
+```
+
+Body (http):
+
+```json
+{ "enabled": true }
+```
+
+Returns `{ trigger }`. For timer triggers, the in-process scheduler reschedules. Rejects enabling a timer with empty prompt (`400`).
+
+### `POST /w/:workspaceId/triggers/:id/rotate`
+
+HTTP triggers only. Generates a new random `secret`. The old secret immediately stops working. Returns the updated trigger with the new secret in `config.secret`.
+
+Errors: `400` (trigger isn't an HTTP trigger), `404` (not found in workspace).
+
+### `POST /w/:workspaceId/triggers/:id/fire`
+
+Manual fire for **timer triggers only**. Submits the trigger's stored prompt to the terminal immediately, regardless of the timer schedule and regardless of `enabled`. Returns `{ success: true }`.
+
+Errors: `400` (trigger is HTTP — use the public endpoint), `404`.
+
+### `DELETE /w/:workspaceId/triggers/:id`
+
+Unschedules the trigger, deletes its canvas node (cascading the edge via FK), and deletes the trigger row.
+
+## Public Trigger Endpoint
+
+Mounted **outside** workspace scope so external systems (CI runs, cron-job.org, Slack hooks, curl) can hit it directly.
+
+### `POST /api/triggers/:id/fire`
+
+Per-route rate limit: 60 requests / 60 s / IP. Independent of the global 100/min limiter so external traffic can't cap your UI.
+
+Headers:
+
+| header | required | notes |
+|---|---|---|
+| `X-Trigger-Token` | yes | Compared timing-safe against the trigger's `secret`. |
+| `Content-Type` | recommended | `application/json` |
+
+Body:
+
+```json
+{ "prompt": "echo hello from webhook" }
+```
+
+The `prompt` is sent to the terminal verbatim with a final `\r` appended (one Enter). Multi-line prompts are allowed; embedded `\n` characters are line-discipline Enter, so each line submits independently — use `;` (PowerShell/bash) or `&&` if you need a single statement.
+
+Success:
+
+```json
+{ "ok": true, "firedAt": "2026-04-25T13:27:02.594Z" }
+```
+
+| code | meaning |
+|---|---|
+| 200 | fired |
+| 400 | missing or empty `prompt` |
+| 401 | wrong/missing `X-Trigger-Token` |
+| 403 | trigger is paused (`enabled: false`) |
+| 404 | trigger id not found, or it's not an HTTP trigger (timer triggers are not exposed here) |
+| 429 | rate limit |
+| 502 | publish to terminal failed (host probably offline) |
+
+Example:
+
+```bash
+curl -X POST 'https://your-host/api/triggers/<id>/fire' \
+  -H 'X-Trigger-Token: <secret>' \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"git pull && pnpm test"}'
+```

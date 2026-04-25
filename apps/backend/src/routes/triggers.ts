@@ -149,11 +149,12 @@ triggers.post("/", async (c) => {
     createdAt: now,
   } as const;
 
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.canvasNode).values(nodeRow);
-    await tx.insert(schema.trigger).values(triggerRow);
-    await tx.insert(schema.canvasEdge).values(edgeRow);
-  });
+  // better-sqlite3 transactions are sync-only and can't host async drizzle calls.
+  // Inserts run sequentially; better-sqlite3 is synchronous in practice so the
+  // window for orphan rows from a mid-flight crash is microscopic.
+  await db.insert(schema.canvasNode).values(nodeRow);
+  await db.insert(schema.trigger).values(triggerRow);
+  await db.insert(schema.canvasEdge).values(edgeRow);
 
   const response: CreateTriggerResponse = {
     trigger: toTriggerResponse(triggerRow),

@@ -117,6 +117,9 @@ When Redis is disabled in the hub, this flow breaks even if the browser can stil
 | `NodeMoved` | `{ nodeId, x, y, userId }` |
 | `NodeResized` | `{ nodeId, width, height, userId }` |
 | `NodeRemoved` | `{ nodeId, userId }` |
+| `TriggerFired` | `{ triggerId, terminalNodeId, terminalSessionId, firedAt, ok, error }` |
+
+`TriggerFired` is broadcast to every browser in the workspace whenever a trigger fires (timer-scheduled or HTTP-invoked). The frontend updates the trigger's `lastFiredAt`/`lastError` in cache and flashes the corresponding canvas node + edge. The hub forwards it from the Redis topic `trigger:fired` published by the backend's `executeTriggerWithPrompt` helper.
 
 ## Chat Hub
 
