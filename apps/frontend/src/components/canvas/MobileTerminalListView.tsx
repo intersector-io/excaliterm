@@ -19,7 +19,7 @@ import { useNotes } from "@/hooks/use-notes";
 import { useServices } from "@/hooks/use-services";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
-import { getStatusDotColor, getStatusLabel } from "@/lib/terminal-status";
+import { getStatusDotColor, getStatusLabel, isDismissibleStatus } from "@/lib/terminal-status";
 import { groupTerminals, type GroupMode } from "@/lib/terminal-grouping";
 import { MobileMediaSection } from "./MobileMediaViewer";
 import { MobileNotesSection } from "./MobileNotesSection";
@@ -53,7 +53,15 @@ const GROUP_MODE_ICONS: Record<GroupMode, typeof Layers> = {
 };
 
 export function MobileTerminalListView() {
-  const { terminals, createTerminal, updateTerminal, dismissTerminal, isCreating } = useTerminals();
+  const {
+    terminals,
+    createTerminal,
+    updateTerminal,
+    dismissTerminal,
+    dismissAllStale,
+    isDismissingAllStale,
+    isCreating,
+  } = useTerminals();
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { services, onlineCount } = useServices();
   const { workspaceId } = useWorkspace();
@@ -181,6 +189,30 @@ export function MobileTerminalListView() {
     }
   }
 
+  const staleTerminals = useMemo(
+    () => terminals.filter((t) => isDismissibleStatus(t.status)),
+    [terminals],
+  );
+  const staleCount = staleTerminals.length;
+
+  async function handleDismissAllStale() {
+    if (staleCount === 0 || isDismissingAllStale) return;
+    try {
+      const result = await dismissAllStale(staleTerminals.map((t) => t.id));
+      if (result.failed > 0) {
+        toast.warning(
+          `Dismissed ${result.dismissed} of ${staleCount} (${result.failed} failed)`,
+        );
+      } else {
+        toast.success(
+          `Dismissed ${result.dismissed} terminal${result.dismissed === 1 ? "" : "s"}`,
+        );
+      }
+    } catch {
+      toast.error("Failed to dismiss terminals");
+    }
+  }
+
   async function handleNewNote() {
     try {
       await createNote({});
@@ -225,6 +257,17 @@ export function MobileTerminalListView() {
         {/* Focus + Filter + Group buttons */}
         {terminals.length > 0 && (
           <div className="flex items-center gap-1.5">
+            {staleCount > 0 && (
+              <button
+                onClick={handleDismissAllStale}
+                disabled={isDismissingAllStale}
+                aria-label={`Dismiss ${staleCount} stale terminal${staleCount === 1 ? "" : "s"}`}
+                className="flex h-8 items-center gap-1.5 rounded-lg bg-accent-amber/15 px-2.5 text-caption font-medium text-accent-amber transition-colors active:bg-accent-amber/25 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-bold">{staleCount}</span>
+              </button>
+            )}
             {/* Group mode toggle */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

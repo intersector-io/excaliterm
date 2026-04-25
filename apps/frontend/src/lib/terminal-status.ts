@@ -32,6 +32,10 @@ export function isStaleStatus(status: string): boolean {
   return status === "error" || status === "disconnected";
 }
 
+export function isDismissibleStatus(status: string): boolean {
+  return status === "error" || status === "disconnected" || status === "exited";
+}
+
 export function getStatusBadgeClasses(status: string): string {
   switch (status) {
     case "active":

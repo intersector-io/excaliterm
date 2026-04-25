@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useServices } from "@/hooks/use-services";
+import { useTerminals } from "@/hooks/use-terminal";
 import { useTerminalCollaboration } from "@/hooks/use-terminal-collaboration";
+import { isDismissibleStatus } from "@/lib/terminal-status";
 import * as api from "@/lib/api-client";
 import {
   DropdownMenu,
@@ -12,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Server, Users, ChevronDown, Plus, Settings, GitBranchPlus } from "lucide-react";
+import { Server, Users, ChevronDown, Plus, Settings, GitBranchPlus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EditableDisplayName } from "@/components/ui/editable-display-name";
 import { ServiceConfigDialog } from "@/components/services/ServiceConfigDialog";
@@ -43,6 +46,28 @@ export function CanvasToolbar({
     queryFn: () => api.listTerminals(workspaceId),
     select: (data) => data.terminals.filter((t) => t.status === "active").length,
   }).data ?? 0;
+
+  const { terminals, dismissAllStale, isDismissingAllStale } = useTerminals();
+  const staleTerminals = terminals.filter((t) => isDismissibleStatus(t.status));
+  const staleCount = staleTerminals.length;
+
+  async function handleDismissAllStale() {
+    if (staleCount === 0 || isDismissingAllStale) return;
+    try {
+      const result = await dismissAllStale(staleTerminals.map((t) => t.id));
+      if (result.failed > 0) {
+        toast.warning(
+          `Dismissed ${result.dismissed} of ${staleCount} (${result.failed} failed)`,
+        );
+      } else {
+        toast.success(
+          `Dismissed ${result.dismissed} terminal${result.dismissed === 1 ? "" : "s"}`,
+        );
+      }
+    } catch {
+      toast.error("Failed to dismiss terminals");
+    }
+  }
 
   const noHost = onlineCount === 0;
   const hostLabel = noHost
@@ -168,10 +193,27 @@ export function CanvasToolbar({
           <span className="text-caption text-muted-foreground/40">
             {collaboratorCount} here{terminalSuffix}
           </span>
+          {staleCount > 0 && (
+            <button
+              onClick={handleDismissAllStale}
+              disabled={isDismissingAllStale}
+              className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-accent-amber/80 transition-colors hover:bg-accent-amber/10 hover:text-accent-amber disabled:opacity-50"
+              title="Dismiss all disconnected, errored and exited terminals"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">
+                Dismiss {staleCount} stale
+              </span>
+              <span className="md:hidden">{staleCount}</span>
+            </button>
+          )}
           {onAutoLayout && (
             <button
               onClick={onAutoLayout}
-              className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-muted-foreground/50 transition-colors hover:bg-white/[0.04] hover:text-muted-foreground"
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-muted-foreground/50 transition-colors hover:bg-white/[0.04] hover:text-muted-foreground",
+                staleCount === 0 && "ml-auto",
+              )}
               title="Auto Layout (top-down)"
             >
               <GitBranchPlus className="h-3.5 w-3.5" />

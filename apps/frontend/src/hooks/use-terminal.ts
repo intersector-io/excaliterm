@@ -92,6 +92,27 @@ export function useTerminals() {
     },
   });
 
+  const dismissAllStaleMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = await Promise.allSettled(
+        ids.map(async (id) => {
+          try {
+            await api.dismissTerminal(workspaceId, id);
+          } catch (err) {
+            // Already-gone terminals come back 404 — treat as success.
+            if (!(err instanceof Error && /API 404/.test(err.message))) throw err;
+          }
+        }),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { dismissed: ids.length - failed, failed };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["terminals", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["canvas-nodes", workspaceId] });
+    },
+  });
+
   const updateTerminalStatus = useCallback(
     (
       terminalId: string,
@@ -189,7 +210,9 @@ export function useTerminals() {
     deleteTerminal: deleteMutation.mutateAsync,
     dismissTerminal: dismissMutation.mutateAsync,
     closeAllTerminals: closeAllMutation.mutateAsync,
+    dismissAllStale: dismissAllStaleMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isClosingAll: closeAllMutation.isPending,
+    isDismissingAllStale: dismissAllStaleMutation.isPending,
   };
 }
