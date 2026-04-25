@@ -162,7 +162,8 @@ export function probeShell(shell: string, shellArgs: string[]): ShellProbeResult
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     throw new Error(
-      `Shell self-test failed: cannot spawn "${resolvedShell}" in cwd "${cwd}": ${reason}`,
+      `Shell self-test failed: cannot spawn "${resolvedShell}" in cwd "${cwd}": ${reason}\n` +
+        `See: https://github.com/intersector-io/excaliterm/blob/main/docs/troubleshooting.md#shell-self-test-failed`,
     );
   }
 

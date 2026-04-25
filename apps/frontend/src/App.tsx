@@ -8,6 +8,7 @@ import { getOrCreateCollaboratorProfile } from "@/lib/collaborator";
 import { WORKSPACE_STORAGE_KEY, workspaceApiKeyStorageKey } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { LandingPage } from "@/components/LandingPage";
+import { TroubleshootingPage } from "@/components/TroubleshootingPage";
 
 function WorkspaceRoute() {
   const params = useParams<{ workspaceId: string }>();
@@ -135,6 +136,7 @@ export function App() {
       />
       <Switch>
         <Route path="/w/:workspaceId" component={WorkspaceRoute} />
+        <Route path="/troubleshooting" component={TroubleshootingPage} />
         <Route path="/" component={LandingPage} />
         <Route>
           <NotFoundPage heading="Page not found" subheading="That URL doesn't exist here." />

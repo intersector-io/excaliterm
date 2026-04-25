@@ -265,6 +265,7 @@ Excaliterm implements several standards for AI agent discoverability:
 - [Development Guide](./docs/development.md)
 - [Terminal Agent Guide](./docs/windows-service.md)
 - [Deployment](./docs/deployment.md)
+- [Troubleshooting](./docs/troubleshooting.md)
 
 ## License
 

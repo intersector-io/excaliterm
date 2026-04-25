@@ -291,6 +291,7 @@ export function LandingPage() {
               { label: "Feature guide", href: "https://github.com/intersector-io/excaliterm/tree/main/docs/features" },
               { label: "Architecture", href: "https://github.com/intersector-io/excaliterm/blob/main/docs/architecture.md" },
               { label: "API reference", href: "https://github.com/intersector-io/excaliterm/blob/main/docs/api-reference.md" },
+              { label: "Troubleshooting", href: "/troubleshooting" },
             ]}
           />
           <FooterCol
