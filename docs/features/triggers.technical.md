@@ -87,6 +87,30 @@ The existing `terminal:write` redis branch in `RedisSubscriber.cs` was previousl
 - `TerminalNode.tsx` — adds **Add timer trigger** AND **Add HTTP trigger** to the `⋯` menu, each disabled independently when its type is already attached.
 - Lock model — both bodies read `useTerminalCollaboration(terminalSessionId).lockedByOther` and disable inputs. The backend does **not** enforce lock state for trigger fires (the scheduler and HTTP endpoint are server-side and lockless by design — locks are about collaborator typing, not automation).
 
+## Public terminal read endpoint (supervisor pattern)
+
+External agents can observe a terminal via `GET /api/terminals/:id/output?lines=N` (mounted at `apps/backend/src/routes/terminals-public.ts`, before workspace middleware in `index.ts`).
+
+- Auth: `X-Terminal-Read-Token` header, timing-safe compare against `terminal_session.readToken`.
+- Rate limit: 120 req / 60s / IP (per-route, independent of the global limiter).
+- Source: reads the existing per-terminal Redis list `terminal:buffer:{terminalId}` (populated by the SignalR hub's `TerminalOutput` handler with 1000-entry cap and 24h TTL — no hub change required). Concatenates entries, splits on `\n`, returns the trailing N lines.
+- `lines` clamped: missing/non-positive → 200; over 1000 → 1000.
+
+The `terminal_session` table gains a `readToken` column (text, default empty). Tokens are auto-generated on terminal creation; existing rows are backfilled with `lower(hex(randomblob(16)))`-style UUIDs on backend startup. Rotation: `POST /api/w/:wsId/terminals/:id/rotate-read-token` (workspace-scoped).
+
+The full terminal response shape includes `readToken` because the workspace URL already grants total terminal access — there's no privilege boundary to protect inside the workspace. Tokens are the convenience handle for **external** agents.
+
+## MCP package
+
+`apps/mcp-tools/` ships `@excaliterm/mcp-tools`, an stdio MCP server.
+
+- `read_terminal(name, lines?)` → calls the public read endpoint.
+- `send_terminal(name, command, requireIdleSec?)` → calls the existing HTTP trigger fire endpoint with `{ prompt: command }`.
+
+Friendly names (`worker`, `supervisor`) live in `~/.excaliterm/mcp.json` (`EXCALITERM_CONFIG` env var). The agent uses names; UUIDs and tokens stay private to the MCP layer.
+
+The Excaliterm canvas's **Connect an agent** workspace action (toolbar, `apps/frontend/src/components/canvas/ConnectAgentModal.tsx`) generates this config file from the workspace state — checkboxes per terminal/trigger, live JSON preview, masked tokens with single eye-toggle reveal.
+
 ## Files
 
 ```

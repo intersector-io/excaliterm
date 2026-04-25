@@ -106,6 +106,15 @@ export function updateTerminal(
   });
 }
 
+export function rotateTerminalReadToken(
+  workspaceId: string,
+  id: string,
+): Promise<{ terminal: import("@excaliterm/shared-types").TerminalSession }> {
+  return request(`/w/${workspaceId}/terminals/${id}/rotate-read-token`, {
+    method: "POST",
+  });
+}
+
 export function closeAllTerminals(
   workspaceId: string,
 ): Promise<{ success: boolean; closed: number }> {

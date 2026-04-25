@@ -20,6 +20,7 @@ import { files } from "./routes/files.js";
 import { commandHistory } from "./routes/command-history.js";
 import { triggers } from "./routes/triggers.js";
 import { triggersPublic } from "./routes/triggers-public.js";
+import { terminalsPublic } from "./routes/terminals-public.js";
 import { loadAllTriggers } from "./services/trigger-scheduler.js";
 import { initTerminalActivityTracking } from "./services/terminal-activity.js";
 
@@ -312,6 +313,10 @@ app.route("/api/workspaces", workspaces);
 // ─── Public trigger endpoint (auth via per-trigger secret) ────────────────
 
 app.route("/api/triggers", triggersPublic);
+
+// ─── Public terminal-read endpoint (auth via per-terminal read token) ─────
+
+app.route("/api/terminals", terminalsPublic);
 
 // ─── Workspace-scoped Routes ──────────────────────────────────────────────
 

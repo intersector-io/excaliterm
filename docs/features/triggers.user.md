@@ -87,3 +87,46 @@ The prompt comes **strictly from the payload** — empty body or empty `prompt` 
 ### Security notes
 
 The token is stored on the server and revealable inside the workspace because anyone with workspace access can already drive the terminal directly. The token's purpose is to keep the URL safe to share **outside** the workspace. Rotate immediately if you think it's been compromised.
+
+---
+
+## Supervisor pattern (Claude Code watching another terminal)
+
+The HTTP trigger lets external systems **write** to a terminal. Pair it with the public **read** endpoint and you get the interesting trick: one terminal can supervise another.
+
+The npm package `@excaliterm/mcp-tools` ships an MCP server that exposes two tools to any MCP-aware client (Claude Code, Claude Desktop, Cursor):
+
+- `read_terminal(name, lines)` — last N lines of a terminal's output.
+- `send_terminal(name, command)` — send a command to a terminal via its HTTP trigger.
+
+### Setup in 3 clicks
+
+1. Open the workspace's **Connect an agent** action in the canvas toolbar.
+2. Check the terminals + triggers you want to expose. Friendly names (e.g. `worker`) become tool argument values.
+3. Copy the generated `~/.excaliterm/mcp.json` and the `mcpServers` snippet for your MCP client. Paste, restart Claude Code, done.
+
+### What the supervisor does
+
+Drop two terminals on the canvas:
+
+- **Terminal A** runs the workload — `pnpm dev`, a long agent task, a flaky service.
+- **Terminal B** runs Claude Code with `@excaliterm/mcp-tools` loaded.
+
+Tell Terminal B's session: *"keep `worker` healthy — call read_terminal every 2 minutes; if the dev server is stuck or the cache is corrupted, send_terminal to restart it."* Walk away.
+
+The whole loop is visible on the canvas. You see Terminal A's workload, Terminal B's reasoning, and the trigger nodes pulse amber every time Claude pokes the worker.
+
+### Per-terminal connection details
+
+For one-off cases (just one terminal, no full multi-target config), open the terminal's `⋯` menu → **Copy connection details…**. The dialog gives you the terminal id, the read token, and a copy-paste-ready `mcp.json` fragment.
+
+### Read endpoint
+
+`GET /api/terminals/:id/output?lines=N` — public, authenticated by `X-Terminal-Read-Token`. Default `lines=200`, max 1000. Returns the last N lines from the terminal's 24-hour Redis output buffer.
+
+| code | meaning |
+|---|---|
+| 200 | `{ terminalId, lines: [...], totalLines, capturedAt }` |
+| 401 | wrong/missing `X-Terminal-Read-Token` |
+| 404 | unknown terminal id |
+| 429 | rate limit (120 reads/min/IP) |

@@ -7,6 +7,12 @@ export interface TerminalSession {
   tags: string[];
   status: TerminalStatus;
   exitCode: number | null;
+  /**
+   * Per-terminal token used to authenticate calls to the public read endpoint
+   * `GET /api/terminals/:id/output`. Workspace URL already grants full terminal
+   * access, so this token is exposed in regular API responses for convenience.
+   */
+  readToken: string;
   createdAt: string;
   updatedAt: string;
 }

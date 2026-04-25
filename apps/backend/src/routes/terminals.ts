@@ -122,12 +122,15 @@ terminals.post("/", async (c) => {
   const nodeId = crypto.randomUUID();
   const now = new Date();
 
+  const readToken = crypto.randomUUID();
+
   await db.insert(schema.terminalSession).values({
     id: terminalId,
     workspaceId,
     serviceInstanceId: targetService.id,
     tags: serializeTags(body.tags ?? []),
     status: "active",
+    readToken,
     createdAt: now,
     updatedAt: now,
   });
@@ -196,6 +199,7 @@ terminals.post("/", async (c) => {
       tags: parseTags(terminal.tags),
       status: terminal.status,
       exitCode: terminal.exitCode,
+      readToken: terminal.readToken,
       createdAt: terminal.createdAt.toISOString(),
       updatedAt: terminal.updatedAt.toISOString(),
     },
@@ -243,12 +247,63 @@ terminals.get("/", async (c) => {
       tags: parseTags(r.terminal.tags),
       status: r.terminal.status,
       exitCode: r.terminal.exitCode,
+      readToken: r.terminal.readToken,
       createdAt: r.terminal.createdAt.toISOString(),
       updatedAt: r.terminal.updatedAt.toISOString(),
     })),
   };
 
   return c.json(response);
+});
+
+// POST /:id/rotate-read-token - Generate a new read token for a terminal
+terminals.post("/:id/rotate-read-token", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const terminalId = c.req.param("id");
+  const db = getDb();
+
+  const [row] = await db
+    .select({
+      terminal: schema.terminalSession,
+      serviceId: schema.serviceInstance.serviceId,
+    })
+    .from(schema.terminalSession)
+    .leftJoin(
+      schema.serviceInstance,
+      eq(schema.terminalSession.serviceInstanceId, schema.serviceInstance.id),
+    )
+    .where(
+      and(
+        eq(schema.terminalSession.id, terminalId),
+        eq(schema.terminalSession.workspaceId, workspaceId),
+      ),
+    );
+
+  if (!row) {
+    throw new HTTPException(404, { message: "Terminal session not found" });
+  }
+
+  const existing = row.terminal;
+  const newToken = crypto.randomUUID();
+  const now = new Date();
+  await db
+    .update(schema.terminalSession)
+    .set({ readToken: newToken, updatedAt: now })
+    .where(eq(schema.terminalSession.id, terminalId));
+
+  return c.json({
+    terminal: {
+      id: existing.id,
+      serviceInstanceId: existing.serviceInstanceId,
+      serviceId: row.serviceId ?? null,
+      tags: parseTags(existing.tags),
+      status: existing.status,
+      exitCode: existing.exitCode,
+      readToken: newToken,
+      createdAt: existing.createdAt.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+  });
 });
 
 // PATCH /:id - Update terminal (tags)
@@ -293,6 +348,7 @@ terminals.patch("/:id", async (c) => {
       tags: parseTags(updated.tags),
       status: updated.status,
       exitCode: updated.exitCode,
+      readToken: updated.readToken,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
     },

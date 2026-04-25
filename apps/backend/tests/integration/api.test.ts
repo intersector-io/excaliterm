@@ -70,6 +70,7 @@ function createTestDb(): TestDb {
       "tags" text DEFAULT '',
       "status" text NOT NULL DEFAULT 'active',
       "exitCode" integer,
+      "readToken" text NOT NULL DEFAULT '',
       "createdAt" integer NOT NULL,
       "updatedAt" integer NOT NULL
     );
@@ -81,6 +82,7 @@ function createTestDb(): TestDb {
       "noteId" text REFERENCES "note"("id") ON DELETE SET NULL,
       "screenshotId" text,
       "serviceInstanceId" text REFERENCES "service_instance"("id") ON DELETE SET NULL,
+      "triggerId" text,
       "x" real NOT NULL DEFAULT 100,
       "y" real NOT NULL DEFAULT 100,
       "width" real NOT NULL DEFAULT 600,

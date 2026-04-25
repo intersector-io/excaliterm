@@ -104,10 +104,16 @@ Open the overflow menu on any terminal and select **Command History**. A linked 
 ### 8. Automate with triggers
 
 Open the overflow menu on any terminal and attach a trigger:
-- **Timer** — fires a stored prompt every N minutes. Set the interval, type your prompt (or open the Monaco editor for longer scripts), toggle active.
+- **Timer** — fires a stored prompt every N minutes. Set the interval, type your prompt (or open the Monaco editor for longer scripts), toggle active. Optional "only when idle for Ns" gate skips firings while the terminal is busy (Ralph loop / agentic loop friendly).
 - **HTTP** — exposes a public webhook URL. Calling it submits the prompt from the request payload to the terminal. Click the trigger node to copy the endpoint or the cURL example; rotate the secret if it leaks.
 
-See [docs/features/triggers.user.md](./docs/features/triggers.user.md).
+### 9. Let an agent supervise your terminals
+
+Click **Connect an agent** in the canvas toolbar. Pick the terminals and HTTP triggers you want to expose, copy the generated `~/.excaliterm/mcp.json`, paste the `mcpServers` snippet into your Claude Code (or Claude Desktop, Cursor, Aider) config, restart. The agent now has `read_terminal` and `send_terminal` tools that read/write any terminal in the workspace by friendly name.
+
+The headline use case: drop two terminals on a canvas — Terminal A runs `pnpm dev` (or any long-running workload), Terminal B runs Claude Code with the MCP loaded and is told to monitor A. Walk away. Claude reads the worker's output, decides when to intervene, restarts it when stuck. You see both terminals + the agent's reasoning side by side on the canvas.
+
+See [docs/features/triggers.user.md](./docs/features/triggers.user.md#supervisor-pattern-claude-code-watching-another-terminal).
 
 ### 9. Share with others
 

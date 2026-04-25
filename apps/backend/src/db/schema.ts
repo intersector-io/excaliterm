@@ -85,6 +85,7 @@ export const terminalSession = sqliteTable("terminal_session", {
     .notNull()
     .default("active"),
   exitCode: integer("exitCode"),
+  readToken: text("readToken").notNull().default(""),
   createdAt: integer("createdAt", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

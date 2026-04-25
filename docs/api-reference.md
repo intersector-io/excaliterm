@@ -570,6 +570,56 @@ Example response:
 }
 ```
 
+## Public Terminal Read Endpoint
+
+Mounted **outside** workspace scope so external agents (Claude Code with MCP, custom scripts, anything that speaks HTTP) can read a terminal's output.
+
+### `GET /api/terminals/:id/output`
+
+Per-route rate limit: 120 requests / 60s / IP.
+
+Headers:
+
+| header | required | notes |
+|---|---|---|
+| `X-Terminal-Read-Token` | yes | Compared timing-safe against the terminal's read token. |
+
+Query:
+
+| param | default | notes |
+|---|---|---|
+| `lines` | 200 | Number of trailing lines to return. Clamped to `[1, 1000]`. |
+
+Returns:
+
+```json
+{
+  "terminalId": "...",
+  "lines": ["line 1", "line 2", "..."],
+  "totalLines": 200,
+  "capturedAt": "2026-04-25T..."
+}
+```
+
+Source: the per-terminal Redis output buffer (1000 entries, 24h TTL). Quiet terminals will return empty `lines: []` — clients should not infer "terminal dead" from empty output alone.
+
+| code | meaning |
+|---|---|
+| 200 | success |
+| 401 | wrong/missing `X-Terminal-Read-Token` |
+| 404 | unknown terminal id |
+| 429 | rate limit hit |
+
+### Rotate the read token
+
+`POST /api/w/:workspaceId/terminals/:id/rotate-read-token`
+
+Workspace-scoped. Generates a new read token. The old one stops working immediately. Returns the updated terminal:
+
+```json
+{ "terminal": { "id": "...", "readToken": "new-uuid", "..." } }
+```
+
 ## Triggers
 
 Triggers automate input to a terminal. Two types: `timer` (in-process scheduler fires a stored prompt every N minutes) and `http` (public webhook URL — caller POSTs the prompt). One of each type per terminal (enforced by a unique index on `(terminalNodeId, type)`).

@@ -83,6 +83,23 @@ export function useTerminals() {
     },
   });
 
+  const rotateReadTokenMutation = useMutation({
+    mutationFn: (id: string) => api.rotateTerminalReadToken(workspaceId, id),
+    onSuccess: (res) => {
+      queryClient.setQueryData(
+        ["terminals", workspaceId],
+        (old: ListTerminalsResponse | undefined) => {
+          if (!old) return old;
+          return {
+            terminals: old.terminals.map((t) =>
+              t.id === res.terminal.id ? { ...t, ...res.terminal } : t,
+            ),
+          };
+        },
+      );
+    },
+  });
+
   const closeAllMutation = useMutation({
     mutationFn: () => api.closeAllTerminals(workspaceId),
     onSuccess: () => {
@@ -211,6 +228,7 @@ export function useTerminals() {
     dismissTerminal: dismissMutation.mutateAsync,
     closeAllTerminals: closeAllMutation.mutateAsync,
     dismissAllStale: dismissAllStaleMutation.mutateAsync,
+    rotateReadToken: rotateReadTokenMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isClosingAll: closeAllMutation.isPending,
     isDismissingAllStale: dismissAllStaleMutation.isPending,

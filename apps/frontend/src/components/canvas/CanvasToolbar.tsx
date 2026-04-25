@@ -19,6 +19,7 @@ import { Server, Users, ChevronDown, Plus, Settings, GitBranchPlus, Trash2 } fro
 import { cn } from "@/lib/utils";
 import { EditableDisplayName } from "@/components/ui/editable-display-name";
 import { ServiceConfigDialog } from "@/components/services/ServiceConfigDialog";
+import { ConnectAgentButton } from "./ConnectAgentButton";
 import type { ServiceInstance } from "@/lib/api-client";
 
 interface CanvasToolbarProps {
@@ -220,6 +221,7 @@ export function CanvasToolbar({
               <span className="hidden md:inline">Auto Layout</span>
             </button>
           )}
+          <ConnectAgentButton />
         </div>
       </div>
 

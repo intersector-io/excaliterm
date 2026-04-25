@@ -6,6 +6,15 @@ import { getEnv } from "../env.js";
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 let _sqlite: Database.Database | null = null;
 
+// SQLite UUID v4 generator. Used to backfill new tokenized columns on existing rows.
+const RANDOM_UUID_SQL = `lower(
+  hex(randomblob(4)) || '-' ||
+  hex(randomblob(2)) || '-4' ||
+  substr(hex(randomblob(2)),2) || '-' ||
+  substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' ||
+  hex(randomblob(6))
+)`;
+
 export function initializeDb() {
   const env = getEnv();
   _sqlite = new Database(env.DATABASE_URL);
@@ -139,6 +148,17 @@ export function initializeDb() {
     // Column already exists
   }
 
+  try {
+    _sqlite.exec(`ALTER TABLE "terminal_session" ADD COLUMN "readToken" text NOT NULL DEFAULT ''`);
+  } catch {
+    // Column already exists
+  }
+
+  // Backfill read tokens for existing rows (safe to re-run; only touches blanks)
+  _sqlite.exec(
+    `UPDATE "terminal_session" SET "readToken" = ${RANDOM_UUID_SQL} WHERE "readToken" = ''`,
+  );
+
   // Migrations for existing databases
   try {
     _sqlite.exec(`ALTER TABLE "terminal_session" ADD COLUMN "tags" text DEFAULT ''`);
@@ -172,7 +192,7 @@ export function initializeDb() {
   try {
     _sqlite.exec(`ALTER TABLE "workspace" ADD COLUMN "apiKey" text NOT NULL DEFAULT ''`);
     // Backfill existing workspaces with generated UUIDs (only runs once, when column is first added)
-    _sqlite.exec(`UPDATE "workspace" SET "apiKey" = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE "apiKey" = ''`);
+    _sqlite.exec(`UPDATE "workspace" SET "apiKey" = ${RANDOM_UUID_SQL} WHERE "apiKey" = ''`);
   } catch {
     // Column already exists
   }
