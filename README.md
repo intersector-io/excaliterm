@@ -137,7 +137,7 @@ The wizard sets up the canonical pattern: one terminal is the subordinate coding
 
 For workspaces that already have terminals you want to expose manually, **Connect an agent** stays available next to the wizard button.
 
-See [docs/features/triggers.user.md](./docs/features/triggers.user.md#supervisor-pattern-claude-code-watching-another-terminal).
+Walkthrough: [docs/supervisor-pattern.md](./docs/supervisor-pattern.md) — a step-by-step real-world setup (remote dev box + local Claude Desktop). Reference: [docs/features/triggers.user.md](./docs/features/triggers.user.md#supervisor-pattern-claude-code-watching-another-terminal).
 
 ### 10. Share with others
 
@@ -281,6 +281,7 @@ Excaliterm implements several standards for AI agent discoverability:
 
 ## Documentation
 
+- [Supervisor pattern walkthrough](./docs/supervisor-pattern.md) — step-by-step real-world setup
 - [Features](./docs/features/README.md) — per-feature user and technical docs
 - [Architecture](./docs/architecture.md)
 - [Setup Guide](./docs/setup.md)
