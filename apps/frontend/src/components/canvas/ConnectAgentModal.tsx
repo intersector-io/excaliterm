@@ -11,6 +11,8 @@ import { useTerminals } from "@/hooks/use-terminal";
 import { useTriggers } from "@/hooks/use-triggers";
 import { useCopyWithFeedback } from "@/hooks/use-copy";
 import { getApiBaseUrl } from "@/lib/config";
+import { buildMcpConfig } from "@/lib/build-mcp-config";
+import { sanitizeIdentifier } from "@/lib/utils";
 import type { Trigger } from "@excaliterm/shared-types";
 
 interface ConnectAgentModalProps {
@@ -18,7 +20,6 @@ interface ConnectAgentModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const MASKED = "•".repeat(36);
 const DOCS_URL =
   "https://github.com/intersector-io/excaliterm/blob/main/docs/features/triggers.user.md";
 const INSTALL_CMD = "npm install -g @excaliterm/mcp-tools";
@@ -83,32 +84,24 @@ export function ConnectAgentModal({ open, onOpenChange }: Readonly<ConnectAgentM
 
   const baseUrl = useMemo(() => getApiBaseUrl(), []);
 
-  const buildMcpConfig = (mask: boolean): string => {
-    const terminalsObj: Record<string, { id: string; readToken: string }> = {};
-    for (const t of terminalSel.filter((x) => x.selected)) {
-      const liveTerminal = terminals.find((lt) => lt.id === t.id);
-      terminalsObj[t.name] = {
-        id: t.id,
-        readToken: mask ? MASKED : (liveTerminal?.readToken ?? ""),
-      };
-    }
-    const triggersObj: Record<string, { id: string; token: string }> = {};
-    for (const t of triggerSel.filter((x) => x.selected)) {
-      const cfg = t.trigger.config as { secret?: string };
-      triggersObj[t.name] = {
-        id: t.trigger.id,
-        token: mask ? MASKED : (cfg.secret ?? ""),
-      };
-    }
-    return JSON.stringify(
-      { baseUrl, terminals: terminalsObj, triggers: triggersObj },
-      null,
-      2,
-    );
-  };
+  const buildConfig = (mask: boolean): string =>
+    buildMcpConfig({
+      baseUrl,
+      terminals: terminalSel
+        .filter((x) => x.selected)
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          readToken: terminals.find((lt) => lt.id === t.id)?.readToken ?? "",
+        })),
+      triggers: triggerSel
+        .filter((x) => x.selected)
+        .map((t) => ({ id: t.trigger.id, name: t.name, trigger: t.trigger })),
+      mask,
+    });
 
   const mcpJson = useMemo(
-    () => buildMcpConfig(!revealed),
+    () => buildConfig(!revealed),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [baseUrl, terminalSel, triggerSel, terminals, revealed],
   );
@@ -141,7 +134,7 @@ export function ConnectAgentModal({ open, onOpenChange }: Readonly<ConnectAgentM
 
   const onCopyConfig = async () => {
     try {
-      await copy(buildMcpConfig(false), "mcp");
+      await copy(buildConfig(false), "mcp");
       setRippling(true);
       if (rippleTimeoutRef.current !== null) {
         window.clearTimeout(rippleTimeoutRef.current);
@@ -381,7 +374,7 @@ function SelectionRow({
       <input
         type="text"
         value={name}
-        onChange={(e) => onNameChange(e.target.value.replace(/[^a-zA-Z0-9_.-]/g, "_"))}
+        onChange={(e) => onNameChange(sanitizeIdentifier(e.target.value))}
         spellCheck={false}
         className="flex-1 bg-transparent font-mono text-body-sm font-semibold text-foreground/90 outline-none focus:bg-white/[0.04] rounded px-1"
       />

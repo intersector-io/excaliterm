@@ -116,6 +116,46 @@ Tell Terminal B's session: *"keep `worker` healthy — call read_terminal every 
 
 The whole loop is visible on the canvas. You see Terminal A's workload, Terminal B's reasoning, and the trigger nodes pulse amber every time Claude pokes the worker.
 
+### Quickest path: the setup wizard
+
+For first-time setup, click **+ Set up an agent → coding agent + sidecar shell** in the canvas toolbar (or **Set up your first agent** on an empty workspace). The wizard picks the host, spawns both terminals, attaches the HTTP triggers, generates `mcp.json`, runs an end-to-end connection test, and hands you a copy-paste system prompt — about 30 seconds end to end. The manual flow described below stays as the *advanced* path for cases where the wizard's defaults don't fit.
+
+### Pairing the agent with a sidecar shell
+
+Commands sent via `send_terminal` are typed verbatim into the target terminal. If the target is a coding-agent prompt (Codex, Aider, another Claude), `ls` lands as a typo into the agent's chat — not as a real shell command. The fix is to give the supervisor a **second** terminal on the same host: a plain shell it can drive directly for inspection.
+
+Setup on the worker host's canvas:
+
+1. Spawn two terminals on that host. Tag them so you can tell them apart — e.g. `codex` and `shell`.
+2. Start the coding agent (`codex`, `aider`, …) in the first terminal. Leave the second on a normal prompt.
+3. From each terminal's `⋯` menu → **Add HTTP trigger**. The supervisor needs a trigger on both: one to drive the agent, one to drive the shell.
+4. Open **Connect an agent**, check both terminals + both triggers, and rename the friendly names to something the supervisor will understand:
+   - terminals: `codex_worker_linux`, `linux_shell`
+   - triggers: `codex_worker_linux`, `linux_shell`
+5. Copy the generated `mcp.json` to `~/.excaliterm/mcp.json` on the **supervisor**'s machine and reload Claude Code.
+
+The resulting config has two entries each side:
+
+```json
+{
+  "baseUrl": "https://your-excaliterm-host",
+  "terminals": {
+    "codex_worker_linux": { "id": "…", "readToken": "…" },
+    "linux_shell":        { "id": "…", "readToken": "…" }
+  },
+  "triggers": {
+    "codex_worker_linux": { "id": "…", "token": "…" },
+    "linux_shell":        { "id": "…", "token": "…" }
+  }
+}
+```
+
+Tell the supervisor in its system prompt how to use them — for example:
+
+> You drive two terminals on a Linux host. `codex_worker_linux` is a Codex coding-agent session — use `send_terminal` to give it natural-language instructions, and `read_terminal` to read its replies. `linux_shell` is a plain bash shell on the same machine — use it for `ls`, `cat`, `git status`, and any other recon you need. Never type shell commands into `codex_worker_linux` and never type natural-language prompts into `linux_shell`.
+
+Because both terminals run on the same host agent, they share the filesystem — so `cd` / `git` state from `linux_shell` reflects what the agent is actually working on.
+
 ### Per-terminal connection details
 
 For one-off cases (just one terminal, no full multi-target config), open the terminal's `⋯` menu → **Copy connection details…**. The dialog gives you the terminal id, the read token, and a copy-paste-ready `mcp.json` fragment.

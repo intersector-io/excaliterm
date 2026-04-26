@@ -15,3 +15,7 @@ export const WORKSPACE_STORAGE_KEY = "excaliterm.workspace-id";
 export function workspaceApiKeyStorageKey(workspaceId: string): string {
   return `excaliterm.workspace-api-key.${workspaceId}`;
 }
+
+export function sanitizeIdentifier(input: string): string {
+  return input.replace(/[^a-zA-Z0-9_.-]/g, "_");
+}

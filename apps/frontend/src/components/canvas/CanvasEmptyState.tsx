@@ -1,10 +1,12 @@
 import { toast } from "sonner";
-import { Terminal, StickyNote, Server, ArrowRight, Zap } from "lucide-react";
+import { Terminal, StickyNote, Server, ArrowRight, Zap, Sparkles } from "lucide-react";
 import { useTerminals } from "@/hooks/use-terminal";
 import { useNotes } from "@/hooks/use-notes";
 import { useServices } from "@/hooks/use-services";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Button } from "@/components/ui/button";
+import { useSetupAgentStore } from "@/stores/setup-agent-store";
+import { logWizardEvent } from "@/lib/wizard-telemetry";
 
 function NoHostActions({
   isMobile,
@@ -72,41 +74,34 @@ function NoHostActions({
 function HasHostActions({
   isMobile,
   isCreating,
-  isCreatingNote,
+  onSetupAgent,
   onCreateTerminal,
-  onCreateNote,
 }: Readonly<{
   isMobile: boolean;
   isCreating: boolean;
-  isCreatingNote: boolean;
+  onSetupAgent: () => void;
   onCreateTerminal: () => void;
-  onCreateNote: () => void;
 }>) {
   return (
-    <div
-      className={`flex items-center gap-2 ${isMobile ? "w-full flex-col" : ""}`}
-    >
+    <div className="flex w-full flex-col items-center gap-3">
       <Button
+        onClick={onSetupAgent}
+        className={`gap-2 rounded-md border border-accent-amber/30 bg-accent-amber/[0.08] text-accent-amber transition-colors hover:border-accent-amber/50 hover:bg-accent-amber/15 ${
+          isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
+        }`}
+      >
+        <Sparkles className="h-4 w-4" />
+        Set up your first agent
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Button>
+      <button
         onClick={onCreateTerminal}
         disabled={isCreating}
-        className={`gap-2 rounded-md border border-accent-cyan/20 bg-accent-cyan/10 text-accent-cyan transition-colors hover:bg-accent-cyan/16 ${
-          isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
-        }`}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground/70 transition-colors hover:text-muted-foreground disabled:opacity-50"
       >
-        <Terminal className="h-4 w-4" />
-        {isCreating ? "Creating..." : "New Terminal"}
-      </Button>
-      <Button
-        onClick={onCreateNote}
-        disabled={isCreatingNote}
-        variant="secondary"
-        className={`gap-2 rounded-md border border-border-default/50 bg-secondary/60 text-muted-foreground transition-colors hover:text-foreground ${
-          isMobile ? "h-11 w-full text-sm" : "h-10 px-5 text-sm"
-        }`}
-      >
-        <StickyNote className="h-4 w-4" />
-        {isCreatingNote ? "Creating..." : "New Note"}
-      </Button>
+        <Terminal className="h-3 w-3" />
+        {isCreating ? "Creating…" : "or create a blank terminal"}
+      </button>
     </div>
   );
 }
@@ -122,6 +117,13 @@ export function CanvasEmptyState({
   const { createNote, isCreating: isCreatingNote } = useNotes();
   const { onlineCount } = useServices();
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const openWizard = useSetupAgentStore((s) => s.openWizard);
+  const wizardRecipe = useSetupAgentStore((s) => s.recipe);
+
+  function handleSetupAgent() {
+    logWizardEvent("wizard_opened", { recipe: wizardRecipe });
+    openWizard();
+  }
 
   const noHost = onlineCount === 0;
 
@@ -204,9 +206,8 @@ export function CanvasEmptyState({
             <HasHostActions
               isMobile={isMobile}
               isCreating={isCreating}
-              isCreatingNote={isCreatingNote}
+              onSetupAgent={handleSetupAgent}
               onCreateTerminal={handleCreateTerminal}
-              onCreateNote={handleCreateNote}
             />
           )}
         </div>

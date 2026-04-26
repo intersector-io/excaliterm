@@ -169,6 +169,47 @@ body.app-locked {
   100% { stroke-dashoffset: -16; }
 }
 
+/* ─── Wizard spawn / despawn (canvas-side materialization) ───────────────── */
+
+@keyframes wizard-node-spawn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.01);
+    box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.18);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+}
+
+.wizard-node-spawn {
+  animation: wizard-node-spawn 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center;
+}
+
+@keyframes wizard-node-despawn {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.wizard-node-despawn {
+  animation: wizard-node-despawn 280ms ease-in both;
+  transform-origin: center;
+}
+
 /* ─── Card Flip 3D ──────────────────────────────────────────────────────────── */
 
 .card-flip-container {

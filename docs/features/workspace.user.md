@@ -18,6 +18,10 @@ The workspace header shows an editable display name. Click it to rename the work
 
 Each workspace has an auto-generated API key used by the terminal-agent CLI to connect a machine to the workspace. Open **Connect a Host** from the canvas toolbar to see the full connection command with the API key pre-filled. The key can be shown or hidden in the dialog.
 
+## Empty-workspace centerpiece
+
+When a workspace has at least one online host but no canvas nodes yet, the centerpiece shows **Set up your first agent** as the primary action — a guided wizard that spawns the supervisor pattern (worker terminal + sidecar shell + HTTP triggers + `mcp.json`) in one flow. *or create a blank terminal* remains as a quiet fallback for users who want a vanilla shell. See [triggers.user.md → Quickest path](./triggers.user.md#quickest-path-the-setup-wizard) for what the wizard produces.
+
 ## Persistence
 
 Everything you create in a workspace — terminals, notes, canvas layout, chat history, command history, screenshots — is persisted server-side and available to anyone who opens the URL.

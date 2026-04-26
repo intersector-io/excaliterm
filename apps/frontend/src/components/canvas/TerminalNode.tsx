@@ -18,6 +18,7 @@ import { getStatusDotColor, getStatusLabel, isStaleStatus } from "@/lib/terminal
 import { TagEditor } from "./TagEditor";
 import { MonitorPickerDialog, type MonitorPickerMode } from "./MonitorPickerDialog";
 import { TerminalConnectionDialog } from "./TerminalConnectionDialog";
+import { useNodeSpawnClass } from "./setup-agent/useNodeSpawnClass";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -214,9 +215,11 @@ function TerminalNodeComponent({ id, data, selected }: NodeProps<TerminalNodeTyp
   const glowClass = getGlowClass();
   const borderClass = isActive ? "border-border-default/60 bg-card" : "border-border-subtle/40 bg-card/80";
 
+  const spawnClass = useNodeSpawnClass(id);
+
   return (
     <div
-      className="h-full w-full"
+      className={`h-full w-full ${spawnClass}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >

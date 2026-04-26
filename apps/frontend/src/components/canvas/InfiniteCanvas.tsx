@@ -32,6 +32,7 @@ import { TriggerNode } from "./TriggerNode";
 import { TerminalFullScreen } from "@/components/terminal/TerminalFullScreen";
 import { Button } from "@/components/ui/button";
 import { useFullscreenStore } from "@/stores/fullscreen-store";
+import { useCanvasImperativesStore } from "@/stores/canvas-imperatives-store";
 import { applyDagreLayout, buildHierarchyEdges } from "@/lib/dagre-layout";
 import { getCanvasHub } from "@/lib/signalr-client";
 import type { TerminalStatus } from "@excaliterm/shared-types";
@@ -190,6 +191,20 @@ export function InfiniteCanvas({ onFocusTerminalRef, onFullScreenRef, onAutoLayo
       };
     }
   }, [onFullScreenRef, openFullScreen]);
+
+  useEffect(() => {
+    const setFitNodes = useCanvasImperativesStore.getState().setFitNodes;
+    setFitNodes((args) => {
+      if (args.nodeIds.length === 0) return;
+      reactFlow.fitView({
+        nodes: args.nodeIds.map((id) => ({ id })),
+        padding: args.padding ?? 0.15,
+        maxZoom: args.maxZoom ?? 0.85,
+        duration: args.duration ?? 700,
+      });
+    });
+    return () => setFitNodes(null);
+  }, [reactFlow]);
 
   useEffect(() => {
     if (!onAutoLayoutRef) return;

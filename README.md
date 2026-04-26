@@ -109,9 +109,11 @@ Open the overflow menu on any terminal and attach a trigger:
 
 ### 9. Let an agent supervise your terminals
 
-Click **Connect an agent** in the canvas toolbar. Pick the terminals and HTTP triggers you want to expose, copy the generated `~/.excaliterm/mcp.json`, paste the `mcpServers` snippet into your Claude Code (or Claude Desktop, Cursor, Aider) config, restart. The agent now has `read_terminal` and `send_terminal` tools that read/write any terminal in the workspace by friendly name.
+The fastest path: click **+ Set up an agent → coding agent + sidecar shell** in the canvas toolbar. The wizard picks a host, spawns a worker terminal running your chosen CLI (`claude`, `codex`, `aider`, or custom) plus a plain shell on the same machine, attaches HTTP triggers, generates `~/.excaliterm/mcp.json`, runs an end-to-end connection test, and hands you a copy-paste system prompt — about 30 seconds end to end. Save the config on the supervisor machine and reload your MCP client.
 
-The headline use case: drop two terminals on a canvas — Terminal A runs `pnpm dev` (or any long-running workload), Terminal B runs Claude Code with the MCP loaded and is told to monitor A. Walk away. Claude reads the worker's output, decides when to intervene, restarts it when stuck. You see both terminals + the agent's reasoning side by side on the canvas.
+The wizard sets up the canonical pattern: one terminal is the subordinate coding agent the supervisor instructs in natural language; the other is a plain bash shell on the same filesystem the supervisor uses for `ls`/`git status`/recon. No mixing the two — each MCP tool call goes to the right surface.
+
+For workspaces that already have terminals you want to expose manually, **Connect an agent** stays available next to the wizard button.
 
 See [docs/features/triggers.user.md](./docs/features/triggers.user.md#supervisor-pattern-claude-code-watching-another-terminal).
 

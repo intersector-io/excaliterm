@@ -81,6 +81,36 @@ Otherwise, do nothing. Continue indefinitely.
 
 Now Terminal B has eyes on Terminal A and can fix it without you.
 
+### Pairing the agent with a sidecar shell
+
+`send_terminal` types verbatim. If the target is another coding agent (Codex, Aider, …), shell commands like `ls` land as typos in its chat, not in a shell. Solution: give the supervisor a **second** terminal on the same worker host — a plain shell it can drive for inspection — and expose both:
+
+```json
+{
+  "baseUrl": "https://your-excaliterm-host",
+  "terminals": {
+    "codex_worker_linux": { "id": "…", "readToken": "…" },
+    "linux_shell":        { "id": "…", "readToken": "…" }
+  },
+  "triggers": {
+    "codex_worker_linux": { "id": "…", "token": "…" },
+    "linux_shell":        { "id": "…", "token": "…" }
+  }
+}
+```
+
+How to produce that config:
+
+1. On the worker host's canvas, spawn two terminals. Start the coding agent in one, leave the other on a normal prompt.
+2. From each terminal's `⋯` menu → **Add HTTP trigger**.
+3. **Connect an agent** → check both terminals + both triggers → rename them to `codex_worker_linux` and `linux_shell` → copy.
+
+In the supervisor's system prompt, tell it which is which:
+
+> `codex_worker_linux` is a Codex coding-agent session — `send_terminal` natural-language instructions, `read_terminal` to see its replies. `linux_shell` is a plain bash on the same host — use it for `ls`, `cat`, `git status`, and any other recon. Never mix the two.
+
+Both terminals run on the same host agent, so they share the filesystem — `git status` from `linux_shell` reflects what Codex is actually editing.
+
 ## License
 
 MIT.
