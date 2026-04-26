@@ -131,6 +131,43 @@ If the worker goes off track, intervene from the canvas — type directly into e
 - **Add a timer trigger** on the worker with prompt `continue` and the *only when idle for 30s* gate — a Ralph loop that nudges the worker forward without interrupting it.
 - **Open an editor node** on the dev box pointed at the project so you can read the diff alongside the terminals.
 
+## Handling worker rate limits
+
+If the worker is itself a Claude / Codex / Aider session, it will eventually hit a usage limit mid-task and print something like *"You've reached your usage limit. Resets at 14:00."* The supervisor is a chat session, not a daemon, so it can't reliably sleep for hours and resume on its own. Three patterns, in order of complexity:
+
+### Option A — Detect and park (manual resume)
+
+Tell the supervisor in its system prompt to recognise the limit message:
+
+> If `read_terminal` on `claude_worker` shows a usage-limit notice, stop dispatching new work. Drop a sticky note on the canvas summarising progress so far and the reset time, then end your turn. When I message you again, re-read both terminals and resume from where you left off.
+
+Bulletproof, no infrastructure — but you have to nudge it after the reset.
+
+### Option B — Timer trigger as a heartbeat (autonomous resume)
+
+Attach a **timer trigger** to the worker terminal with prompt `continue`, interval `5 min`, and the **only when idle for 30s** gate enabled. While the worker is rate-limited the input is rejected harmlessly; once the limit resets the next firing lands and the worker picks up the task on its own.
+
+The supervisor doesn't need to be online for the resume — you just check the canvas later. Trade-off: resumption happens within a 5-minute window of the reset, not instantly, and the prompt is a generic `continue` rather than task-specific context. Pair it with Option A so the supervisor parks a sticky note describing where the worker should pick up.
+
+### Option C — Scheduled HTTP trigger (precise resume)
+
+If the worker prints an exact reset timestamp, register a one-shot call to the worker's **HTTP trigger** at that time from cron-job.org (or any scheduler), with a `continue`-style payload:
+
+```bash
+curl -X POST 'https://hub.excaliterm.com/api/triggers/<worker-trigger-id>/fire' \
+  -H 'X-Trigger-Token: <secret>' \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"continue with the task: <short summary>"}'
+```
+
+Precise to the minute and lets you inject task-specific context, at the cost of an external scheduler dependency. Combine with `X-Trigger-Require-Idle: 30` so the call no-ops if the worker happens to be busy.
+
+### Picking one
+
+- Solo dev, you're around → **A**.
+- Long-running unattended job → **B**, with **A** as the fallback note for context.
+- Tight resume timing matters (cost-sensitive batch, hand-off across timezones) → **C**.
+
 ## When things go wrong
 
 | Symptom | Likely cause | Fix |
