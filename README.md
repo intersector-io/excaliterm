@@ -1,8 +1,30 @@
 # Excaliterm
 
-Collaborative terminal workspace with an infinite canvas UI, shared notes, chat, and file access.
+Collaborative terminals on an infinite canvas. Run an AI agent that supervises another terminal, pair-debug prod with a teammate, or stand up an on-call war room — all by workspace URL, no sign-up.
 
 [excaliterm.com](https://excaliterm.com) | [npm](https://www.npmjs.com/package/excaliterm)
+
+## Use cases
+
+Excaliterm is built for moments where a single shared terminal isn't enough — when you need multiple shells across multiple machines visible at once, plus the people (or agents) operating them in the same view.
+
+### 1. Run an AI coding agent with a human-in-the-loop supervisor
+
+The headline pattern. You spawn two terminals on the same host: a **worker** running `claude` / `codex` / `aider` (or any custom CLI), and a plain **sidecar shell**. Your *supervisor* — your own MCP-enabled Claude Code or Claude Desktop — drives the worker with natural-language tool calls and uses the sidecar for `ls` / `git status` / filesystem recon on the same working tree. You watch the whole loop on the canvas: worker output, sidecar reads, trigger pulses when the supervisor sends a command.
+
+The **+ Set up an agent** wizard in the toolbar provisions the worker, the sidecar, both HTTP triggers, the `mcp.json` config, and a per-CLI starter system prompt in about 30 seconds. See [§9](#9-let-an-agent-supervise-your-terminals).
+
+### 2. Pair-debug prod or run an incident war room
+
+Paste the workspace URL into Slack; teammates join by clicking the link. Everyone sees the same live shells in real time — terminal locks prevent fighting over the prompt, chat sits next to the commands, sticky notes capture decisions in place. Tag terminals by host or environment, drop them on the canvas, stream a monitor from any host at ~3 fps when you need the GUI not just the shell. Persistent across reloads — the workspace is your postmortem trail.
+
+### 3. Teach or onboard remotely
+
+Instructor types, learners watch live. Drop sticky notes with the next step right next to the terminal, open a file editor alongside the shell, switch between terminals with the dock. Learners join by URL — no install, no account on their end. Mobile-friendly, so a learner on the bus can follow along.
+
+### 4. Automate the shell from cron, CI, or any webhook
+
+Attach a **timer trigger** to a terminal to run a stored prompt every N minutes — with an "only when idle" gate so agentic loops (Ralph loop) don't inject `continue` mid-execution. Or attach an **HTTP trigger** to expose a signed webhook URL; calling it submits the prompt as if you typed it. cron-job.org → Excaliterm → your terminal, with a token rotation button when the URL leaks.
 
 ## Screenshots
 
@@ -117,7 +139,7 @@ For workspaces that already have terminals you want to expose manually, **Connec
 
 See [docs/features/triggers.user.md](./docs/features/triggers.user.md#supervisor-pattern-claude-code-watching-another-terminal).
 
-### 9. Share with others
+### 10. Share with others
 
 Copy the workspace URL and send it to anyone. They join instantly as a collaborator -- no accounts needed.
 
